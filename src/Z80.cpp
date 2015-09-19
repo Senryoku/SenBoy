@@ -3,7 +3,8 @@
 #include <cassert>
 
 Z80::Z80() :
-	_mem(new word_t[RAMSize])
+	_mem(new word_t[RAMSize]),
+	_zp_mem(new word_t[ZPRAMSize])
 {
 	reset();
 	
@@ -16,6 +17,7 @@ Z80::Z80() :
 Z80::~Z80()
 {
 	delete _mem;
+	delete _zp_mem;
 }
 
 void Z80::reset()
