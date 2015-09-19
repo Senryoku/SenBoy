@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <unordered_set>
 
 #include "ROM.hpp"
 #include "GPU.hpp"
@@ -43,14 +44,37 @@ public:
 	
 	void display_state()
 	{
+		/*
 		std::cout << "PC: 0x" << std::hex << (int) (_pc - 1) << ", Excuting opcode: 0x" << std::hex << (int) read(_pc - 1) 
 			<< " [0x" << (int) read(_pc) << " - 0x" << (int) read(_pc + 1) << "] AF:0x" << (int) getAF() << " BC:0x" << (int) getBC() 
 				<< " DE:0x" << (int) getDE() << " HL:0x" << (int) getHL() << std::endl;
+		*/
 	}
 	
+	inline unsigned int getClockCycles() const { return _clock_cycles; }
+	inline unsigned int getInstrCycles() const { return _clock_instr_cycles; }
+	inline addr_t getPC() const { return _pc; }
+	inline addr_t getSP() const { return _sp; }
+	inline addr_t getAF() const { return (static_cast<addr_t>(_a) << 8) + _f; }
+	inline addr_t getBC() const { return (static_cast<addr_t>(_b) << 8) + _c; }
+	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
+	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
+	
+	inline int getNextOpcode() const { read(_pc); };
+	inline int getNextOperand0() const { read(_pc + 1); };
+	inline int getNextOperand1() const { read(_pc + 2); };
+	
+	inline bool breakpoint() const { _breakpoint; };
+	inline void addBreakpoint(addr_t addr) { _breakpoints.insert(addr); };
+	inline void clearBreakpoints() { _breakpoints.clear(); };
+	
 	void execute()
-	{
+	{	
+		_clock_instr_cycles = 0;
+		_machine_instr_cycles = 0;
+		
 		word_t opcode = read(_pc++);
+		display_state();
 		// Decode opcode (http://www.z80.info/decoding.htm)
 		// Check prefixes
 		if(opcode == 0xCB) // Almost done @todo: Impl. S&R
@@ -59,8 +83,6 @@ public:
 			word_t x = opcode >> 6; // bits 6 & 7
 			word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
 			word_t reg = extract_src_reg(opcode);
-			
-			std::cout << "C8 "; display_state();
 			
 			switch(x)
 			{
@@ -89,8 +111,6 @@ public:
 		} else {
 			word_t x = opcode >> 6; // bits 6 & 7
 			word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
-			
-			display_state();
 			
 			switch(x)
 			{
@@ -173,7 +193,7 @@ public:
 					word_t reg_src = extract_src_reg(opcode);
 					word_t value = fetchReg(reg_src);
 					
-					switch((opcode >> 2) & 0b111)
+					switch((opcode >> 3) & 0b111)
 					{
 						case 0: instr_add(value); break;
 						case 1: instr_adc(value); break;
@@ -203,8 +223,8 @@ public:
 						{
 							case 0xC0: instr_ret(!check(Flag::Zero)); break;
 							case 0xD0: instr_ret(!check(Flag::Carry)); break;
-							case 0xE0: instr_ld(rw(_pc++), _a); add_cycles(1); break;
-							case 0xF0: instr_ld(_a, read(_pc++)); add_cycles(1); break;
+							case 0xE0: instr_ld(rw(0xFF00 + _pc++), _a); add_cycles(1); break;		// LDH (n), a
+							case 0xF0: instr_ld(_a, read(0xFF00 + _pc++)); add_cycles(1); break;	// LDH a, (n)
 							// POP
 							case 0xC1: setBC(instr_pop()); break;
 							case 0xD1: setDE(instr_pop()); break;
@@ -250,9 +270,18 @@ public:
 				}
 			}
 		}
+		_clock_cycles += _clock_instr_cycles;
+		
+		_breakpoint = _breakpoints.count(_pc) > 0;
 	}
 	
 private:
+	///////////////////////////////////////////////////////////////////////////
+	// Debug
+	
+	bool 						_breakpoint = false;
+	std::unordered_set<addr_t> 	_breakpoints;
+	
 	///////////////////////////////////////////////////////////////////////////
 	// Registers
 	
@@ -276,10 +305,6 @@ private:
 	};
 	
 	// 8/16bits registers access helpers
-	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
-	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
-	inline addr_t getBC() const { return (static_cast<addr_t>(_b) << 8) + _c; }
-	inline addr_t getAF() const { return (static_cast<addr_t>(_a) << 8) + _f; }
 	inline void setHL(addr_t val) { _h = static_cast<word_t>((val >> 8) & 0xFF); _l = val & 0xFF; } 
 	inline void setDE(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
 	inline void setBC(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
@@ -298,13 +323,14 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// Cycles management
 	
-	unsigned int	_clock_cycles = 0;
-	unsigned int	_machine_cycles = 0;
+	unsigned int	_clock_cycles = 0;			// Clock cycles since reset
+	unsigned int	_clock_instr_cycles = 0;	// Clock cycles of the last instruction
+	unsigned int	_machine_instr_cycles = 0;	// Machine cycles of the last instruction
 	
 	inline void add_cycles(unsigned int c, unsigned int m = 0)
 	{
-		_clock_cycles += c;
-		_machine_cycles += (m == 0) ? 4 * c : m;
+		_clock_instr_cycles += c;
+		_machine_instr_cycles += (m == 0) ? 4 * c : m;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
@@ -344,9 +370,7 @@ private:
 			return _mem[(addr - 0xC000) % RAMSize];
 		else if(addr < 0xFEA0) // Sprites (OAM) @todo
 			return _mem[0];
-		else if(addr < 0xFF00) // Empty but unusable for I/O
-			return _mem[0];
-		else if(addr < 0xFF4C) // I/O @todo
+		else if(addr < 0xFF80) // I/O @todo
 			return gpu->read(addr);
 		else if(addr < 0xFF80) // Empty but unusable for I/O
 			return _mem[0];
@@ -369,9 +393,7 @@ private:
 			return _mem[(addr - 0xC000) % RAMSize];
 		else if(addr < 0xFEA0) // Sprites (OAM) @todo
 			return _mem[0];
-		else if(addr < 0xFF00) // Empty but unusable for I/O
-			return _mem[0];
-		else if(addr < 0xFF4C) // I/O @todo
+		else if(addr < 0xFF80) // I/O @todo
 			return gpu->read(addr);
 		else if(addr < 0xFF80) // Empty but unusable for I/O
 			return _mem[0];

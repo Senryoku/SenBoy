@@ -44,3 +44,7 @@ Temporary Items
 
 # Test files
 tests/*
+CMakeFiles/*
+CMakeCache.txt
+cmake_install.cmake
+Makefile

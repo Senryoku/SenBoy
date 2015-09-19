@@ -7,8 +7,17 @@ class GPU
 public:
 	using word_t = uint8_t;
 	using addr_t = uint16_t;
+	struct color_t
+	{ 
+		word_t r, g, b, a;
+		color_t& operator=(word_t val)
+		{
+			r = g = b = a = val;
+			return *this;
+		}
+	};
 	
-	word_t*	screen = nullptr;
+	color_t*	screen = nullptr;
 	
 	const word_t ScreenWidth = 160;
 	const word_t ScreenHeight = 144;
@@ -47,7 +56,7 @@ public:
 	
 	GPU()
 	{
-		screen = new word_t[ScreenWidth * ScreenHeight];
+		screen = new color_t[ScreenWidth * ScreenHeight];
 		_vram = new word_t[0x1FFF];
 	}
 	
@@ -60,50 +69,19 @@ public:
 	void reset()
 	{
 		std::memset(_vram, 0, 0x1FFF);
-		std::memset(screen, 0, ScreenWidth * ScreenHeight);
+		std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
+		
+		_line = _scroll_x = _scroll_y = _bkgd_pal = _lcd_control = _lcd_status = _cycles = 0;
+		_lcd_status = (_lcd_status & ~LCDMode) | Mode::OAM;
 	}
 	
 	void step()
 	{
 		update_mode();
 		
-		/// @see http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
-		addr_t mapoffs = (_lcd_control & BGTileMapDisplaySelect) ? 0x1C00 : 0x1800;
-		mapoffs += ((_line + _scroll_x) & 255) >> 3;
-		word_t lineoffs = (_scroll_x >> 3);
 		
-		word_t x = _scroll_x & 7;
-		word_t y = (_line + _scroll_y) & 7;
 		
-		word_t tile = read(mapoffs + lineoffs);
-		if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
-		
-		word_t tile_l = _vram[tile * 2];
-		word_t tile_h = _vram[tile * 2 + 1];
-		word_t tile_data0, tile_data1;
-		palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-		
-		std::cout << "Tile: " << (int) tile << " y: " << (int) y << std::endl;
-		for(word_t i = 0; i < 160; i++)
-		{
-			word_t idx = y * 8 + i;
-			word_t color = ((idx > 3 ? tile_data1 : tile_data0) >> (idx * 2)) & 0b11; // 0-3
-			screen[to1D(i, _line)] = getPaletteColor(color);
-			
-			++x;
-			if(x == 8)
-			{
-				x = 0;
-				lineoffs = (lineoffs + 1) & 31;
-				tile = _vram[mapoffs + lineoffs];
-				tile_l = _vram[tile * 2];
-				tile_h = _vram[tile * 2 + 1];
-				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-				if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
-			}
-		}
-			
-		_cycles += 160;
+		++_cycles;
 	}
 	
 	word_t& read(addr_t addr)
@@ -138,7 +116,6 @@ private:
 	word_t*			_vram = nullptr;
 	
 	// Timing
-	word_t			_dot = 0;
 	word_t			_line = 0;
 	unsigned int	_cycles = 0;
 	
@@ -147,9 +124,9 @@ private:
 		switch(_lcd_status & LCDMode)
 		{
 			case Mode::HBlank:
-				if(_cycles >= 204)
+				if(_cycles >= 51)
 				{
-					_cycles -= 204;
+					_cycles -= 51;
 					_line++;
 					if(_line >= 143)
 					{
@@ -160,9 +137,9 @@ private:
 				}
 				break;
 			case Mode::VBlank:
-				if(_cycles >= 456)
+				if(_cycles >= 114)
 				{
-					_cycles -= 456;
+					_cycles -= 114;
 					_line++;
 					if(_line >= 153)
 					{
@@ -172,19 +149,60 @@ private:
 				}
 				break;
 			case Mode::OAM:
-				if(_cycles >= 80)
+				if(_cycles >= 20)
 				{
-					_cycles -= 80;
+					_cycles -= 20;
 					_lcd_status = (_lcd_status & ~LCDMode) | Mode::VRAM;
 				}
 				break;
 			case Mode::VRAM:
-				if(_cycles >= 172)
+				if(_cycles >= 43)
 				{
-					_cycles -= 172;
+					_cycles -= 43;
+					render_line();
 					_lcd_status = (_lcd_status & ~LCDMode) | Mode::HBlank;
 				}
 				break;
+		}
+	}
+	
+		
+	void render_line()
+	{
+		/// @see http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
+		addr_t mapoffs = (_lcd_control & BGTileMapDisplaySelect) ? 0x1C00 : 0x1800;
+		mapoffs += ((_line + _scroll_x) & 255) >> 3;
+		word_t lineoffs = (_scroll_x >> 3);
+		
+		word_t x = _scroll_x & 7;
+		word_t y = (_line + _scroll_y) & 7;
+		
+		word_t tile = read(mapoffs + lineoffs);
+		if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
+		
+		word_t tile_l = _vram[tile * 2];
+		word_t tile_h = _vram[tile * 2 + 1];
+		word_t tile_data0, tile_data1;
+		palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+		
+		//std::cout << "Tile: " << (int) tile << " y: " << (int) y << std::endl;
+		for(word_t i = 0; i < 160; i++)
+		{
+			word_t idx = y * 8 + x;
+			word_t color = ((idx > 3 ? tile_data1 : tile_data0) >> (idx * 2)) & 0b11; // 0-3
+			screen[to1D(i, _line)] = getPaletteColor(color);
+			
+			++x;
+			if(x == 8)
+			{
+				x = 0;
+				lineoffs = (lineoffs + 1) & 31;
+				tile = _vram[mapoffs + lineoffs];
+				tile_l = _vram[tile * 2];
+				tile_h = _vram[tile * 2 + 1];
+				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+				if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
+			}
 		}
 	}
 	
