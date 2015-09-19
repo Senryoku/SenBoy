@@ -1,6 +1,6 @@
 #include "Z80.hpp"
 
-#include <cstring>
+#include <cstring> // Memset
 
 Z80::Z80() :
 	_mem(new word_t[RAMSize]),
@@ -16,9 +16,9 @@ Z80::Z80() :
 
 Z80::~Z80()
 {
-	delete _mem;
-	delete _zp_mem;
-	delete _cart_mem;
+	delete[] _mem;
+	delete[] _zp_mem;
+	delete[] _cart_mem;
 }
 
 void Z80::reset()
