@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cassert>
 #include <iostream>
+
+#include "Rom.hpp"
 
 /**
  * Zilog 80 CPU
@@ -25,23 +28,37 @@ public:
 		Carry = 0x10		///< Last result was > 0xFF or < 0x00
 	};
 	
+	ROM*	rom = nullptr;
+	
 	Z80();
 	~Z80();
 	
-	/// Reset the CPU, zero-ing all registers.
+	/// Reset the CPU, zero-ing all registers. (Power-up state)
 	void reset();
+	
+	/// Reset to post internal checks
+	void reset_cart();
+	
+	void display_state()
+	{
+		std::cout << "PC: 0x" << std::hex << (int) (_pc - 1) << ", Excuting opcode: 0x" << std::hex << (int) read(_pc - 1) 
+			<< " [0x" << (int) read(_pc) << " - 0x" << (int) read(_pc + 1) << "] AF:0x" << (int) getAF() << " BC:0x" << (int) getBC() 
+				<< " DE:0x" << (int) getDE() << " HL:0x" << (int) getHL() << std::endl;
+	}
 	
 	void execute()
 	{
-		word_t opcode = _mem[_pc++];
+		word_t opcode = read(_pc++);
 		// Decode opcode (http://www.z80.info/decoding.htm)
 		// Check prefixes
 		if(opcode == 0xCB) // Almost done @todo: Impl. S&R
 		{
-			opcode = _mem[_pc++];
+			opcode = read(_pc++);
 			word_t x = opcode >> 6; // bits 6 & 7
 			word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
-			word_t reg = extract_src_reg(opcode);;
+			word_t reg = extract_src_reg(opcode);
+			
+			std::cout << "C8 "; display_state();
 			
 			switch(x)
 			{
@@ -69,10 +86,12 @@ public:
 			}
 		} else {
 			word_t x = opcode >> 6; // bits 6 & 7
-			word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
+			//word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
 			//word_t z = opcode & 0b111; // bits 2 - 0
-			word_t p = y >> 1; // bits 5 & 4
+			//word_t p = y >> 1; // bits 5 & 4
 			//word_t q = y & 1; // bit 3
+			
+			display_state();
 			
 			switch(x)
 			{
@@ -83,7 +102,7 @@ public:
 						case 0x0C: // Same logic
 						case 0x04: instr_inc(fetchReg(extract_dst_reg(opcode))); break;
 						case 0x0D: // Same logic
-						case 0x05: instr_dec(fetchReg(extract_dst_reg(opcode)); break;
+						case 0x05: instr_dec(fetchReg(extract_dst_reg(opcode))); break;
 						case 0x0E: // Same logic
 						case 0x06: instr_ld(fetchReg(extract_dst_reg(opcode)), read(_pc++)); break;
 						default: // Uncategorized codes
@@ -91,12 +110,12 @@ public:
 						{
 							case 0x00: instr_nop(); break;
 							case 0x10: instr_stop(); break;
-							case 0x20: instr_jr(Flag::Negative | Flag::Zero, read(_pc++)); break;
-							case 0x30: instr_jr(Flag::Negative | Flag::Carry, read(_pc++)); break;
-							case 0x01: setBC(read16(_pc)); _pc + =2; break;
-							case 0x11: setDE(read16(_pc)); _pc + =2; break;
-							case 0x21: setHL(read16(_pc)); _pc + =2; break;
-							case 0x31: _sp = read16(_pc); _pc + =2; break;
+							case 0x20: instr_jr(!check(Flag::Zero), read(_pc++)); break;
+							case 0x30: instr_jr(!check(Flag::Carry), read(_pc++)); break;
+							case 0x01: setBC(read16(_pc)); _pc += 2; break;
+							case 0x11: setDE(read16(_pc)); _pc += 2; break;
+							case 0x21: setHL(read16(_pc)); _pc += 2; break;
+							case 0x31: _sp = read16(_pc); _pc += 2; break;
 							case 0x02: _a = read(getBC()); break;
 							case 0x12: _a = read(getDE()); break;
 							case 0x22: _a = read(getHL()); incrHL(); break;
@@ -114,8 +133,8 @@ public:
 							//
 							case 0x08: write(read16(_pc), _sp); _pc += 2; break;	// 16bits LD
 							case 0x18: instr_jr(read(_pc++)); break;
-							case 0x28: instr_jr(Flag::Zero, read(_pc++)); break;
-							case 0x38: instr_jr(Flag::Carry, read(_pc++)); break;
+							case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
+							case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;
 							// ADD HL, 16bits Reg
 							case 0x09: setHL(getHL() + getBC()); add_cycles(8); break;
 							case 0x19: setHL(getHL() + getDE()); add_cycles(8); break;
@@ -134,7 +153,7 @@ public:
 							case 0x2F: instr_cpl(); break;
 							case 0x3F: instr_ccf(); break;
 							default:
-								std::cerr << "Unknown opcode: " << std::hex << opcode << std::endl;
+								std::cerr << "Unknown opcode: 0x" << std::hex << (int) opcode << std::endl;
 								break;
 						}
 					}
@@ -172,61 +191,60 @@ public:
 				{
 					switch(opcode & 0x0F)
 					{
-						case 0x04: instr_call(Flag::Negative | (((opcode >> 4) == 0xC) ? 
-																	Flag::Zero : Flag::Carry), 
-												read16(_pc)); _pc += 2; break;
+						case 0x04: _pc += 2; instr_call(!check(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry), 
+												read16(_pc - 2));  break;
 						case 0x07: instr_rst(extract_dst_reg(opcode)); break;
 						case 0x0B: if(opcode == 0xFB) instr_ei(); break;
-						case 0x0C: instr_call(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry,
-												read16(_pc)); pc += 2; break;
-						case 0x0D: instr_call(read16(_pc)); pc += 2; break;
+						case 0x0C: _pc += 2; instr_call(check(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry),
+												read16(_pc - 2)); break;
+						case 0x0D: _pc += 2; instr_call(read16(_pc - 2)); break;
 						case 0x0F: instr_rst(extract_dst_reg(opcode)); break;
 						default: // Uncategorized codes
 						switch(opcode)
 						{
-							case 0xC0: instr_ret(Flag::Negative | Flag::Zero); break;
-							case 0xD0: instr_ret(Flag::Negative | Flag::Carry); break;
-							case 0xE0: instr_ld(read(_pc++), _a); add_cycles(1); break;
+							case 0xC0: instr_ret(!check(Flag::Zero)); break;
+							case 0xD0: instr_ret(!check(Flag::Carry)); break;
+							case 0xE0: instr_ld(rw(_pc++), _a); add_cycles(1); break;
 							case 0xF0: instr_ld(_a, read(_pc++)); add_cycles(1); break;
 							// POP
 							case 0xC1: setBC(instr_pop()); break;
 							case 0xD1: setDE(instr_pop()); break;
 							case 0xE1: setHL(instr_pop()); break;
 							case 0xF1: setAF(instr_pop()); break;
-							case 0xC2: instr_jp(Flag::Negative | Flag::Zero, read16(_pc)); pc += 2; break;
-							case 0xD2: instr_jp(Flag::Negative | Flag::Carry, read16(_pc)); pc += 2; break;
-							case 0xE2: instr_ld(read(_c), _a); break;
+							case 0xC2: instr_jp(!check(Flag::Zero), read16(_pc)); break;
+							case 0xD2: instr_jp(!check(Flag::Carry), read16(_pc)); break;
+							case 0xE2: instr_ld(rw(_c), _a); break;
 							case 0xF2: instr_ld(_a, read(_c)); break;
-							case 0xC3: instr_jp(read16(_pc)); pc += 2; break;
+							case 0xC3: instr_jp(read16(_pc)); break;
 							case 0xF3: instr_di(); break;
 							// PUSH
 							case 0xC5: instr_push(getBC()); break;
 							case 0xD5: instr_push(getDE()); break;
 							case 0xE5: instr_push(getHL()); break;
 							case 0xF5: instr_push(getAF()); break;
-							case 0xC8: instr_ret(Flag::Zero); break;
-							case 0xD8: instr_ret(Flag::Carry); break;
-							case 0xE8: instr_add(_sp, read(_pc++)); break;
-							case 0xF8: instr_ld(getHL(), _sp + read(_pc++)); break; // !!!! special case for HL T_T
+							case 0xC8: instr_ret(check(Flag::Zero)); break;
+							case 0xD8: instr_ret(check(Flag::Carry)); break;
+							case 0xE8: _sp += read(_pc++); break;
+							case 0xF8: setHL(_sp + read(_pc++)); break; // 16bits LD
 							case 0xC9: instr_ret(); break;
 							case 0xD9: instr_reti(); break;
 							case 0xE9: instr_jp(getHL()); break;
 							case 0xF9: instr_ld(_sp, getHL()); break;
-							case 0xCA: instr_jp(Flag::Zero, read16(_pc)); pc += 2; break;
-							case 0xDA: instr_jp(Flag::Carry, read16(_pc)); pc += 2; break;
-							case 0xEA: write(read16(_pc), _a); pc += 2; break;	// 16bits LD
-							case 0xFA: instr_ld(_a, read16(_pc)); pc += 2; break;
+							case 0xCA: instr_jp(check(Flag::Zero), read16(_pc)); break;
+							case 0xDA: instr_jp(check(Flag::Carry), read16(_pc)); break;
+							case 0xEA: write(read16(_pc), _a); _pc += 2; break;	// 16bits LD
+							case 0xFA: instr_ld(_a, read16(_pc)); _pc += 2; break;
 							case 0xC6: instr_add(read(_pc++)); break;
 							case 0xD6: instr_adc(read(_pc++)); break;
 							case 0xE6: instr_sub(read(_pc++)); break;
 							case 0xF6: instr_sbc(read(_pc++)); break;
-							case 0xCF: instr_and(read(_pc++)); break;
-							case 0xDF: instr_xor(read(_pc++)); break;
-							case 0xEF: instr_or(read(_pc++)); break;
-							case 0xFF: instr_cp(read(_pc++)); break;
+							case 0xCE: instr_and(read(_pc++)); break;
+							case 0xDE: instr_xor(read(_pc++)); break;
+							case 0xEE: instr_or(read(_pc++)); break;
+							case 0xFE: instr_cp(read(_pc++)); break;
 							default:
 								instr_nop();
-								std::cerr << "Unknown opcode: " << std::hex << opcode << std::endl;
+								std::cerr << "Unknown opcode: 0x" << std::hex << (int) opcode << std::endl;
 								break;
 						}
 					}
@@ -239,9 +257,9 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// Registers
 	
-	addr_t	_pc;	///< Program Counter
-	addr_t	_sp;	///< Stack Pointer Register
-	word_t	_f;		///< Flags Register
+	addr_t	_pc = 0;	///< Program Counter
+	addr_t	_sp = 0;	///< Stack Pointer Register
+	word_t	_f = 0;		///< Flags Register
 	
 	union ///< 8 bits general purpose registers.
 	{
@@ -252,7 +270,7 @@ private:
 			word_t	_c;		///< C Register (Counter)
 			word_t	_d;		///< D Register
 			word_t	_e;		///< E Register
-			word_t	_h;		///< F Register
+			word_t	_h;		///< H Register
 			word_t	_l;		///< L Register
 		};
 		word_t _r[7];		///< Another way to access the 8 bits registers.
@@ -260,17 +278,17 @@ private:
 	
 	// 8/16bits registers access helpers
 	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
-	inline addr_t setDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
-	inline addr_t setBC() const { return (static_cast<addr_t>(_b) << 8) + _c; }
-	inline addr_t setAF() const { return (static_cast<addr_t>(_a) << 8) + _f; }
-	inline void setHL(addr_t val) { _h = (val >> 8) & 0xFF; _l = val & 0xFF; } 
+	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
+	inline addr_t getBC() const { return (static_cast<addr_t>(_b) << 8) + _c; }
+	inline addr_t getAF() const { return (static_cast<addr_t>(_a) << 8) + _f; }
+	inline void setHL(addr_t val) { _h = static_cast<word_t>((val >> 8) & 0xFF); _l = val & 0xFF; } 
 	inline void setDE(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
 	inline void setBC(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
 	inline void setAF(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xFF; } 
-	inline word_t& fetchHL() { add_cycles(1); return _mem[getHL()]; }
+	inline word_t& fetchHL() { add_cycles(1); return rw(getHL()); } // @todo replace add_cycles by read ?
 	inline word_t& fetchReg(word_t n) { return (n > 6) ? fetchHL() : _r[n]; }
 	inline void incrHL() { _l++; if(_l == 0) _h++; }
-	inline void descHL() { if(_l == 0) _h--; _l--; }
+	inline void decrHL() { if(_l == 0) _h--; _l--; }
 	
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
@@ -291,19 +309,59 @@ private:
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
+	// Stack management
+	
+	void push(addr_t addr)
+	{
+		rw(_sp--) = addr & 0xFF;
+		rw(_sp--) = (addr >> 8) & 0xFF;
+	}
+	
+	addr_t pop()
+	{
+		assert(_sp <= 0xFFFF - 2);
+		addr_t addr = 0;
+		addr = static_cast<addr_t>(read(++_sp)) << 8;
+		addr |= read(++_sp);
+		return addr;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////
 	// RAM management
 	
-	word_t*	_mem;		///< Working RAM
-	word_t*	_zp_mem;	///< Zero-page RAM
+	word_t*	_mem = nullptr;			///< Working RAM
+	word_t*	_zp_mem = nullptr;		///< Zero-page RAM
+	word_t*	_cart_mem = nullptr;	///< Cartridge RAM
 	
-	inline word_t& read(addr_t addr)
+	inline word_t read(addr_t addr) const
 	{
 		if(addr < 0x4000) // ROM @todo
-			return _mem[0];
+			return static_cast<word_t>(rom->read(addr));
 		else if(addr < 0xA000) // VRAM @todo
 			return _mem[0];
 		else if(addr < 0xC000) // Cartridge RAM @todo
+			return _cart_mem[addr - 0xA000];
+		else if(addr < 0xFE00) // Working RAM (& mirror)
+			return _mem[(addr - 0xC000) % RAMSize];
+		else if(addr < 0xFF00) // Sprites @todo
 			return _mem[0];
+		else if(addr < 0xFF80) // I/O @todo
+			return _mem[0];
+		else // Zero-page RAM
+			return _zp_mem[addr - 0xFF80];
+			
+		// @todo Could it work ???
+		// add_cycles(1);
+	}
+	
+	inline word_t& rw(addr_t addr)
+	{
+		if(addr < 0x4000)
+			return reinterpret_cast<word_t&>(rom->read(addr));
+		else if(addr < 0xA000) // VRAM @todo
+			return _mem[0];
+		else if(addr < 0xC000) // Cartridge RAM @todo
+			return _cart_mem[addr - 0xA000];
 		else if(addr < 0xFE00) // Working RAM (& mirror)
 			return _mem[(addr - 0xC000) % RAMSize];
 		else if(addr < 0xFF00) // Sprites @todo
@@ -324,12 +382,12 @@ private:
 	
 	inline void	write(addr_t addr, word_t value)
 	{
-		if(addr < 0x4000) // ROM @todo
-			(void) 0;
+		if(addr < 0x4000)
+			rom->write(addr, value);
 		else if(addr < 0xA000) // VRAM @todo
 			(void) 0;
 		else if(addr < 0xC000) // Cartridge RAM @todo
-			(void) 0;
+			_cart_mem[addr - 0xA000] = value;
 		else if(addr < 0xFE00) // Working RAM (& mirror)
 			_mem[(addr - 0xC000) % RAMSize] = value;
 		else if(addr < 0xFF00) // Sprites @todo
@@ -347,13 +405,24 @@ private:
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
+	// Interruptions
+	
+	bool _interrupts_enable = false;
+	
+	///////////////////////////////////////////////////////////////////////////
 	// Instructions
 	
 	// Helper function on opcodes
 	inline word_t extract_src_reg(word_t opcode) const { return (opcode + 1) & 0b111; }
 	inline word_t extract_dst_reg(word_t opcode) const { return ((opcode >> 3) + 1) & 0b111; }
+	inline void rel_jump(word_t offset) { _pc += offset - ((offset & 0b10000000) ? 0x100 : 0); }
 	
 	inline void instr_nop() { add_cycles(1); }
+	
+	inline void instr_stop()
+	{
+		std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	}
 
 	inline void instr_ld(word_t& dst, word_t src)
 	{
@@ -409,6 +478,16 @@ private:
 		set(Flag::Zero, _a == 0);
 		set(Flag::Negative, true);
 		add_cycles(1);
+	}
+	
+	inline void instr_inc(word_t& src)
+	{
+		++src;
+	}
+	
+	inline void instr_dec(word_t& src)
+	{
+		--src;
 	}
 	
 	inline void instr_and(word_t src)
@@ -497,6 +576,168 @@ private:
 	inline void instr_srl(word_t v)
 	{
 		std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	}
+	
+	inline void instr_push(addr_t addr)
+	{
+		push(addr);
+	}
+	
+	inline addr_t instr_pop()
+	{
+		return pop();
+	}
+	
+	inline void instr_jp(addr_t addr)
+	{
+		_pc = addr;
+	}
+	
+	inline void instr_jp(bool b, addr_t addr)
+	{
+		if(b)
+			_pc = addr;
+	}
+	
+	inline void instr_jr(word_t offset)
+	{
+		rel_jump(offset);
+	}
+	
+	inline void instr_jr(bool b, word_t offset)
+	{
+		if(b) rel_jump(offset);
+	}
+		
+	inline void instr_ret(bool b = true)
+	{
+		if(b)
+			_pc = pop();
+	}
+	
+	inline void instr_reti()
+	{
+		_pc = pop();
+		_interrupts_enable = true;
+	}
+	
+	inline void instr_di()
+	{
+		_interrupts_enable = false;
+	}
+	
+	inline void instr_rlca()
+	{
+		set(Flag::Carry, _a & 0b10000000);
+		_a = _a << 1;
+		set(Flag::Zero, _a == 0);
+	}
+	
+	inline void instr_rla()
+	{
+		word_t tmp = check(Flag::Carry) ? 1 : 0;
+		set(Flag::Carry, _a & 0b10000000);
+		_a = _a << 1;
+		_a += tmp;
+		set(Flag::Zero, _a == 0);
+	}
+	
+	inline void instr_daa() ///< @todo check
+	{
+		word_t tmp = 0;
+		word_t nl = _a & 0x0f;
+		word_t nh = (_a & 0xf0) >> 4;
+
+		if(!check(Flag::Negative))
+		{
+			if (check(Flag::HalfCarry) || (nl > 0x09))
+			{
+				tmp += 0x06;
+			}
+			if (check(Flag::Carry) || (nh > 0x09) || ((nh == 9) && (nl > 9)))
+			{
+				tmp += 0x60;
+			}
+			set(Flag::Carry, tmp > 0x5f);
+		} else {
+			if (!check(Flag::Carry) && check(Flag::HalfCarry))
+			{
+				tmp += 0xfa;
+				set(Flag::Carry, false);
+			} else if (check(Flag::Carry) && !check(Flag::HalfCarry)) {
+				tmp += 0xa0;
+				set(Flag::Carry);
+			} else if (check(Flag::Carry) && check(Flag::HalfCarry)) {
+				tmp += 0x9a;
+				set(Flag::Carry);
+			} else {
+				set(Flag::Carry, false);
+			}
+		}
+		set(Flag::Zero, tmp == 0);
+		set(Flag::HalfCarry, false);
+		_a -= tmp;
+	}
+	
+	inline void instr_scf()
+	{
+		set(Flag::Carry);
+	}
+	
+	inline void instr_rrca()
+	{
+		set(Flag::Carry, _a & 0b00000001);
+		_a = _a >> 1;
+		set(Flag::Zero, _a == 0);
+	}
+	
+	inline void instr_rra()
+	{
+		word_t tmp = check(Flag::Carry) ? 0b10000000 : 0;
+		set(Flag::Carry, _a & 0b00000001);
+		_a = _a >> 1;
+		_a += tmp;
+		set(Flag::Zero, _a == 0);
+	}
+	
+	inline void instr_cpl()
+	{
+		_a = ~_a;
+		set(Flag::Negative);
+		set(Flag::HalfCarry);
+	}
+	
+	inline void instr_ccf()
+	{
+		set(Flag::Carry, !check(Flag::Carry));
+		set(Flag::Negative, false);
+		set(Flag::HalfCarry, false);
+	}
+	
+	inline void instr_call(addr_t addr)
+	{
+		push(_pc);
+		_pc = addr;
+	}
+	
+	inline void instr_call(bool b, addr_t addr)
+	{
+		if(b)
+		{
+			push(_pc);
+			_pc = addr;
+		}
+	}
+	
+	inline void instr_rst(word_t rel_addr)
+	{
+		push(_pc);
+		_pc = rel_addr;
+	}
+	
+	inline void instr_ei()
+	{
+		_interrupts_enable = true;
 	}
 	
 	inline void instr_res(word_t bit, word_t& r)
