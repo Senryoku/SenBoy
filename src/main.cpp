@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 	
 	Z80 cpu;
 	ROM rom(path);
+	
 	GPU gpu;
 	gpu.reset();
 	
@@ -104,6 +105,12 @@ int main(int argc, char* argv[])
 			dt << " BC: " << Hexa(cpu.getBC());
 			dt << " DE: " << Hexa(cpu.getDE());
 			dt << " HL: " << Hexa(cpu.getHL());
+			if(cpu.check(Z80::Flag::Zero)) dt << " Z";
+			if(cpu.check(Z80::Flag::Negative)) dt << " N";
+			if(cpu.check(Z80::Flag::HalfCarry)) dt << " HC";
+			if(cpu.check(Z80::Flag::Carry)) dt << " C";
+			dt << std::endl;
+			dt << "GPU Line: " << Hexa(gpu.getLine());
 			debug_text.setString(dt.str());
 			step = false;
 		}

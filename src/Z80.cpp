@@ -3,8 +3,7 @@
 #include <cstring> // Memset
 
 Z80::Z80() :
-	_mem(new word_t[RAMSize]),
-	_zp_mem(new word_t[ZPRAMSize])
+	_mem(new word_t[RAMSize])
 {
 	reset();
 	
@@ -17,8 +16,6 @@ Z80::Z80() :
 Z80::~Z80()
 {
 	delete[] _mem;
-	delete[] _zp_mem;
-	delete[] _cart_mem;
 }
 
 void Z80::reset()
@@ -30,9 +27,6 @@ void Z80::reset()
 	_f = 0;
 	
 	std::memset(_mem, 0, RAMSize);
-	delete _cart_mem;
-	//_cart_mem = new word_t[rom->getRAMSize()]; /// @todo
-	//std::memset(_cart_mem, 0, rom->getRAMSize());
 }
 
 void Z80::reset_cart()
@@ -44,6 +38,7 @@ void Z80::reset_cart()
 	setBC(0x0013);
 	setDE(0x00D8);
 	setHL(0x014D);
+	
 	write(0xFF05, word_t(0x00));
 	write(0xFF06, word_t(0x00));
 	write(0xFF07, word_t(0x00));
@@ -77,8 +72,5 @@ void Z80::reset_cart()
 	write(0xFFFF, word_t(0x00));
 	
 	std::memset(_mem, 0, RAMSize);
-	delete _cart_mem;
-	//_cart_mem = new word_t[rom->getRAMSize()]; /// @todo
-	//std::memset(_cart_mem, 0, rom->getRAMSize());
 }
 

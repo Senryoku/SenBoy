@@ -48,7 +48,8 @@ public:
 	
 	byte_t& read(addr_t addr)
 	{
-		return _data[addr];
+		// @todo Mapping
+		return _data[addr % _data.size()];
 	}
 	
 	void write(addr_t addr, byte_t value)

@@ -19,8 +19,7 @@ public:
 	using addr_t = uint16_t;
 	
 	static constexpr unsigned int	ClockRate = 4194304; // Hz
-	static constexpr size_t			RAMSize = 0x0400; // Bytes
-	static constexpr size_t			ZPRAMSize = 0x0080; // Bytes
+	static constexpr size_t			RAMSize = 0x10000; // Bytes
 	
 	enum Flag : word_t
 	{
@@ -30,6 +29,17 @@ public:
 		Carry = 0x10		///< Last result was > 0xFF or < 0x00
 	};
 	
+	enum IEFlag : word_t
+	{
+		None = 0x00,
+		VBlank = 0x01,
+		LCDC = 0x02,
+		TimerOverflow = 0x04,
+		TransferComplete = 0x08,
+		Transition = 0x10,
+		All = 0xFF
+	};
+
 	ROM*	rom = nullptr;
 	GPU*	gpu = nullptr;
 	
@@ -223,8 +233,8 @@ public:
 						{
 							case 0xC0: instr_ret(!check(Flag::Zero)); break;
 							case 0xD0: instr_ret(!check(Flag::Carry)); break;
-							case 0xE0: instr_ld(rw(0xFF00 + _pc++), _a); add_cycles(1); break;		// LDH (n), a
-							case 0xF0: instr_ld(_a, read(0xFF00 + _pc++)); add_cycles(1); break;	// LDH a, (n)
+							case 0xE0: instr_ld(rw(0xFF00 + _pc++), _a); add_cycles(2); break;			// LDH (n), a
+							case 0xF0: instr_ld(_a, read(0xFF00 + read(_pc++))); add_cycles(2); break;	// LDH a, (n)
 							// POP
 							case 0xC1: setBC(instr_pop()); break;
 							case 0xD1: setDE(instr_pop()); break;
@@ -275,6 +285,9 @@ public:
 		_breakpoint = _breakpoints.count(_pc) > 0;
 	}
 	
+	/// Return true if the specified flag is set, false otherwise.
+	inline bool check(Flag m) { return _f & m; }
+	
 private:
 	///////////////////////////////////////////////////////////////////////////
 	// Debug
@@ -317,8 +330,6 @@ private:
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
 	inline void set(Flag m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
-	/// Return true if the specified flag is set, false otherwise.
-	inline bool check(Flag m) { return _f & m; }
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Cycles management
@@ -354,54 +365,54 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// RAM management
 	
-	word_t*	_mem = nullptr;			///< Working RAM
-	word_t*	_zp_mem = nullptr;		///< Zero-page RAM
-	word_t*	_cart_mem = nullptr;	///< Cartridge RAM
+	word_t*	_mem = nullptr;			///< Working RAM & Zero-page RAM & Cartridge RAM
 	
 	inline word_t read(addr_t addr) const
 	{
-		if(addr < 0x4000)
+		if(addr < 0x8000) // 2 * 16kB ROM Banks
 			return reinterpret_cast<word_t&>(rom->read(addr));
-		else if(addr < 0xA000) // VRAM @todo
-			return _mem[0];
-		else if(addr < 0xC000) // Cartridge RAM @todo
-			return _cart_mem[addr - 0xA000];
-		else if(addr < 0xFE00) // Working RAM (& mirror)
-			return _mem[(addr - 0xC000) % RAMSize];
-		else if(addr < 0xFEA0) // Sprites (OAM) @todo
-			return _mem[0];
-		else if(addr < 0xFF80) // I/O @todo
+		else if(addr < 0xA000) // VRAM
 			return gpu->read(addr);
-		else if(addr < 0xFF80) // Empty but unusable for I/O
-			return _mem[0];
-		else // Zero-page RAM
-			return _zp_mem[addr - 0xFF80];
-			
-		// @todo Could it work ???
-		// add_cycles(1);
+		else if(addr < 0xC000) // Cartridge RAM @todo
+			return _mem[addr];
+		else if(addr < 0xE000) // Working RAM (& mirror)
+			return _mem[addr - 0xC000];
+		else if(addr < 0xFE00) // Working RAM mirror
+			return _mem[addr - 0xE000];
+		else if(addr < 0xFEA0) // Sprites (OAM) @todo
+			return gpu->read(addr);
+		else if(addr < 0xFF00) // I/O
+			return _mem[addr];
+		else if(addr < 0xFF4C) // I/O ports
+			return _mem[addr];
+		else if(addr < 0xFF80) // I/O (Video)
+			return gpu->read(addr);
+		else // Zero-page RAM & Interrupt Enable Register
+			return _mem[addr];
 	}
 	
 	inline word_t& rw(addr_t addr)
 	{
-		if(addr < 0x4000)
+		if(addr < 0x8000) // 2 * 16kB ROM Banks
 			return reinterpret_cast<word_t&>(rom->read(addr));
-		else if(addr < 0xA000) // VRAM @todo
-			return _mem[0];
-		else if(addr < 0xC000) // Cartridge RAM @todo
-			return _cart_mem[addr - 0xA000];
-		else if(addr < 0xFE00) // Working RAM (& mirror)
-			return _mem[(addr - 0xC000) % RAMSize];
-		else if(addr < 0xFEA0) // Sprites (OAM) @todo
-			return _mem[0];
-		else if(addr < 0xFF80) // I/O @todo
+		else if(addr < 0xA000) // VRAM
 			return gpu->read(addr);
-		else if(addr < 0xFF80) // Empty but unusable for I/O
-			return _mem[0];
-		else // Zero-page RAM
-			return _zp_mem[addr - 0xFF80];
-			
-		// @todo Could it work ???
-		// add_cycles(1);
+		else if(addr < 0xC000) // Cartridge RAM @todo
+			return _mem[addr];
+		else if(addr < 0xE000) // Working RAM (& mirror)
+			return _mem[addr - 0xC000];
+		else if(addr < 0xFE00) // Working RAM mirror
+			return _mem[addr - 0xE000];
+		else if(addr < 0xFEA0) // Sprites (OAM) @todo
+			return gpu->read(addr);
+		else if(addr < 0xFF00) // I/O
+			return _mem[addr];
+		else if(addr < 0xFF4C) // I/O ports
+			return _mem[addr];
+		else if(addr < 0xFF80) // I/O (Video)
+			return gpu->read(addr);
+		else // Zero-page RAM & Interrupt Enable Register
+			return _mem[addr];
 	}
 	
 	inline addr_t read16(addr_t addr)
@@ -439,11 +450,6 @@ private:
 		write(addr, static_cast<word_t>(value & 0xFF));
 		write(addr + 1, static_cast<word_t>(value >> 8));
 	}
-	
-	///////////////////////////////////////////////////////////////////////////
-	// Interruptions
-	
-	bool _interrupts_enable = false;
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Instructions

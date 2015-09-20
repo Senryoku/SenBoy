@@ -170,49 +170,58 @@ inline void instr_push(addr_t addr)
 
 inline addr_t instr_pop()
 {
+	add_cycles(1);
 	return pop();
 }
 
 inline void instr_jp(addr_t addr)
 {
+	add_cycles(1);
 	_pc = addr;
 }
 
 inline void instr_jp(bool b, addr_t addr)
 {
+	add_cycles(1);
 	if(b)
 		_pc = addr;
 }
 
 inline void instr_jr(word_t offset)
 {
+	add_cycles(1);
 	rel_jump(offset);
 }
 
 inline void instr_jr(bool b, word_t offset)
 {
+	add_cycles(1);
 	if(b) rel_jump(offset);
 }
 	
 inline void instr_ret(bool b = true)
 {
+	add_cycles(1);
 	if(b)
 		_pc = pop();
 }
 
 inline void instr_reti()
 {
+	add_cycles(1);
 	_pc = pop();
-	_interrupts_enable = true;
+	write(addr_t(0xFFFF), word_t(IEFlag::All));
 }
 
 inline void instr_di()
 {
-	_interrupts_enable = false;
+	add_cycles(1);
+	write(addr_t(0xFFFF), word_t(IEFlag::None));
 }
 
 inline void instr_rlca()
 {
+	add_cycles(1);
 	set(Flag::Carry, _a & 0b10000000);
 	_a = _a << 1;
 	set(Flag::Zero, _a == 0);
@@ -220,6 +229,7 @@ inline void instr_rlca()
 
 inline void instr_rla()
 {
+	add_cycles(1);
 	word_t tmp = check(Flag::Carry) ? 1 : 0;
 	set(Flag::Carry, _a & 0b10000000);
 	_a = _a << 1;
@@ -229,6 +239,7 @@ inline void instr_rla()
 
 inline void instr_daa() ///< @todo check
 {
+	add_cycles(1);
 	word_t tmp = 0;
 	word_t nl = _a & 0x0f;
 	word_t nh = (_a & 0xf0) >> 4;
@@ -266,11 +277,13 @@ inline void instr_daa() ///< @todo check
 
 inline void instr_scf()
 {
+	add_cycles(1);
 	set(Flag::Carry);
 }
 
 inline void instr_rrca()
 {
+	add_cycles(1);
 	set(Flag::Carry, _a & 0b00000001);
 	_a = _a >> 1;
 	set(Flag::Zero, _a == 0);
@@ -278,6 +291,7 @@ inline void instr_rrca()
 
 inline void instr_rra()
 {
+	add_cycles(1);
 	word_t tmp = check(Flag::Carry) ? 0b10000000 : 0;
 	set(Flag::Carry, _a & 0b00000001);
 	_a = _a >> 1;
@@ -287,6 +301,7 @@ inline void instr_rra()
 
 inline void instr_cpl()
 {
+	add_cycles(1);
 	_a = ~_a;
 	set(Flag::Negative);
 	set(Flag::HalfCarry);
@@ -294,6 +309,7 @@ inline void instr_cpl()
 
 inline void instr_ccf()
 {
+	add_cycles(1);
 	set(Flag::Carry, !check(Flag::Carry));
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry, false);
@@ -301,12 +317,14 @@ inline void instr_ccf()
 
 inline void instr_call(addr_t addr)
 {
+	add_cycles(1);
 	push(_pc);
 	_pc = addr;
 }
 
 inline void instr_call(bool b, addr_t addr)
 {
+	add_cycles(1);
 	if(b)
 	{
 		push(_pc);
@@ -316,13 +334,15 @@ inline void instr_call(bool b, addr_t addr)
 
 inline void instr_rst(word_t rel_addr)
 {
+	add_cycles(1);
 	push(_pc);
 	_pc = rel_addr;
 }
 
 inline void instr_ei()
 {
-	_interrupts_enable = true;
+	add_cycles(1);
+	write(addr_t(0xFFFF), word_t(IEFlag::All));
 }
 
 inline void instr_res(word_t bit, word_t& r)

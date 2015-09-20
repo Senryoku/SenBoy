@@ -58,17 +58,20 @@ public:
 	{
 		screen = new color_t[ScreenWidth * ScreenHeight];
 		_vram = new word_t[0x1FFF];
+		_oam = new word_t[0x00A0];
 	}
 	
 	~GPU()
 	{
 		delete[] screen;
 		delete[] _vram;
+		delete[] _oam;
 	}
 	
 	void reset()
 	{
 		std::memset(_vram, 0, 0x1FFF);
+		std::memset(_oam, 0, 0x00A0);
 		std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 		
 		_line = _scroll_x = _scroll_y = _bkgd_pal = _lcd_control = _lcd_status = _cycles = 0;
@@ -94,7 +97,16 @@ public:
 			case 0xFF43: return _scroll_y; break;
 			case 0xFF44: return _line; break;
 			case 0xFF47: return _bkgd_pal; break;
-			default: return _vram[addr & 0x1FFF]; break;
+			default: 
+				if(addr >= 0x8000 && addr < 0xA000) {
+					return _vram[addr - 0x8000]; // VRAM
+				} else if(addr >= 0xFE00 && addr < 0xFEA0) {
+					return _oam[addr & 0xA0]; // OAM
+				} else {
+					std::cerr << "Bad address (0x" << std::hex << (int) addr << ") requested to the GPU!" << std::endl;
+					exit(1);
+				}
+			break;
 		}
 	}
 	
@@ -105,6 +117,14 @@ public:
 	
 	addr_t to1D(word_t x, word_t y) { return y * ScreenWidth + x; }
 
+	
+	word_t getScrollX() const { return _scroll_x; }
+	word_t getScrolly() const { return _scroll_y; }
+	word_t getBGPalette() const { return _bkgd_pal; }
+	word_t getLCDControl() const { return _lcd_control; }
+	word_t getLCDStatus() const { return _lcd_status; }
+	word_t getLine() const { return _line; }
+	
 private:
 	// Registers
 	word_t			_scroll_x = 0; ///< Backgound Scroll X Register
@@ -114,6 +134,7 @@ private:
 	word_t 			_lcd_status = 0; ///< LCD Status Register
 	
 	word_t*			_vram = nullptr;
+	word_t*			_oam = nullptr;
 	
 	// Timing
 	word_t			_line = 0;
@@ -177,7 +198,7 @@ private:
 		word_t x = _scroll_x & 7;
 		word_t y = (_line + _scroll_y) & 7;
 		
-		word_t tile = read(mapoffs + lineoffs);
+		word_t tile = read(mapoffs + lineoffs + 0x8000);
 		if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
 		
 		word_t tile_l = _vram[tile * 2];
@@ -185,7 +206,6 @@ private:
 		word_t tile_data0, tile_data1;
 		palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 		
-		//std::cout << "Tile: " << (int) tile << " y: " << (int) y << std::endl;
 		for(word_t i = 0; i < 160; i++)
 		{
 			word_t idx = y * 8 + x;
