@@ -216,13 +216,7 @@ inline void instr_reti()
 {
 	add_cycles(1);
 	_pc = pop();
-	write(addr_t(0xFFFF), word_t(IEFlag::All));
-}
-
-inline void instr_di()
-{
-	add_cycles(1);
-	write(addr_t(0xFFFF), word_t(IEFlag::None));
+	_ime = 0x01;
 }
 
 inline void instr_rlca()
@@ -348,7 +342,13 @@ inline void instr_rst(word_t rel_addr)
 inline void instr_ei()
 {
 	add_cycles(1);
-	write(addr_t(0xFFFF), word_t(IEFlag::All));
+	_ime = 0x01;
+}
+
+inline void instr_di()
+{
+	add_cycles(1);
+	_ime = 0x00;
 }
 
 inline void instr_res(word_t bit, word_t& r)

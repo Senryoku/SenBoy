@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cassert>
-#include <iostream>
 #include <unordered_set>
 
-#include "ROM.hpp"
-#include "GPU.hpp"
+#include "MMU.hpp"
 
 /**
  * Zilog 80 CPU
@@ -19,7 +16,6 @@ public:
 	using addr_t = uint16_t;
 	
 	static constexpr unsigned int	ClockRate = 4194304; // Hz
-	static constexpr size_t			MemSize = 0x10000; // Bytes
 	
 	enum Flag : word_t
 	{
@@ -28,23 +24,11 @@ public:
 		HalfCarry = 0x20,	///< Last result was > 0x0F
 		Carry = 0x10		///< Last result was > 0xFF or < 0x00
 	};
-	
-	enum IEFlag : word_t
-	{
-		None = 0x00,
-		VBlank = 0x01,
-		LCDC = 0x02,
-		TimerOverflow = 0x04,
-		TransferComplete = 0x08,
-		Transition = 0x10,
-		All = 0xFF
-	};
 
-	ROM*	rom = nullptr;
-	GPU*	gpu = nullptr;
+	MMU*	mmu = nullptr;
 	
 	Z80();
-	~Z80();
+	~Z80() =default;
 	
 	/// Reset the CPU, zero-ing all registers. (Power-up state)
 	void reset();
@@ -144,10 +128,10 @@ public:
 							case 0x10: instr_stop(); break;
 							case 0x20: instr_jr(!check(Flag::Zero), read(_pc++)); break;
 							case 0x30: instr_jr(!check(Flag::Carry), read(_pc++)); break;
-							case 0x01: setBC(read16(_pc)); _pc += 2; break;
-							case 0x11: setDE(read16(_pc)); _pc += 2; break;
-							case 0x21: setHL(read16(_pc)); _pc += 2; break;
-							case 0x31: _sp = read16(_pc); _pc += 2; break;
+							case 0x01: setBC(mmu->read16(_pc)); _pc += 2; break;
+							case 0x11: setDE(mmu->read16(_pc)); _pc += 2; break;
+							case 0x21: setHL(mmu->read16(_pc)); _pc += 2; break;
+							case 0x31: _sp = mmu->read16(_pc); _pc += 2; break;
 							case 0x02: _a = read(getBC()); break;
 							case 0x12: _a = read(getDE()); break;
 							case 0x22: _a = read(getHL()); incrHL(); break;
@@ -163,7 +147,7 @@ public:
 							case 0x27: instr_daa(); break;
 							case 0x37: instr_scf(); break;
 							//
-							case 0x08: write(read16(_pc), _sp); _pc += 2; break;	// 16bits LD
+							case 0x08: mmu->write(mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
 							case 0x18: instr_jr(read(_pc++)); break;
 							case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
 							case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;
@@ -224,12 +208,12 @@ public:
 					switch(opcode & 0x0F)
 					{
 						case 0x04: _pc += 2; instr_call(!check(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry), 
-												read16(_pc - 2));  break;
+												mmu->read16(_pc - 2));  break;
 						case 0x07: instr_rst(y); break;
 						case 0x0B: if(opcode == 0xFB) instr_ei(); break;
 						case 0x0C: _pc += 2; instr_call(check(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry),
-												read16(_pc - 2)); break;
-						case 0x0D: _pc += 2; instr_call(read16(_pc - 2)); break;
+												mmu->read16(_pc - 2)); break;
+						case 0x0D: _pc += 2; instr_call(mmu->read16(_pc - 2)); break;
 						case 0x0F: instr_rst(y); break;
 						default: // Uncategorized codes
 						switch(opcode)
@@ -243,11 +227,11 @@ public:
 							case 0xD1: setDE(instr_pop()); break;
 							case 0xE1: setHL(instr_pop()); break;
 							case 0xF1: setAF(instr_pop()); break;
-							case 0xC2: instr_jp(!check(Flag::Zero), read16(_pc)); break;
-							case 0xD2: instr_jp(!check(Flag::Carry), read16(_pc)); break;
+							case 0xC2: instr_jp(!check(Flag::Zero), mmu->read16(_pc)); break;
+							case 0xD2: instr_jp(!check(Flag::Carry), mmu->read16(_pc)); break;
 							case 0xE2: instr_ld(rw(_c), _a); break;
 							case 0xF2: instr_ld(_a, read(_c)); break;
-							case 0xC3: instr_jp(read16(_pc)); break;
+							case 0xC3: instr_jp(mmu->read16(_pc)); break;
 							case 0xF3: instr_di(); break;
 							// PUSH
 							case 0xC5: instr_push(getBC()); break;
@@ -262,10 +246,10 @@ public:
 							case 0xD9: instr_reti(); break;
 							case 0xE9: instr_jp(getHL()); break;
 							case 0xF9: instr_ld(_sp, getHL()); break;
-							case 0xCA: instr_jp(check(Flag::Zero), read16(_pc)); break;
-							case 0xDA: instr_jp(check(Flag::Carry), read16(_pc)); break;
-							case 0xEA: write(read16(_pc), _a); _pc += 2; break;	// 16bits LD
-							case 0xFA: instr_ld(_a, read16(_pc)); _pc += 2; break;
+							case 0xCA: instr_jp(check(Flag::Zero), mmu->read16(_pc)); break;
+							case 0xDA: instr_jp(check(Flag::Carry), mmu->read16(_pc)); break;
+							case 0xEA: mmu->write(mmu->read16(_pc), _a); _pc += 2; break;	// 16bits LD
+							case 0xFA: instr_ld(_a, mmu->read16(_pc)); _pc += 2; break;
 							case 0xC6: instr_add(read(_pc++)); break;
 							case 0xD6: instr_adc(read(_pc++)); break;
 							case 0xE6: instr_sub(read(_pc++)); break;
@@ -320,6 +304,8 @@ private:
 		word_t _r[7];		///< Another way to access the 8 bits registers.
 	};
 	
+	word_t	_ime; // Interrupt Master Enable
+	
 	// 8/16bits registers access helpers
 	inline void setHL(addr_t val) { _h = static_cast<word_t>((val >> 8) & 0xFF); _l = val & 0xFF; } 
 	inline void setDE(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
@@ -333,6 +319,9 @@ private:
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
 	inline void set(Flag m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
+	
+	inline word_t& rw(addr_t addr) { return mmu->rw(addr); }
+	inline word_t read(addr_t addr) const { return mmu->read(addr); }
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Cycles management
@@ -363,79 +352,6 @@ private:
 		addr = static_cast<addr_t>(read(++_sp)) << 8;
 		addr |= read(++_sp);
 		return addr;
-	}
-	
-	///////////////////////////////////////////////////////////////////////////
-	// RAM management
-	
-	word_t*	_mem = nullptr;			///< Working RAM & Zero-page RAM & Cartridge RAM
-	
-	inline word_t read(addr_t addr) const
-	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
-			return _mem[addr];
-		else if(addr < 0x8000) // 2 * 16kB ROM Banks
-			return reinterpret_cast<word_t&>(rom->read(addr));
-		else if(addr < 0xA000) // VRAM
-			return gpu->read(addr);
-		else if(addr < 0xC000) // Cartridge RAM @todo
-			return _mem[addr];
-		else if(addr < 0xE000) // Working RAM (& mirror)
-			return _mem[addr - 0xC000];
-		else if(addr < 0xFE00) // Working RAM mirror
-			return _mem[addr - 0xE000];
-		else if(addr < 0xFEA0) // Sprites (OAM) @todo
-			return gpu->read(addr);
-		//else if(addr < 0xFF00) // I/O
-		//	return _mem[addr];
-		else if(addr < 0xFF4C) // I/O ports
-			return _mem[addr];
-		else if(addr < 0xFF80) // I/O (Video)
-			return gpu->read(addr);
-		else // Zero-page RAM & Interrupt Enable Register
-			return _mem[addr];
-	}
-	
-	inline word_t& rw(addr_t addr)
-	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
-			return _mem[addr];
-		else if(addr < 0x8000) // 2 * 16kB ROM Banks
-			return reinterpret_cast<word_t&>(rom->read(addr));
-		else if(addr < 0xA000) // VRAM
-			return gpu->read(addr);
-		else if(addr < 0xC000) // Cartridge RAM @todo
-			return _mem[addr];
-		else if(addr < 0xE000) // Working RAM (& mirror)
-			return _mem[addr - 0xC000];
-		else if(addr < 0xFE00) // Working RAM mirror
-			return _mem[addr - 0xE000];
-		else if(addr < 0xFEA0) // Sprites (OAM) @todo
-			return gpu->read(addr);
-		//else if(addr < 0xFF00) // I/O
-		//	return _mem[addr];
-		else if(addr < 0xFF40) // I/O ports
-			return _mem[addr];
-		else if(addr < 0xFF80) // I/O (Video)
-			return gpu->read(addr);
-		else // Zero-page RAM & Interrupt Enable Register
-			return _mem[addr];
-	}
-	
-	inline addr_t read16(addr_t addr)
-	{
-		return (static_cast<addr_t>(read(addr + 1)) << 8) + read(addr);
-	}
-	
-	inline void	write(addr_t addr, word_t value)
-	{
-		rw(addr) = value;
-	}
-	
-	inline void	write(addr_t addr, addr_t value)
-	{
-		write(addr, static_cast<word_t>(value & 0xFF));
-		write(addr + 1, static_cast<word_t>(value >> 8));
 	}
 	
 	///////////////////////////////////////////////////////////////////////////

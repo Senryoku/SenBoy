@@ -15,6 +15,8 @@ SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++11 -Wall" )
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
 set(SOURCES
+	src/MMU.cpp
+	src/GPU.cpp
 	src/Z80.cpp
 	src/main.cpp
 )

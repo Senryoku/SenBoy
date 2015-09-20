@@ -2,6 +2,8 @@
 
 #include <cstring> // Memset
 
+#include "MMU.hpp"
+
 class GPU
 {
 public:
@@ -17,6 +19,7 @@ public:
 		}
 	};
 	
+	MMU*		mmu = nullptr;
 	color_t*	screen = nullptr;
 	
 	const word_t ScreenWidth = 160;
@@ -68,15 +71,7 @@ public:
 		delete[] _oam;
 	}
 	
-	void reset()
-	{
-		std::memset(_vram, 0, 0x1FFF);
-		std::memset(_oam, 0, 0x00A0);
-		std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
-		
-		_line = _scroll_x = _scroll_y = _bkgd_pal = _lcd_control = _lcd_status = _cycles = 0;
-		_lcd_status = (_lcd_status & ~LCDMode) | Mode::OAM;
-	}
+	void reset();
 	
 	void step(size_t cycles)
 	{
@@ -84,84 +79,46 @@ public:
 		update_mode();
 	}
 	
-	word_t& read(addr_t addr)
+	inline word_t& rw(addr_t addr)
 	{
-		switch(addr)
-		{
-			case 0xFF40: return _lcd_control; break;
-			case 0xFF41: return _lcd_status; break;
-			case 0xFF42: return _scroll_x; break;
-			case 0xFF43: return _scroll_y; break;
-			case 0xFF44: return _line; break;
-			case 0xFF45: return _lyc; break;
-			case 0xFF47: return _bkgd_pal; break;
-			case 0xFF48: return _obp0; break;
-			case 0xFF49: return _obp1; break;
-			case 0xFF4A: return _wy; break;
-			case 0xFF4B: return _wx; break;
-			// @todo other for GBC mode
-			default: 
-				if(addr >= 0x8000 && addr < 0xA000) {
-					return _vram[addr - 0x8000]; // VRAM
-				} else if(addr >= 0xFE00 && addr < 0xFEA0) {
-					return _oam[addr & 0xA0]; // OAM
-				} else {
-					std::cerr << "Bad address (0x" << std::hex << (int) addr << ") requested to the GPU!" << std::endl;
-					exit(1);
-				}
-			break;
-		}
+		return mmu->rw(addr);
 	}
 	
 	void write(addr_t addr, word_t val)
 	{
-		read(addr) = val;
+		rw(addr) = val;
 	}
 	
 	addr_t to1D(word_t x, word_t y) { return y * ScreenWidth + x; }
-
 	
-	word_t getScrollX() const { return _scroll_x; }
-	word_t getScrolly() const { return _scroll_y; }
-	word_t getBGPalette() const { return _bkgd_pal; }
-	word_t getLCDControl() const { return _lcd_control; }
-	word_t getLCDStatus() const { return _lcd_status; }
-	word_t getLine() const { return _line; }
+	word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
+	word_t& getScrollY() const { return mmu->rw(MMU::SCY); }
+	word_t& getBGPalette() const { return mmu->rw(MMU::BGP); }
+	word_t& getLCDControl() const { return mmu->rw(MMU::LCDC);; }
+	word_t& getLCDStatus() const { return mmu->rw(MMU::STAT);; }
+	word_t& getLine() const { return mmu->rw(MMU::LY);; }
 	
-private:
-	// Registers
-	word_t			_scroll_x = 0; ///< Backgound Scroll X Register
-	word_t			_scroll_y = 0; ///< Backgound Scroll Y Register
-	word_t			_bkgd_pal = 0; ///< Backgound Palette Register
-	word_t 			_lcd_control = 0; ///< LCD Control Register
-	word_t 			_lcd_status = 0; ///< LCD Status Register
-	word_t			_lyc = 0;
-	word_t			_obp0 = 0;
-	word_t			_obp1 = 0;
-	word_t			_wy = 0;
-	word_t			_wx = 0;
-	
+private:	
 	word_t*			_vram = nullptr;
 	word_t*			_oam = nullptr;
 	
 	// Timing
-	word_t			_line = 0;
 	unsigned int	_cycles = 0;
 	
 	void update_mode()
 	{
-		switch(_lcd_status & LCDMode)
+		switch(getLCDStatus() & LCDMode)
 		{
 			case Mode::HBlank:
 				if(_cycles >= 51)
 				{
 					_cycles -= 51;
-					_line++;
-					if(_line >= 143)
+					getLine()++;
+					if(getLine() >= 143)
 					{
-						_lcd_status = (_lcd_status & ~LCDMode) | Mode::VBlank;
+						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
 					} else {
-						_lcd_status = (_lcd_status & ~LCDMode) | Mode::OAM;
+						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
 					}
 				}
 				break;
@@ -169,11 +126,11 @@ private:
 				if(_cycles >= 114)
 				{
 					_cycles -= 114;
-					_line++;
-					if(_line >= 153)
+					getLine()++;
+					if(getLine() >= 153)
 					{
-						_line = 0;
-						_lcd_status = (_lcd_status & ~LCDMode) | Mode::HBlank;
+						getLine() = 0;
+						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
 					}
 				}
 				break;
@@ -181,44 +138,44 @@ private:
 				if(_cycles >= 20)
 				{
 					_cycles -= 20;
-					_lcd_status = (_lcd_status & ~LCDMode) | Mode::VRAM;
+					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VRAM;
 				}
 				break;
 			case Mode::VRAM:
 				if(_cycles >= 43)
 				{
 					_cycles -= 43;
-					render_line();
-					_lcd_status = (_lcd_status & ~LCDMode) | Mode::HBlank;
+					renderget_line();
+					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
 				}
 				break;
 		}
 	}
 	
 		
-	void render_line()
+	void renderget_line()
 	{
 		/// @see http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
-		addr_t mapoffs = (_lcd_control & BGTileMapDisplaySelect) ? 0x1C00 : 0x1800;
-		mapoffs += ((_line + _scroll_x) & 255) >> 3;
-		word_t lineoffs = (_scroll_x >> 3);
+		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x1C00 : 0x1800;
+		mapoffs += ((getLine() + getScrollX()) & 255) >> 3;
+		word_t lineoffs = (getScrollX() >> 3);
 		
-		word_t x = _scroll_x & 7;
-		word_t y = (_line + _scroll_y) & 7;
+		word_t x = getScrollX() & 7;
+		word_t y = (getLine() + getScrollY()) & 7;
 		
-		word_t tile = read(mapoffs + lineoffs + 0x8000);
-		if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
+		word_t tile = rw(mapoffs + lineoffs + 0x8000);
+		if((getLCDControl() & BGWindowsTileDataSelect) && tile < 128) tile += 256;
 		
 		word_t tile_l = _vram[tile * 2];
 		word_t tile_h = _vram[tile * 2 + 1];
 		word_t tile_data0, tile_data1;
 		palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 		
-		for(word_t i = 0; i < 160; i++)
+		for(word_t i = 0; i < ScreenWidth; i++)
 		{
 			word_t idx = y * 8 + x;
 			word_t color = ((idx > 3 ? tile_data1 : tile_data0) >> (idx * 2)) & 0b11; // 0-3
-			screen[to1D(i, _line)] = getPaletteColor(color);
+			screen[to1D(i, getLine())] = getPaletteColor(color);
 			
 			++x;
 			if(x == 8)
@@ -229,7 +186,7 @@ private:
 				tile_l = _vram[tile * 2];
 				tile_h = _vram[tile * 2 + 1];
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-				if((_lcd_control & BGWindowsTileDataSelect) && tile < 128) tile += 256;
+				if((getLCDControl() & BGWindowsTileDataSelect) && tile < 128) tile += 256;
 			}
 		}
 	}
@@ -249,6 +206,6 @@ private:
 	/// @param val 0 <= val < 4
 	word_t getPaletteColor(word_t val)
 	{
-		return Colors[(_bkgd_pal >> (val * 2)) & 0b11];
+		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
 	}
 };

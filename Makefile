@@ -167,6 +167,54 @@ run/fast:
 	$(MAKE) -f CMakeFiles\run.dir\build.make CMakeFiles/run.dir/build
 .PHONY : run/fast
 
+src/GPU.obj: src/GPU.cpp.obj
+.PHONY : src/GPU.obj
+
+# target to build an object file
+src/GPU.cpp.obj:
+	$(MAKE) -f CMakeFiles\SenBoy.dir\build.make CMakeFiles/SenBoy.dir/src/GPU.cpp.obj
+.PHONY : src/GPU.cpp.obj
+
+src/GPU.i: src/GPU.cpp.i
+.PHONY : src/GPU.i
+
+# target to preprocess a source file
+src/GPU.cpp.i:
+	$(MAKE) -f CMakeFiles\SenBoy.dir\build.make CMakeFiles/SenBoy.dir/src/GPU.cpp.i
+.PHONY : src/GPU.cpp.i
+
+src/GPU.s: src/GPU.cpp.s
+.PHONY : src/GPU.s
+
+# target to generate assembly for a file
+src/GPU.cpp.s:
+	$(MAKE) -f CMakeFiles\SenBoy.dir\build.make CMakeFiles/SenBoy.dir/src/GPU.cpp.s
+.PHONY : src/GPU.cpp.s
+
+src/MMU.obj: src/MMU.cpp.obj
+.PHONY : src/MMU.obj
+
+# target to build an object file
+src/MMU.cpp.obj:
+	$(MAKE) -f CMakeFiles\SenBoy.dir\build.make CMakeFiles/SenBoy.dir/src/MMU.cpp.obj
+.PHONY : src/MMU.cpp.obj
+
+src/MMU.i: src/MMU.cpp.i
+.PHONY : src/MMU.i
+
+# target to preprocess a source file
+src/MMU.cpp.i:
+	$(MAKE) -f CMakeFiles\SenBoy.dir\build.make CMakeFiles/SenBoy.dir/src/MMU.cpp.i
+.PHONY : src/MMU.cpp.i
+
+src/MMU.s: src/MMU.cpp.s
+.PHONY : src/MMU.s
+
+# target to generate assembly for a file
+src/MMU.cpp.s:
+	$(MAKE) -f CMakeFiles\SenBoy.dir\build.make CMakeFiles/SenBoy.dir/src/MMU.cpp.s
+.PHONY : src/MMU.cpp.s
+
 src/Z80.obj: src/Z80.cpp.obj
 .PHONY : src/Z80.obj
 
@@ -229,6 +277,12 @@ help:
 	@echo ... SenBoy
 	@echo ... run
 	@echo ... list_install_components
+	@echo ... src/GPU.obj
+	@echo ... src/GPU.i
+	@echo ... src/GPU.s
+	@echo ... src/MMU.obj
+	@echo ... src/MMU.i
+	@echo ... src/MMU.s
 	@echo ... src/Z80.obj
 	@echo ... src/Z80.i
 	@echo ... src/Z80.s

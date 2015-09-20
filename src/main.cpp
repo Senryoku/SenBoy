@@ -1,10 +1,13 @@
-#include "Z80.hpp"
-
 #include <sstream>
 #include <iomanip>
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+
+#include "MMU.hpp"
+#include "ROM.hpp"
+#include "GPU.hpp"
+#include "Z80.hpp"
 
 template<typename T>
 struct HexaGen
@@ -30,14 +33,18 @@ int main(int argc, char* argv[])
 	
 	Z80 cpu;
 	ROM rom(path);
-	
+	MMU mmu;
 	GPU gpu;
-	gpu.reset();
 	
-	cpu.rom = &rom;
-	cpu.gpu = &gpu;
+	mmu.rom = &rom;
+	cpu.mmu = &mmu;
+	gpu.mmu = &mmu;
+	
+	gpu.reset();
 	cpu.reset();
 	cpu.reset_cart();
+	
+	//cpu.loadBIOS("data/bios.bin");
 	
 	float screen_scale = 2.0f;
 	
@@ -63,11 +70,11 @@ int main(int argc, char* argv[])
 	debug_text.setCharacterSize(16);
 	debug_text.setPosition(5, 0);
 	
-	sf::Text debug_text_b;
-	debug_text_b.setFont(font);
-	debug_text_b.setCharacterSize(16);
-	debug_text_b.setPosition(5, 450);
-	debug_text_b.setString("Log");
+	sf::Text log_text;
+	log_text.setFont(font);
+	log_text.setCharacterSize(16);
+	log_text.setPosition(5, 450);
+	log_text.setString("Log");
 	
 	bool debug = true;
 	bool step = true;
@@ -85,7 +92,12 @@ int main(int argc, char* argv[])
 				{
 					case sf::Keyboard::Escape: window.close(); break;
 					case sf::Keyboard::Space: step = true; break;
-					case sf::Keyboard::Return: debug = !debug; break;
+					case sf::Keyboard::Return: 
+					{
+						debug = !debug;
+						log_text.setString(debug ? "Debugging" : "Running");
+						break;
+					}
 					case sf::Keyboard::BackSpace: 
 						gpu.reset(); 
 						cpu.reset_cart();
@@ -94,10 +106,18 @@ int main(int argc, char* argv[])
 					case sf::Keyboard::Add:
 					{
 						Z80::addr_t addr;
-						std::cout << "Adding breakpoint. Enter an address: ";
+						std::cout << "Adding breakpoint. Enter an address: " << std::endl;
 						std::cin >> std::hex >> addr;
 						cpu.addBreakpoint(addr);
-						std::cout << std::endl << "Added " << Hexa(addr) << "." << std::endl;
+						std::stringstream ss;
+						ss << "Added a breakpoint at " << Hexa(addr) << ".";
+						log_text.setString(ss.str());
+						break;
+					}
+					case sf::Keyboard::Subtract:
+					{
+						cpu.clearBreakpoints();
+						log_text.setString("Cleared breakpoints.");
 						break;
 					}
 					default: break;
@@ -107,8 +127,11 @@ int main(int argc, char* argv[])
 		
 		if(!debug || step)
 		{
-			cpu.execute();
-			gpu.step(cpu.getInstrCycles());
+			for(int i = 0; i < (debug ? 1 : 17556); i += cpu.getInstrCycles())
+			{
+				cpu.execute();
+				gpu.step(cpu.getInstrCycles());
+			}
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			
@@ -133,9 +156,9 @@ int main(int argc, char* argv[])
 			
 			if(cpu.reachedBreakpoint())
 			{
-				std::stringstream dt2;
-				dt2 << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
-				debug_text_b.setString(dt2.str());
+				std::stringstream ss;
+				ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
+				log_text.setString(ss.str());
 				debug = true;
 				step = false;
 			}
@@ -144,7 +167,7 @@ int main(int argc, char* argv[])
         window.clear(sf::Color::Black);
 		window.draw(gameboy_screen_sprite);
 		window.draw(debug_text);
-		window.draw(debug_text_b);
+		window.draw(log_text);
         window.display();
     }
 }
