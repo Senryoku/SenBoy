@@ -3,7 +3,7 @@
 #include <cstring> // Memset
 
 Z80::Z80() :
-	_mem(new word_t[RAMSize])
+	_mem(new word_t[MemSize])
 {
 	reset();
 	
@@ -26,7 +26,7 @@ void Z80::reset()
 		_r[i] = 0;
 	_f = 0;
 	
-	std::memset(_mem, 0, RAMSize);
+	std::memset(_mem, 0, MemSize);
 }
 
 void Z80::reset_cart()
@@ -71,6 +71,6 @@ void Z80::reset_cart()
 	write(0xFF4B, word_t(0x00));
 	write(0xFFFF, word_t(0x00));
 	
-	std::memset(_mem, 0, RAMSize);
+	std::memset(_mem, 0, MemSize);
 }
 

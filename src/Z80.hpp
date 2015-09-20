@@ -19,7 +19,7 @@ public:
 	using addr_t = uint16_t;
 	
 	static constexpr unsigned int	ClockRate = 4194304; // Hz
-	static constexpr size_t			RAMSize = 0x10000; // Bytes
+	static constexpr size_t			MemSize = 0x10000; // Bytes
 	
 	enum Flag : word_t
 	{
@@ -52,6 +52,9 @@ public:
 	/// Reset to post internal checks
 	void reset_cart();
 	
+	/// Loads a BIOS and sets the PC to its first instruction
+	bool loadBIOS(const std::string& path);
+	
 	void display_state()
 	{
 		/*
@@ -70,11 +73,11 @@ public:
 	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
 	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
 	
-	inline int getNextOpcode() const { read(_pc); };
-	inline int getNextOperand0() const { read(_pc + 1); };
-	inline int getNextOperand1() const { read(_pc + 2); };
+	inline int getNextOpcode() const { return read(_pc); };
+	inline int getNextOperand0() const { return read(_pc + 1); };
+	inline int getNextOperand1() const { return read(_pc + 2); };
 	
-	inline bool breakpoint() const { _breakpoint; };
+	inline bool reachedBreakpoint() const { return _breakpoint;  };
 	inline void addBreakpoint(addr_t addr) { _breakpoints.insert(addr); };
 	inline void clearBreakpoints() { _breakpoints.clear(); };
 	
@@ -282,7 +285,7 @@ public:
 		}
 		_clock_cycles += _clock_instr_cycles;
 		
-		_breakpoint = _breakpoints.count(_pc) > 0;
+		_breakpoint = (_breakpoints.count(_pc) != 0);
 	}
 	
 	/// Return true if the specified flag is set, false otherwise.
@@ -369,7 +372,9 @@ private:
 	
 	inline word_t read(addr_t addr) const
 	{
-		if(addr < 0x8000) // 2 * 16kB ROM Banks
+		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
+			return _mem[addr];
+		else if(addr < 0x8000) // 2 * 16kB ROM Banks
 			return reinterpret_cast<word_t&>(rom->read(addr));
 		else if(addr < 0xA000) // VRAM
 			return gpu->read(addr);
@@ -381,8 +386,8 @@ private:
 			return _mem[addr - 0xE000];
 		else if(addr < 0xFEA0) // Sprites (OAM) @todo
 			return gpu->read(addr);
-		else if(addr < 0xFF00) // I/O
-			return _mem[addr];
+		//else if(addr < 0xFF00) // I/O
+		//	return _mem[addr];
 		else if(addr < 0xFF4C) // I/O ports
 			return _mem[addr];
 		else if(addr < 0xFF80) // I/O (Video)
@@ -393,7 +398,9 @@ private:
 	
 	inline word_t& rw(addr_t addr)
 	{
-		if(addr < 0x8000) // 2 * 16kB ROM Banks
+		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
+			return _mem[addr];
+		else if(addr < 0x8000) // 2 * 16kB ROM Banks
 			return reinterpret_cast<word_t&>(rom->read(addr));
 		else if(addr < 0xA000) // VRAM
 			return gpu->read(addr);
@@ -405,9 +412,9 @@ private:
 			return _mem[addr - 0xE000];
 		else if(addr < 0xFEA0) // Sprites (OAM) @todo
 			return gpu->read(addr);
-		else if(addr < 0xFF00) // I/O
-			return _mem[addr];
-		else if(addr < 0xFF4C) // I/O ports
+		//else if(addr < 0xFF00) // I/O
+		//	return _mem[addr];
+		else if(addr < 0xFF40) // I/O ports
 			return _mem[addr];
 		else if(addr < 0xFF80) // I/O (Video)
 			return gpu->read(addr);
@@ -423,26 +430,6 @@ private:
 	inline void	write(addr_t addr, word_t value)
 	{
 		rw(addr) = value;
-		/*
-		if(addr < 0x4000)
-			rom->write(addr, value);
-		else if(addr < 0xA000) // VRAM @todo
-			(void) 0;
-		else if(addr < 0xC000) // Cartridge RAM @todo
-			_cart_mem[addr - 0xA000] = value;
-		else if(addr < 0xFE00) // Working RAM (& mirror)
-			_mem[(addr - 0xC000) % RAMSize] = value;
-		else if(addr < 0xFEA0) // Sprites @todo
-			(void) 0;
-		else if(addr < 0xFF00) // Empty but unusable for I/O
-			(void) 0;
-		else if(addr < 0xFF4C) // I/O @todo
-			gpu->write(addr, value);
-		else if(addr < 0xFF80) // Empty but unusable for I/O
-			(void) 0;
-		else // Zero-page RAM
-			_zp_mem[addr - 0xFF80] = value;
-		*/
 	}
 	
 	inline void	write(addr_t addr, addr_t value)

@@ -54,12 +54,20 @@ int main(int argc, char* argv[])
 									padding / 2 - (screen_scale - 1.0) * gpu.ScreenHeight * 0.5);
 	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
 	
-	sf::Text debug_text;
 	sf::Font font;
 	if(!font.loadFromFile("data/Hack-Regular.ttf"))
 		std::cerr << "Error loading the font!" << std::endl;
+	
+	sf::Text debug_text;
 	debug_text.setFont(font);
 	debug_text.setCharacterSize(16);
+	debug_text.setPosition(5, 0);
+	
+	sf::Text debug_text_b;
+	debug_text_b.setFont(font);
+	debug_text_b.setCharacterSize(16);
+	debug_text_b.setPosition(5, 450);
+	debug_text_b.setString("Log");
 	
 	bool debug = true;
 	bool step = true;
@@ -83,6 +91,16 @@ int main(int argc, char* argv[])
 						cpu.reset_cart();
 						debug_text.setString("Reset");
 						break;
+					case sf::Keyboard::Add:
+					{
+						Z80::addr_t addr;
+						std::cout << "Adding breakpoint. Enter an address: ";
+						std::cin >> std::hex >> addr;
+						cpu.addBreakpoint(addr);
+						std::cout << std::endl << "Added " << Hexa(addr) << "." << std::endl;
+						break;
+					}
+					default: break;
 				}
 			}
         }
@@ -90,8 +108,7 @@ int main(int argc, char* argv[])
 		if(!debug || step)
 		{
 			cpu.execute();
-			for(int i = 0; i < cpu.getInstrCycles(); ++i)
-				gpu.step();
+			gpu.step(cpu.getInstrCycles());
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			
@@ -113,11 +130,21 @@ int main(int argc, char* argv[])
 			dt << "GPU Line: " << Hexa(gpu.getLine());
 			debug_text.setString(dt.str());
 			step = false;
+			
+			if(cpu.reachedBreakpoint())
+			{
+				std::stringstream dt2;
+				dt2 << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
+				debug_text_b.setString(dt2.str());
+				debug = true;
+				step = false;
+			}
 		}
 		
         window.clear(sf::Color::Black);
 		window.draw(gameboy_screen_sprite);
 		window.draw(debug_text);
+		window.draw(debug_text_b);
         window.display();
     }
 }

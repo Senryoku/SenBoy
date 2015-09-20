@@ -48,3 +48,5 @@ CMakeFiles/*
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+data/bios.bin
+data/bios.gb

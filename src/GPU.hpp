@@ -78,13 +78,10 @@ public:
 		_lcd_status = (_lcd_status & ~LCDMode) | Mode::OAM;
 	}
 	
-	void step()
+	void step(size_t cycles)
 	{
+		_cycles += cycles;
 		update_mode();
-		
-		
-		
-		++_cycles;
 	}
 	
 	word_t& read(addr_t addr)
@@ -96,7 +93,13 @@ public:
 			case 0xFF42: return _scroll_x; break;
 			case 0xFF43: return _scroll_y; break;
 			case 0xFF44: return _line; break;
+			case 0xFF45: return _lyc; break;
 			case 0xFF47: return _bkgd_pal; break;
+			case 0xFF48: return _obp0; break;
+			case 0xFF49: return _obp1; break;
+			case 0xFF4A: return _wy; break;
+			case 0xFF4B: return _wx; break;
+			// @todo other for GBC mode
 			default: 
 				if(addr >= 0x8000 && addr < 0xA000) {
 					return _vram[addr - 0x8000]; // VRAM
@@ -132,6 +135,11 @@ private:
 	word_t			_bkgd_pal = 0; ///< Backgound Palette Register
 	word_t 			_lcd_control = 0; ///< LCD Control Register
 	word_t 			_lcd_status = 0; ///< LCD Status Register
+	word_t			_lyc = 0;
+	word_t			_obp0 = 0;
+	word_t			_obp1 = 0;
+	word_t			_wy = 0;
+	word_t			_wx = 0;
 	
 	word_t*			_vram = nullptr;
 	word_t*			_oam = nullptr;

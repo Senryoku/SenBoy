@@ -145,12 +145,18 @@ inline void instr_rr(word_t v)
 
 inline void instr_sla(word_t v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	add_cycles(1);
+	set(Flag::Carry, _a & 0b10000000);
+	_a = _a << 1;
+	set(Flag::Zero, _a == 0);
 }
 
 inline void instr_sra(word_t v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	add_cycles(1);
+	set(Flag::Carry, _a & 0b00000001);
+	_a = _a >> 1;
+	set(Flag::Zero, _a == 0);
 }
 
 inline void instr_swap(word_t v)
