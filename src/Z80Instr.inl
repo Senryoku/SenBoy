@@ -241,37 +241,38 @@ inline void instr_srl(word_t& v)
 
 inline void instr_push(addr_t addr)
 {
+	add_cycles(4);
 	push(addr);
 }
 
 inline addr_t instr_pop()
 {
-	add_cycles(1);
+	add_cycles(3);
 	return pop();
 }
 
 inline void instr_jp(addr_t addr)
 {
-	add_cycles(1);
+	add_cycles(4);
 	_pc = addr;
 }
 
 inline void instr_jp(bool b, addr_t addr)
 {
-	add_cycles(b ? 2 : 1);
+	add_cycles(b ? 4 : 3);
 	if(b)
 		_pc = addr;
 }
 
 inline void instr_jr(word_t offset)
 {
-	add_cycles(1);
+	add_cycles(2);
 	rel_jump(offset);
 }
 
 inline void instr_jr(bool b, word_t offset)
 {
-	add_cycles(1);
+	add_cycles(2);
 	if(b) rel_jump(offset);
 }
 	

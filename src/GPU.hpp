@@ -83,11 +83,18 @@ public:
 	word_t& getLCDControl() const { return mmu->rw(MMU::LCDC);; }
 	word_t& getLCDStatus() const { return mmu->rw(MMU::STAT);; }
 	word_t& getLine() const { return mmu->rw(MMU::LY);; }
+	word_t& getLYC() const { return mmu->rw(MMU::LYC);; }
 	
 private:
 	// Timing
 	unsigned int	_cycles = 0;
 	
+	void exec_stat_interrupt(LCDStatus m)
+	{
+		if((mmu->read(MMU::IE) & MMU::LCDSTAT) && (getLCDStatus() & m))
+			mmu->rw(MMU::IF) |= MMU::LCDSTAT;
+	}
+						
 	void update_mode()
 	{
 		switch(getLCDStatus() & LCDMode)
@@ -102,8 +109,10 @@ private:
 						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
 						// VBlank Interrupt
 						mmu->rw(MMU::IF) |= MMU::VBlank;
+						exec_stat_interrupt(Mode01);
 					} else {
 						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
+						exec_stat_interrupt(Mode10);
 					}
 				}
 				break;
@@ -116,6 +125,7 @@ private:
 					{
 						getLine() = 0; 
 						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
+						exec_stat_interrupt(Mode00);
 					}
 				}
 				break;
@@ -124,6 +134,7 @@ private:
 				{
 					_cycles -= 20;
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VRAM;
+					exec_stat_interrupt(Mode10); /// @todo Check
 				}
 				break;
 			case Mode::VRAM:
@@ -132,8 +143,18 @@ private:
 					_cycles -= 43;
 					renderget_line();
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
+					exec_stat_interrupt(Mode00);
 				}
 				break;
+		}
+		
+		// Coincidence Bit & Interrupt
+		if(getLine() == getLYC())
+		{
+			getLCDStatus() |= Coincidence;
+			exec_stat_interrupt(LYC);
+		} else {
+			getLCDStatus() = getLCDStatus() & (~Coincidence);
 		}
 	}
 	

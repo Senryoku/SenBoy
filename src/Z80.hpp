@@ -191,7 +191,7 @@ private:
 	// Helper function on opcodes
 	inline word_t extract_src_reg(word_t opcode) const { return (opcode + 1) & 0b111; }
 	inline word_t extract_dst_reg(word_t opcode) const { return ((opcode >> 3) + 1) & 0b111; }
-	inline void rel_jump(word_t offset) { _pc += offset - ((offset & 0b10000000) ? 0x100 : 0); }
+	inline void rel_jump(word_t offset) { _pc += offset - ((offset & 0b10000000) ? 0x100 : 0);  add_cycles(1); }
 	
 	#include "Z80Instr.inl"
 };
