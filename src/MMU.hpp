@@ -3,7 +3,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "ROM.hpp"
+#include "Cartridge.hpp"
 
 class MMU
 {
@@ -64,7 +64,7 @@ public:
 		All = 0xFF
 	};
 	
-	ROM*		rom = nullptr;
+	Cartridge*		cartridge = nullptr;
 	
 	MMU();
 	
@@ -72,12 +72,17 @@ public:
 	
 	inline word_t read(addr_t addr) const
 	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
+		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
 			return _mem[addr];
-		else if(addr < 0x8000) // 2 * 16kB ROM Banks
-			return static_cast<word_t>(rom->read(addr));
-		else
+		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks
+			return static_cast<word_t>(cartridge->read(addr));
+		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
+			return cartridge->read(addr);
+		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
+			return _mem[addr - (0xE000 - 0xC000)];
+		} else { // Internal RAM (or unused)
 			return _mem[addr];
+		}
 	}
 	
 	inline word_t& rw(addr_t addr)
@@ -85,9 +90,13 @@ public:
 		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
 			return _mem[addr];
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
-			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! use write instead." << std::endl;
+			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
 			return _mem[0x0100]; // Dummy value.
-		} else {
+		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
+			return reinterpret_cast<word_t&>(cartridge->rw(addr));
+		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
+			return _mem[addr - 0x2000];
+		} else { // Internal RAM (or unused)
 			return _mem[addr];
 		}
 	}
@@ -112,7 +121,7 @@ public:
 		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
 			rw(addr) = value;
 		else if(addr < 0x8000) // Memory Banks management
-			rom->write(addr, value);
+			cartridge->write(addr, value);
 		else
 			rw(addr) = value;
 	}

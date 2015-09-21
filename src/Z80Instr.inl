@@ -49,6 +49,15 @@ inline void instr_add(addr_t& reg16, word_t src)
 	add_cycles(3);
 }
 
+inline void instr_add_hl(addr_t src)
+{
+	set(Flag::Negative,  false);
+	set(Flag::HalfCarry, ((getHL() & 0xFF) + (src & 0xFF)) & 0x100);
+	set(Flag::Carry, (static_cast<uint32_t>(getHL()) + src) > 0xFFFF);
+	set_hl(getHL() + src);
+	add_cycles(1);
+}
+		
 inline void instr_adc(word_t src)
 {
 	set(Flag::HalfCarry, ((((_a & 0xF) + (src & 0xF) + (check(Flag::Carry) ? 1 : 0)) & 0x10)));

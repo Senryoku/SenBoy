@@ -5,7 +5,7 @@
 #include <SFML/Graphics.hpp>
 
 #include "MMU.hpp"
-#include "ROM.hpp"
+#include "Cartridge.hpp"
 #include "GPU.hpp"
 #include "Z80.hpp"
 
@@ -32,11 +32,11 @@ int main(int argc, char* argv[])
 		path = argv[1];
 	
 	Z80 cpu;
-	ROM rom(path);
+	Cartridge cartridge(path);
 	MMU mmu;
 	GPU gpu;
 	
-	mmu.rom = &rom;
+	mmu.cartridge = &cartridge;
 	cpu.mmu = &mmu;
 	gpu.mmu = &mmu;
 	
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
 		
 		if(!debug || step)
 		{
-			for(int i = 0; i < (debug ? 1 : 1); )
+			for(int i = 0; i < (debug ? 1 : 17556); )
 			{
 				cpu.execute();
 				gpu.step(cpu.getInstrCycles());

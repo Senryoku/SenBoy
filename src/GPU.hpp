@@ -75,16 +75,6 @@ public:
 		update_mode();
 	}
 	
-	inline word_t& rw(addr_t addr)
-	{
-		return mmu->rw(addr);
-	}
-	
-	void write(addr_t addr, word_t val)
-	{
-		rw(addr) = val;
-	}
-	
 	addr_t to1D(word_t x, word_t y) { return y * ScreenWidth + x; }
 	
 	word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
@@ -173,9 +163,9 @@ private:
 			{
 				x = x % 8;
 				lineoffs = (lineoffs + 1) & 31;
-				tile = rw(mapoffs + lineoffs + 0x8000);
-				tile_l = rw(base_tile_data + tile * 16);
-				tile_h = rw(base_tile_data + tile * 16 + 1);
+				tile = mmu->rw(mapoffs + lineoffs + 0x8000);
+				tile_l = mmu->rw(base_tile_data + tile * 16);
+				tile_h = mmu->rw(base_tile_data + tile * 16 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 			}
 			
