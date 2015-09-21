@@ -25,7 +25,7 @@ void Z80::reset_cart()
 {
 	_pc = 0x0100;
 	_sp = 0xFFFE;
-	setAF(0x0001);
+	setAF(0x01B0);
 	_f = 0xB0; // What ?
 	setBC(0x0013);
 	setDE(0x00D8);

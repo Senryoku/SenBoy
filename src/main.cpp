@@ -18,7 +18,7 @@ struct HexaGen
 };
 
 template<typename T>
-std::ostream& operator<< (std::ostream& os, const HexaGen<T>& t)
+std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 {
 	return os << "0x" << std::hex << std::setw(t.s) << std::setfill('0') << (int) t.v;
 }
@@ -127,10 +127,21 @@ int main(int argc, char* argv[])
 		
 		if(!debug || step)
 		{
-			for(int i = 0; i < (debug ? 1 : 17556); i += cpu.getInstrCycles())
+			for(int i = 0; i < (debug ? 1 : 17556); )
 			{
 				cpu.execute();
 				gpu.step(cpu.getInstrCycles());
+				i += cpu.getInstrCycles();
+			
+				if(cpu.reachedBreakpoint())
+				{
+					std::stringstream ss;
+					ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
+					log_text.setString(ss.str());
+					debug = true;
+					step = false;
+					break;
+				}
 			}
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
@@ -150,18 +161,11 @@ int main(int argc, char* argv[])
 			if(cpu.check(Z80::Flag::HalfCarry)) dt << " HC";
 			if(cpu.check(Z80::Flag::Carry)) dt << " C";
 			dt << std::endl;
-			dt << "GPU Line: " << Hexa(gpu.getLine());
+			dt << "LY: " << Hexa(gpu.getLine());
+			dt << " LCDC: " << Hexa(gpu.getLCDControl());
+			dt << " STAT: " << Hexa(gpu.getLCDStatus());
 			debug_text.setString(dt.str());
 			step = false;
-			
-			if(cpu.reachedBreakpoint())
-			{
-				std::stringstream ss;
-				ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
-				log_text.setString(ss.str());
-				debug = true;
-				step = false;
-			}
 		}
 		
         window.clear(sf::Color::Black);

@@ -7,7 +7,7 @@
 /**
  * Zilog 80 CPU
  *
- * Gameboy CPU
+ * Gameboy CPU (Sharp LR35902 ?)
 **/
 class Z80
 {
@@ -69,6 +69,8 @@ public:
 	{	
 		_clock_instr_cycles = 0;
 		_machine_instr_cycles = 0;
+		
+		check_interrupts();
 		
 		word_t opcode = read(_pc++);
 		display_state();
@@ -135,7 +137,7 @@ public:
 							case 0x02: _a = read(getBC()); break;
 							case 0x12: _a = read(getDE()); break;
 							case 0x22: _a = read(getHL()); incrHL(); break;
-							case 0x32: _a = read(getHL()); decrHL(); break;
+							case 0x32: rw(getHL()) = _a; decrHL(); break;	// LD (HL-), A
 							// INC 16bits Reg
 							case 0x03: setBC(getBC() + 1); break;
 							case 0x13: setDE(getDE() + 1); break;
@@ -152,10 +154,35 @@ public:
 							case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
 							case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;
 							// ADD HL, 16bits Reg
-							case 0x09: setHL(getHL() + getBC()); add_cycles(8); break;
-							case 0x19: setHL(getHL() + getDE()); add_cycles(8); break;
-							case 0x29: setHL(getHL() + getHL()); add_cycles(8); break;
-							case 0x39: setHL(getHL() + _sp); add_cycles(8); break;
+							case 0x09: 
+								set(Flag::Negative,  false);
+								set(Flag::HalfCarry, ((getHL() & 0xFF) + (getBC() & 0xFF)) & 0x100);
+								set(Flag::Carry, (static_cast<uint32_t>(getHL()) + getBC()) > 0xFFFF);
+								setHL(getHL() + getBC());
+								add_cycles(1);
+								break;
+							case 0x19: 
+								set(Flag::Negative,  false);
+								set(Flag::HalfCarry, ((getHL() & 0xFF) + (getDE() & 0xFF)) & 0x100);
+								set(Flag::Carry, (static_cast<uint32_t>(getHL()) + getDE()) > 0xFFFF);
+								setHL(getHL() + getDE());
+								add_cycles(1); 
+								break;
+							case 0x29: 
+								set(Flag::Negative,  false);
+								set(Flag::HalfCarry, ((getHL() & 0xFF) + (getHL() & 0xFF)) & 0x100);
+								set(Flag::Carry, (static_cast<uint32_t>(getHL()) + getHL()) > 0xFFFF);
+								setHL(getHL() + getHL()); 
+								add_cycles(1); 
+								break;
+							case 0x39: 
+								set(Flag::Negative,  false);
+								set(Flag::HalfCarry, ((getHL() & 0xFF) + (_sp & 0xFF)) & 0x100);
+								set(Flag::Carry, (static_cast<uint32_t>(getHL()) + _sp) > 0xFFFF);
+								setHL(getHL() + _sp); 
+								add_cycles(1); 
+								break;
+							
 							case 0x0A: instr_ld(_a, read(getBC())); break;
 							case 0x1A: instr_ld(_a, read(getDE())); break;
 							case 0x2A: instr_ld(_a, read(getHL())); incrHL(); break;
@@ -223,12 +250,12 @@ public:
 							case 0xE0: instr_ld(rw(0xFF00 + _pc++), _a); add_cycles(2); break;			// LDH (n), a
 							case 0xF0: instr_ld(_a, read(0xFF00 + read(_pc++))); add_cycles(2); break;	// LDH a, (n)
 							// POP
-							case 0xC1: setBC(instr_pop()); break;
-							case 0xD1: setDE(instr_pop()); break;
-							case 0xE1: setHL(instr_pop()); break;
-							case 0xF1: setAF(instr_pop()); break;
-							case 0xC2: instr_jp(!check(Flag::Zero), mmu->read16(_pc)); break;
-							case 0xD2: instr_jp(!check(Flag::Carry), mmu->read16(_pc)); break;
+							case 0xC1: setBC(instr_pop()); add_cycles(2); break;
+							case 0xD1: setDE(instr_pop()); add_cycles(2); break;
+							case 0xE1: setHL(instr_pop()); add_cycles(2); break;
+							case 0xF1: setAF(instr_pop()); add_cycles(2); break;
+							case 0xC2: instr_jp(!check(Flag::Zero), mmu->read16(_pc)); add_cycles(2); break;
+							case 0xD2: instr_jp(!check(Flag::Carry), mmu->read16(_pc)); add_cycles(2); break;
 							case 0xE2: instr_ld(rw(_c), _a); break;
 							case 0xF2: instr_ld(_a, read(_c)); break;
 							case 0xC3: instr_jp(mmu->read16(_pc)); break;
@@ -238,22 +265,27 @@ public:
 							case 0xD5: instr_push(getDE()); break;
 							case 0xE5: instr_push(getHL()); break;
 							case 0xF5: instr_push(getAF()); break;
+							
+							case 0xC6: instr_add(read(_pc++)); break;
+							case 0xD6: instr_adc(read(_pc++)); break;
+							case 0xE6: instr_and(read(_pc++)); break;
+							case 0xF6: instr_or(read(_pc++)); break;
+							
 							case 0xC8: instr_ret(check(Flag::Zero)); break;
 							case 0xD8: instr_ret(check(Flag::Carry)); break;
-							case 0xE8: _sp += read(_pc++); break;
-							case 0xF8: setHL(_sp + read(_pc++)); break; // 16bits LD
+							case 0xE8: instr_add(_sp, read(_pc++)); break;	// ADD SP, n
+							case 0xF8: setHL(_sp + read(_pc++)); add_cycles(1); break; // 16bits LD
+							
 							case 0xC9: instr_ret(); break;
 							case 0xD9: instr_reti(); break;
 							case 0xE9: instr_jp(getHL()); break;
 							case 0xF9: instr_ld(_sp, getHL()); break;
+							
 							case 0xCA: instr_jp(check(Flag::Zero), mmu->read16(_pc)); break;
 							case 0xDA: instr_jp(check(Flag::Carry), mmu->read16(_pc)); break;
-							case 0xEA: mmu->write(mmu->read16(_pc), _a); _pc += 2; break;	// 16bits LD
-							case 0xFA: instr_ld(_a, mmu->read16(_pc)); _pc += 2; break;
-							case 0xC6: instr_add(read(_pc++)); break;
-							case 0xD6: instr_adc(read(_pc++)); break;
-							case 0xE6: instr_sub(read(_pc++)); break;
-							case 0xF6: instr_sbc(read(_pc++)); break;
+							case 0xEA: mmu->write(mmu->read16(_pc), _a); _pc += 2; add_cycles(4); break;	// 16bits LD
+							case 0xFA: instr_ld(_a, read(mmu->read16(_pc))); _pc += 2; add_cycles(3); break;
+							
 							case 0xCE: instr_and(read(_pc++)); break;
 							case 0xDE: instr_xor(read(_pc++)); break;
 							case 0xEE: instr_or(read(_pc++)); break;
@@ -322,6 +354,42 @@ private:
 	
 	inline word_t& rw(addr_t addr) { return mmu->rw(addr); }
 	inline word_t read(addr_t addr) const { return mmu->read(addr); }
+	
+	///////////////////////////////////////////////////////////////////////////
+	// Interrupts management
+	
+	inline void exec_interrupt(MMU::InterruptFlag i, addr_t addr)
+	{
+		push(_pc);
+		_pc = addr;
+		_ime = 0x00;
+		add_cycles(5);
+		mmu->rw(MMU::IF) &= ~i;
+	}
+	
+	inline void check_interrupts()
+	{
+		if(_ime == 0x00)
+			return;
+		
+		word_t IF = read(MMU::IF);
+		if(IF)
+		{
+			word_t IE = read(MMU::IE);
+			// Check each interrupt. If requested and enabled, push current PC, jump and clear flag.
+			if((IF & MMU::VBlank) & (IE & MMU::VBlank)) {
+				exec_interrupt(MMU::VBlank, 0x0040);
+			} else if((IF & MMU::LCDSTAT) & (IE & MMU::LCDSTAT)) {
+				exec_interrupt(MMU::LCDSTAT, 0x0048);
+			} else if((IF & MMU::TimerOverflow) & (IE & MMU::TimerOverflow)) {
+				exec_interrupt(MMU::TimerOverflow, 0x0050);
+			} else if((IF & MMU::TransferComplete) & (IE & MMU::TransferComplete)) {
+				exec_interrupt(MMU::TransferComplete, 0x0058);
+			} else if((IF & MMU::Transition) & (IE & MMU::Transition)) {
+				exec_interrupt(MMU::Transition, 0x0060);
+			}
+		}
+	}
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Cycles management

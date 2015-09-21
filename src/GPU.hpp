@@ -60,15 +60,11 @@ public:
 	GPU()
 	{
 		screen = new color_t[ScreenWidth * ScreenHeight];
-		_vram = new word_t[0x1FFF];
-		_oam = new word_t[0x00A0];
 	}
 	
 	~GPU()
 	{
 		delete[] screen;
-		delete[] _vram;
-		delete[] _oam;
 	}
 	
 	void reset();
@@ -98,10 +94,7 @@ public:
 	word_t& getLCDStatus() const { return mmu->rw(MMU::STAT);; }
 	word_t& getLine() const { return mmu->rw(MMU::LY);; }
 	
-private:	
-	word_t*			_vram = nullptr;
-	word_t*			_oam = nullptr;
-	
+private:
 	// Timing
 	unsigned int	_cycles = 0;
 	
@@ -117,6 +110,8 @@ private:
 					if(getLine() >= 143)
 					{
 						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
+						// VBlank Interrupt
+						mmu->rw(MMU::IF) |= MMU::VBlank;
 					} else {
 						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
 					}
@@ -129,7 +124,7 @@ private:
 					getLine()++;
 					if(getLine() >= 153)
 					{
-						getLine() = 0;
+						getLine() = 0; 
 						getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
 					}
 				}
@@ -156,18 +151,21 @@ private:
 	void renderget_line()
 	{
 		/// @see http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
+		// Selects the Tile Map & Tile Data Set
 		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x1C00 : 0x1800;
+		addr_t base_tile_data = (getLCDControl() & BGWindowsTileDataSelect) ? 0x8800 : 0x8000;
+		
 		mapoffs += ((getLine() + getScrollX()) & 255) >> 3;
 		word_t lineoffs = (getScrollX() >> 3);
 		
 		word_t x = getScrollX() & 7;
 		word_t y = (getLine() + getScrollY()) & 7;
 		
+		// Tile Index
 		word_t tile = rw(mapoffs + lineoffs + 0x8000);
-		if((getLCDControl() & BGWindowsTileDataSelect) && tile < 128) tile += 256;
 		
-		word_t tile_l = _vram[tile * 2];
-		word_t tile_h = _vram[tile * 2 + 1];
+		word_t tile_l = rw(base_tile_data + tile * 16 + y);
+		word_t tile_h = rw(base_tile_data + tile * 16 + y + 1);
 		word_t tile_data0, tile_data1;
 		palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 		
@@ -182,11 +180,10 @@ private:
 			{
 				x = 0;
 				lineoffs = (lineoffs + 1) & 31;
-				tile = _vram[mapoffs + lineoffs];
-				tile_l = _vram[tile * 2];
-				tile_h = _vram[tile * 2 + 1];
+				tile = rw(mapoffs + lineoffs + 0x8000);
+				tile_l = rw(base_tile_data + tile * 2);
+				tile_h = rw(base_tile_data + tile * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-				if((getLCDControl() & BGWindowsTileDataSelect) && tile < 128) tile += 256;
 			}
 		}
 	}

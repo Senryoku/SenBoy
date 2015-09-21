@@ -21,21 +21,38 @@ inline void instr_ld(addr_t& dst, addr_t src)
 	add_cycles(1);
 }
 
+/**
+ * Z - Set if result is zero.
+ * N - Reset.
+ * H - Set if carry from bit 3.
+ * C - Set if carry from bit 7.
+**/
 inline void instr_add(word_t src)
 {
+	set(Flag::HalfCarry, ((_a & 0xF) + (src & 0xF)) & 0x10);
 	uint16_t t = _a + src;
-	set(Flag::HalfCarry, t > 0x0F);
 	set(Flag::Carry, t > 0xFF);
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, false);
 	add_cycles(1);
+}
+
+inline void instr_add(addr_t& reg16, word_t src)
+{
+	set(Flag::HalfCarry, ((reg16 & 0xFF) + (src & 0xFF)) & 0x0100);
+	uint32_t t = reg16 + src;
+	set(Flag::Carry, t > 0xFFFF);
+	reg16 = t;
+	set(Flag::Zero, false);
+	set(Flag::Negative, false);
+	add_cycles(3);
 }
 
 inline void instr_adc(word_t src)
 {
+	set(Flag::HalfCarry, ((((_a & 0xF) + (src & 0xF) + (check(Flag::Carry) ? 1 : 0)) & 0x10)));
 	uint16_t t = _a + src + (check(Flag::Carry) ? 1 : 0);
-	set(Flag::HalfCarry, t > 0x0F);
 	set(Flag::Carry, t > 0xFF);
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
@@ -43,22 +60,36 @@ inline void instr_adc(word_t src)
 	add_cycles(1);
 }
 
+/**
+ * Subtract n from A.
+ * Z - Set if result is zero.
+ * N - Set.
+ * H - Set if no borrow from bit 4.
+ * C - Set if no borrow.
+**/
 inline void instr_sub(word_t src)
 {
+	set(Flag::HalfCarry, ((_a & 0xF) - (src & 0xF)) == 0x0F);
 	int16_t t = _a - src;
-	set(Flag::HalfCarry, t > 0x0F);
-	set(Flag::Carry, t > 0xFF);
+	set(Flag::Carry, t < 0x00);
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, true);
 	add_cycles(1);
 }
 
+/**
+ * Subtract n + Carry flag from A.
+ * Z - Set if result is zero.
+ * N - Set.
+ * H - Set if no borrow from bit 4.
+ * C - Set if no borrow.
+**/
 inline void instr_sbc(word_t src)
 {
+	set(Flag::HalfCarry, (((_a & 0xF) - (src & 0xF) - (check(Flag::Carry) ? 1 : 0)) == 0x0F));
 	int16_t t = _a - src - (check(Flag::Carry) ? 1 : 0);
-	set(Flag::HalfCarry, t > 0x0F);
-	set(Flag::Carry, t > 0xFF);
+	set(Flag::Carry, t < 0x00);
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, true);
@@ -68,11 +99,17 @@ inline void instr_sbc(word_t src)
 inline void instr_inc(word_t& src)
 {
 	++src;
+	set(Flag::Zero, src == 0);
+	set(Flag::Negative, false);
+	set(Flag::HalfCarry, (src & 0x0F) == 0x00);
 }
 
 inline void instr_dec(word_t& src)
 {
 	--src;
+	set(Flag::Zero, src == 0);
+	set(Flag::Negative, true);
+	set(Flag::HalfCarry, (src & 0x0F) == 0x0F);
 }
 
 inline void instr_and(word_t src)
@@ -105,11 +142,20 @@ inline void instr_or(word_t src)
 	add_cycles(1);
 }
 
+/**
+ * Compare A with n. This is basically an A - n
+ * subtraction instruction but the results are thrown
+ * away.
+ * Z - Set if result is zero. (Set if A = n.)
+ * N - Set.
+ * H - Set if no borrow from bit 4.
+ * C - Set for no borrow. (Set if A < n.)
+*/
 inline void instr_cp(word_t src)
 {
+	set(Flag::HalfCarry, ((_a & 0xF) - (src & 0xF)) == 0x0F);
 	int16_t t = _a - src;
-	set(Flag::HalfCarry, t > 0x0F);
-	set(Flag::Carry, t > 0xFF);
+	set(Flag::Carry, t < 0x00);
 	set(Flag::Zero, t == 0);
 	set(Flag::Negative, true);
 	add_cycles(1);
@@ -159,14 +205,29 @@ inline void instr_sra(word_t v)
 	set(Flag::Zero, _a == 0);
 }
 
-inline void instr_swap(word_t v)
+/**
+ * Swaps nibbles (groups of 4bits) of n.
+**/
+inline void instr_swap(word_t& v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	word_t t = v & 0x0F;
+	v = ((v << 4) & 0xF0) | t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative, false);
+	set(Flag::HalfCarry, false);
+	set(Flag::Carry, false);
 }
 
-inline void instr_srl(word_t v)
+/**
+ * Shift n right into Carry. MSB set to 0.
+**/
+inline void instr_srl(word_t& v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	set(Flag::Zero, v == 0);
+	v = v >> 1;
+	set(Flag::Negative, false);
+	set(Flag::HalfCarry, false);
+	set(Flag::Carry, v & 0b0000001);
 }
 
 inline void instr_push(addr_t addr)
@@ -188,7 +249,7 @@ inline void instr_jp(addr_t addr)
 
 inline void instr_jp(bool b, addr_t addr)
 {
-	add_cycles(1);
+	add_cycles(b ? 2 : 1);
 	if(b)
 		_pc = addr;
 }
