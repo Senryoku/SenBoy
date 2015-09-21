@@ -162,29 +162,28 @@ private:
 		word_t y = (getLine() + getScrollY()) & 7;
 		
 		// Tile Index
-		word_t tile = rw(mapoffs + lineoffs + 0x8000);
-		
-		word_t tile_l = rw(base_tile_data + tile * 16 + y);
-		word_t tile_h = rw(base_tile_data + tile * 16 + y + 1);
+		word_t tile;
+		word_t tile_l;
+		word_t tile_h;
 		word_t tile_data0, tile_data1;
-		palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 		
 		for(word_t i = 0; i < ScreenWidth; i++)
 		{
+			if(x == 8 || i == 0)
+			{
+				x = x % 8;
+				lineoffs = (lineoffs + 1) & 31;
+				tile = rw(mapoffs + lineoffs + 0x8000);
+				tile_l = rw(base_tile_data + tile * 16);
+				tile_h = rw(base_tile_data + tile * 16 + 1);
+				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+			}
+			
 			word_t idx = y * 8 + x;
 			word_t color = ((idx > 3 ? tile_data1 : tile_data0) >> (idx * 2)) & 0b11; // 0-3
 			screen[to1D(i, getLine())] = getPaletteColor(color);
 			
 			++x;
-			if(x == 8)
-			{
-				x = 0;
-				lineoffs = (lineoffs + 1) & 31;
-				tile = rw(mapoffs + lineoffs + 0x8000);
-				tile_l = rw(base_tile_data + tile * 2);
-				tile_h = rw(base_tile_data + tile * 2 + 1);
-				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-			}
 		}
 	}
 	

@@ -75,19 +75,21 @@ public:
 		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
 			return _mem[addr];
 		else if(addr < 0x8000) // 2 * 16kB ROM Banks
-			return reinterpret_cast<word_t&>(rom->read(addr));
+			return static_cast<word_t>(rom->read(addr));
 		else
 			return _mem[addr];
 	}
 	
 	inline word_t& rw(addr_t addr)
 	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
+		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
 			return _mem[addr];
-		else if(addr < 0x8000) // 2 * 16kB ROM Banks
-			return reinterpret_cast<word_t&>(rom->read(addr));
-		else
+		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
+			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! use write instead." << std::endl;
+			return _mem[0x0100]; // Dummy value.
+		} else {
 			return _mem[addr];
+		}
 	}
 	
 	inline word_t& read(Register reg)
@@ -107,7 +109,12 @@ public:
 	
 	inline void	write(addr_t addr, word_t value)
 	{
-		rw(addr) = value;
+		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
+			rw(addr) = value;
+		else if(addr < 0x8000) // Memory Banks management
+			rom->write(addr, value);
+		else
+			rw(addr) = value;
 	}
 	
 	inline void	write(addr_t addr, addr_t value)

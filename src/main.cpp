@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
 		
 		if(!debug || step)
 		{
-			for(int i = 0; i < (debug ? 1 : 17556); )
+			for(int i = 0; i < (debug ? 1 : 1); )
 			{
 				cpu.execute();
 				gpu.step(cpu.getInstrCycles());

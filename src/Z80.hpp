@@ -137,7 +137,7 @@ public:
 							case 0x02: _a = read(getBC()); break;
 							case 0x12: _a = read(getDE()); break;
 							case 0x22: _a = read(getHL()); incrHL(); break;
-							case 0x32: rw(getHL()) = _a; decrHL(); break;	// LD (HL-), A
+							case 0x32: mmu->write(getHL(), _a); decrHL(); add_cycles(1); break;	// LD (HL-), A
 							// INC 16bits Reg
 							case 0x03: setBC(getBC() + 1); break;
 							case 0x13: setDE(getDE() + 1); break;
@@ -247,7 +247,7 @@ public:
 						{
 							case 0xC0: instr_ret(!check(Flag::Zero)); break;
 							case 0xD0: instr_ret(!check(Flag::Carry)); break;
-							case 0xE0: instr_ld(rw(0xFF00 + _pc++), _a); add_cycles(2); break;			// LDH (n), a
+							case 0xE0: instr_ld(rw(0xFF00 + read(_pc++)), _a); add_cycles(2); break;			// LDH (n), a
 							case 0xF0: instr_ld(_a, read(0xFF00 + read(_pc++))); add_cycles(2); break;	// LDH a, (n)
 							// POP
 							case 0xC1: setBC(instr_pop()); add_cycles(2); break;
@@ -256,7 +256,7 @@ public:
 							case 0xF1: setAF(instr_pop()); add_cycles(2); break;
 							case 0xC2: instr_jp(!check(Flag::Zero), mmu->read16(_pc)); add_cycles(2); break;
 							case 0xD2: instr_jp(!check(Flag::Carry), mmu->read16(_pc)); add_cycles(2); break;
-							case 0xE2: instr_ld(rw(_c), _a); break;
+							case 0xE2: mmu->write(read(_c), _a); add_cycles(2); break;
 							case 0xF2: instr_ld(_a, read(_c)); break;
 							case 0xC3: instr_jp(mmu->read16(_pc)); break;
 							case 0xF3: instr_di(); break;

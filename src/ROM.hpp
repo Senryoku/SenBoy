@@ -46,15 +46,14 @@ public:
 		return true;
 	}
 	
-	byte_t& read(addr_t addr)
+	byte_t read(addr_t addr) const
 	{
-		// @todo Mapping
 		return _data[addr % _data.size()];
 	}
 	
 	void write(addr_t addr, byte_t value)
 	{
-		_data[addr] = value;
+		/// @todo Memory Banks !
 	}
 	
 	std::string getName() { return std::string(_data.data() + 0x0134, 15); }
