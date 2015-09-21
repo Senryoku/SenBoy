@@ -55,7 +55,7 @@ inline void instr_add_hl(addr_t src)
 	set(Flag::HalfCarry, ((getHL() & 0xFF) + (src & 0xFF)) & 0x100);
 	set(Flag::Carry, (static_cast<uint32_t>(getHL()) + src) > 0xFFFF);
 	set_hl(getHL() + src);
-	add_cycles(1);
+	add_cycles(2);
 }
 		
 inline void instr_adc(word_t src)
