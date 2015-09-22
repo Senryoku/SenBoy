@@ -206,7 +206,7 @@ void Z80::execute()
 						if(dst_reg > 6)	{ // LD (HL), d8
 							mmu->write(getHL(), mmu->read(_pc++));
 						} else {
-							instr_ld(fetch_reg(dst_reg), mmu->read(_pc++));
+							_r[dst_reg] = mmu->read(_pc++);
 						}
 						break;
 					}
@@ -248,10 +248,10 @@ void Z80::execute()
 						case 0x29: instr_add_hl(getHL()); break;
 						case 0x39: instr_add_hl(_sp); break;
 						
-						case 0x0A: instr_ld(_a, mmu->read(getBC())); break;
-						case 0x1A: instr_ld(_a, mmu->read(getDE())); break;
-						case 0x2A: instr_ld(_a, mmu->read(getHL())); incr_hl(); break;
-						case 0x3A: instr_ld(_a, mmu->read(getHL())); decr_hl(); break;
+						case 0x0A: _a = mmu->read(getBC()); break;
+						case 0x1A: _a = mmu->read(getDE()); break;
+						case 0x2A: _a = mmu->read(getHL()); incr_hl(); break;
+						case 0x3A: _a = mmu->read(getHL()); decr_hl(); break;
 						
 						case 0x0B: set_bc(getBC() - 1); break;
 						case 0x1B: set_de(getDE() - 1); break;
@@ -275,10 +275,10 @@ void Z80::execute()
 				word_t reg_dst = extract_dst_reg(opcode);
 				if(reg_src > 6 && reg_dst > 6) // (HL), (HL) => HALT !
 					instr_halt();
-				else if(reg_dst > 6) // We need to take care not to write on ROM (HL could be used to setup the memory banks)
+				else if(reg_dst > 6)
 					mmu->write(getHL(), fetch_reg(reg_src));
 				else
-					instr_ld(_r[reg_dst], fetch_reg(reg_src));
+					_r[reg_dst] = fetch_val(reg_src);
 				break;
 			}
 			case 0b10: // ALU on registers - Done ?
@@ -303,33 +303,15 @@ void Z80::execute()
 			{
 				switch(opcode & 0x0F)
 				{
-					case 0x04:
-						_pc += 2; 
-						instr_call(!check(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry), 
-								mmu->read16(_pc - 2));  
-						break;
 					case 0x07: instr_rst(y); break;
-					case 0x0C:
-						_pc += 2; 
-						instr_call(check(((opcode >> 4) == 0xC) ? Flag::Zero : Flag::Carry),
-									mmu->read16(_pc - 2));
-						break;
-					case 0x0D:
-						_pc += 2;
-						instr_call(mmu->read16(_pc - 2));
-						break;
 					case 0x0F: instr_rst(y); break;
 					default: // Uncategorized codes
 					switch(opcode)
 					{
 						case 0xC0: instr_ret(!check(Flag::Zero)); break;
 						case 0xD0: instr_ret(!check(Flag::Carry)); break;
-						case 0xE0: // LDH (n), a
-							mmu->write(0xFF00 + mmu->read(_pc++), _a);
-							break;	
-						case 0xF0: // LDH a, (n)
-							instr_ld(_a, read(0xFF00 + mmu->read(_pc++)));
-							break;	
+						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break; // LDH (n), a	
+						case 0xF0: _a = read(0xFF00 + mmu->read(_pc++)); break;	// LDH a, (n)
 						// POP
 						case 0xC1: set_bc(instr_pop()); break;
 						case 0xD1: set_de(instr_pop()); break;
@@ -343,6 +325,10 @@ void Z80::execute()
 						
 						case 0xC3: instr_jp(mmu->read16(_pc)); break;
 						case 0xF3: instr_di(); break;
+						
+						case 0xC4: _pc += 2; instr_call(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
+						case 0xD4: _pc += 2; instr_call(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						
 						// PUSH
 						case 0xC5: instr_push(getBC()); break;
 						case 0xD5: instr_push(getDE()); break;
@@ -359,7 +345,7 @@ void Z80::execute()
 						case 0xE8: instr_add(_sp, read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
-							int t = _sp + read(_pc++);
+							int t = _sp + mmu->read(_pc++);
 							set_hl(t & 0xFFFF);
 							set(Flag::Zero, false);
 							set(Flag::Negative, false);
@@ -371,7 +357,7 @@ void Z80::execute()
 						case 0xC9: instr_ret(); break;
 						case 0xD9: instr_reti(); break;
 						case 0xE9: _pc = getHL(); break;	// JP (HL)
-						case 0xF9: instr_ld(_sp, getHL()); break;
+						case 0xF9: _sp = getHL(); break;
 						
 						case 0xCA: _pc +=2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xDA: _pc +=2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;
@@ -380,16 +366,21 @@ void Z80::execute()
 							_pc += 2;
 							break;	// 16bits LD
 						case 0xFA:
-							instr_ld(_a, read(mmu->read16(_pc)));
+							_a = read(mmu->read16(_pc));
 							_pc += 2;
 							break;
 						
 						case 0xFB: instr_ei(); break;
 					
-						case 0xCE: instr_adc(read(_pc++)); break;
-						case 0xDE: instr_sbc(read(_pc++)); break;
-						case 0xEE: instr_xor(read(_pc++)); break;
-						case 0xFE: instr_cp(read(_pc++)); break;
+						case 0xCC: _pc += 2; instr_call(check(Flag::Zero), mmu->read16(_pc - 2)); break;
+						case 0xDC: _pc += 2; instr_call(check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						
+						case 0xCD: _pc += 2; instr_call(mmu->read16(_pc - 2)); break;
+						
+						case 0xCE: instr_adc(mmu->read(_pc++)); break;
+						case 0xDE: instr_sbc(mmu->read(_pc++)); break;
+						case 0xEE: instr_xor(mmu->read(_pc++)); break;
+						case 0xFE: instr_cp(mmu->read(_pc++)); break;
 						default:
 							instr_nop();
 							std::cerr << "Unknown opcode: 0x" << std::hex << (int) opcode << std::endl;

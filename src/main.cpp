@@ -13,14 +13,13 @@ template<typename T>
 struct HexaGen
 {
 	T		v;
-	size_t	s = 4;
-	HexaGen(T _t, size_t _s = 4) : v(_t), s(_s) {}
+	HexaGen(T _t) : v(_t) {}
 };
 
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 {
-	return os << "0x" << std::hex << std::setw(t.s) << std::setfill('0') << (int) t.v;
+	return os << "0x" << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << (int) t.v;
 }
 
 using Hexa = HexaGen<Z80::addr_t>;
@@ -180,10 +179,18 @@ int main(int argc, char* argv[])
 				if (event.joystickMove.axis == sf::Joystick::X)
 				{
 					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::RightA);
-					if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
+					else if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
+					else {
+						mmu.key_up(MMU::Direction, MMU::RightA);
+						mmu.key_up(MMU::Direction, MMU::LeftB);
+					}
 				} else if (event.joystickMove.axis == sf::Joystick::Y) {
 					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::UpSelect);
-					if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::DownStart);
+					else if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::DownStart);
+					else {
+						mmu.key_up(MMU::Direction, MMU::UpSelect);
+						mmu.key_up(MMU::Direction, MMU::DownStart);
+					}
 				}
 			}
         }
@@ -243,7 +250,7 @@ int main(int argc, char* argv[])
 		if(draw_debug_text || first_loop)
 		{
 			std::stringstream dt;
-			dt << "PC: " << Hexa8(cpu.getPC());
+			dt << "PC: " << Hexa(cpu.getPC());
 			dt << " SP: " << Hexa(cpu.getSP());
 			dt << " | OP: " << Hexa8(cpu.getNextOpcode()) << " ";
 			if(Z80::instr_length[cpu.getNextOpcode()] > 1)

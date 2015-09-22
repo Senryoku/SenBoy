@@ -9,16 +9,6 @@ inline void instr_stop()
 	_stop = true;
 }
 
-inline void instr_ld(word_t& dst, word_t src)
-{
-	dst = src;
-}
-
-inline void instr_ld(addr_t& dst, addr_t src)
-{
-	dst = src;
-}
-
 /**
  * Z - Set if result is zero.
  * N - Reset.
@@ -27,7 +17,7 @@ inline void instr_ld(addr_t& dst, addr_t src)
 **/
 inline void instr_add(word_t src)
 {
-	set(Flag::HalfCarry, ((_a & 0xF) + (src & 0xF)) & 0x10);
+	set(Flag::HalfCarry, ((_a & 0xF) + (src & 0xF)) > 0x0F);
 	uint16_t t = _a + src;
 	set(Flag::Carry, t > 0xFF);
 	_a = t & 0xFF;
@@ -37,7 +27,7 @@ inline void instr_add(word_t src)
 
 inline void instr_add(addr_t& reg16, word_t src)
 {
-	set(Flag::HalfCarry, ((reg16 & 0xFF) + (src & 0xFF)) & 0x0100);
+	set(Flag::HalfCarry, ((reg16 & 0xFF) + src) & 0x0100);
 	uint32_t t = reg16 + src;
 	set(Flag::Carry, t > 0xFFFF);
 	reg16 = t;
@@ -47,15 +37,15 @@ inline void instr_add(addr_t& reg16, word_t src)
 
 inline void instr_add_hl(addr_t src)
 {
-	set(Flag::Negative,  false);
-	set(Flag::HalfCarry, ((getHL() & 0xFF) + (src & 0xFF)) & 0x100);
+	set(Flag::HalfCarry, ((getHL() & 0xFF) + (src & 0xFF)) & 0xFF00);
 	set(Flag::Carry, (static_cast<uint32_t>(getHL()) + src) > 0xFFFF);
 	set_hl(getHL() + src);
+	set(Flag::Negative, false);
 }
 		
 inline void instr_adc(word_t src)
 {
-	set(Flag::HalfCarry, ((((_a & 0xF) + (src & 0xF) + (check(Flag::Carry) ? 1 : 0)) & 0x10)));
+	set(Flag::HalfCarry, ((((_a & 0xF) + (src & 0xF) + (check(Flag::Carry) ? 1 : 0)) > 0xF)));
 	uint16_t t = _a + src + (check(Flag::Carry) ? 1 : 0);
 	set(Flag::Carry, t > 0xFF);
 	_a = t & 0xFF;
@@ -67,12 +57,12 @@ inline void instr_adc(word_t src)
  * Subtract n from A.
  * Z - Set if result is zero.
  * N - Set.
- * H - Set if no borrow from bit 4.
- * C - Set if no borrow.
+ * H - Set if borrow from bit 4.
+ * C - Set if borrow.
 **/
 inline void instr_sub(word_t src)
 {
-	set(Flag::HalfCarry, ((_a & 0xF) - (src & 0xF)) == 0x0F);
+	set(Flag::HalfCarry, (_a & 0xF) < (src & 0xF));
 	int16_t t = _a - src;
 	set(Flag::Carry, t < 0x00);
 	_a = t & 0xFF;
@@ -84,12 +74,12 @@ inline void instr_sub(word_t src)
  * Subtract n + Carry flag from A.
  * Z - Set if result is zero.
  * N - Set.
- * H - Set if no borrow from bit 4.
- * C - Set if no borrow.
+ * H - Set if borrow from bit 4.
+ * C - Set if borrow.
 **/
 inline void instr_sbc(word_t src)
 {
-	set(Flag::HalfCarry, (((_a & 0xF) - (src & 0xF) - (check(Flag::Carry) ? 1 : 0)) == 0x0F));
+	set(Flag::HalfCarry, (_a & 0xF) < (src & 0xF) + (check(Flag::Carry) ? 1 : 0));
 	int16_t t = _a - src - (check(Flag::Carry) ? 1 : 0);
 	set(Flag::Carry, t < 0x00);
 	_a = t & 0xFF;
@@ -99,18 +89,18 @@ inline void instr_sbc(word_t src)
 
 inline void instr_inc(word_t& src)
 {
+	set(Flag::HalfCarry, (src & 0x0F) == 0x0F);
 	++src;
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, false);
-	set(Flag::HalfCarry, (src & 0x0F) == 0x00);
 }
 
 inline void instr_dec(word_t& src)
 {
+	set(Flag::HalfCarry, (src & 0x0F) == 0x00);
 	--src;
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, true);
-	set(Flag::HalfCarry, (src & 0x0F) == 0x0F);
 }
 
 inline void instr_and(word_t src)
@@ -234,10 +224,7 @@ inline void instr_swap(word_t& v)
 {
 	word_t t = v & 0x0F;
 	v = ((v << 4) & 0xF0) | t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry, false);
-	set(Flag::Carry, false);
+	_f = (v == 0) ? Flag::Zero : 0;
 }
 
 inline void instr_push(addr_t addr)
@@ -366,8 +353,7 @@ inline void instr_rra()
 inline void instr_cpl()
 {
 	_a = ~_a;
-	set(Flag::Negative);
-	set(Flag::HalfCarry);
+	set(Flag::Negative | Flag::HalfCarry);
 }
 
 inline void instr_ccf()
@@ -411,12 +397,12 @@ inline void instr_di()
 
 inline void instr_res(word_t bit, word_t& r)
 {
-	r = (r | (1 << bit));
+	r = (r & ~(1 << bit));
 }
 
 inline void instr_set(word_t bit, word_t& r)
 {
-	r = (r & ~(1 << bit));
+	r = (r | (1 << bit));
 }
 
 inline void instr_halt()
