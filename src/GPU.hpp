@@ -113,7 +113,7 @@ private:
 	
 	void exec_stat_interrupt(LCDStatus m)
 	{
-		if((mmu->read(MMU::IE) & MMU::LCDSTAT) && (getLCDStatus() & m))
+		if(/*(mmu->read(MMU::IE) & MMU::LCDSTAT) &&*/ (getLCDStatus() & m))
 			mmu->rw(MMU::IF) |= MMU::LCDSTAT;
 	}
 						
@@ -208,8 +208,8 @@ private:
 				tile = mmu->read(mapoffs + lineoffs);
 				int idx = tile;
 				// If the second Tile Set is used, the tile index is signed.
-				if(!(getLCDControl() & BGWindowsTileDataSelect) && (tile & 0b10000000))
-					idx = ~tile + 1;
+				if(!(getLCDControl() & BGWindowsTileDataSelect) && (tile & 0x80))
+					idx = -((~tile + 1) & 0xFF);
 				tile_l = mmu->read(base_tile_data + 16 * idx + y * 2);
 				tile_h = mmu->read(base_tile_data + 16 * idx + y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);

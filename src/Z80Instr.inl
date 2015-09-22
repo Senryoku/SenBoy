@@ -25,13 +25,32 @@ inline void instr_add(word_t src)
 	set(Flag::Negative, false);
 }
 
+/**
+ * (Helper) Adds a signed 8bits integer to a 16bits integer.
+**/
+inline addr_t instr_add16(addr_t lhs, word_t rhs)
+{
+	int r = from_2c_to_signed(rhs);
+	int t = lhs + r;
+	set(Flag::Zero, false);
+	set(Flag::Negative, false);
+	if(r > 0)
+	{
+		set(Flag::HalfCarry, (lhs & 0xF) + (r & 0xF) > 0xF);
+		set(Flag::Carry, (lhs & 0xFF) + r > 0xFF);
+	} else {
+		set(Flag::HalfCarry, (t & 0xF) <= (lhs & 0xF));
+		set(Flag::Carry, (t & 0xFF) <= (lhs & 0xFF));
+	}
+	return t;
+}
+
+/**
+ * Adds an immediate signed 8bits integer.
+**/
 inline void instr_add_sp(word_t src)
 {
-	set(Flag::HalfCarry, ((_sp & 0x07FF) + src) > 0x07FF);
-	uint32_t t = _sp + src;
-	set(Flag::Carry, t > 0xFFFF);
-	_sp = t & 0xFFFF;
-	set(Flag::Zero | Flag::Negative, false);
+	_sp = instr_add16(_sp, src);
 }
 
 inline void instr_add_hl(addr_t src)
@@ -127,18 +146,17 @@ inline void instr_or(word_t src)
  * away.
  * Z - Set if result is zero. (Set if A = n.)
  * N - Set.
- * H - Set if no borrow from bit 4.
- * C - Set for no borrow. (Set if A < n.)
+ * H - Set if borrow from bit 4.
+ * C - Set for borrow. (Set if A < n.)
 */
 inline void instr_cp(word_t src)
 {
 	set(Flag::HalfCarry, (_a & 0xF) < (src & 0xF));
-	int16_t t = _a - src;
-	set(Flag::Carry, t < 0x00);
-	set(Flag::Zero, t == 0);
+	set(Flag::Carry, _a < src);
+	set(Flag::Zero, _a == src);
 	set(Flag::Negative, true);
 }
-
+	
 inline void instr_bit(word_t bit, word_t r)
 {
 	set(Flag::Zero, r & (1 << bit));
@@ -260,8 +278,13 @@ inline void instr_jr(bool b, word_t offset)
 {
 	if(b) rel_jump(offset);
 }
-	
-inline void instr_ret(bool b = true)
+
+inline void instr_ret()
+{
+	_pc = pop();
+}
+
+inline void instr_ret(bool b)
 {
 	if(b)
 	{

@@ -152,19 +152,20 @@ private:
 			return;
 		
 		word_t IF = read(MMU::IF);
-		if(IF)
+		word_t IE = read(MMU::IE);
+		if(IF & IE) // An enabled interrupt is waiting
 		{
-			word_t IE = read(MMU::IE);
-			// Check each interrupt. If requested and enabled, push current PC, jump and clear flag.
-			if((IF & MMU::VBlank) & (IE & MMU::VBlank)) {
+			// Check each interrupt in order of priority.
+			// If requested and enabled, push current PC, jump and clear flag.
+			if(IF & MMU::VBlank) {
 				exec_interrupt(MMU::VBlank, 0x0040);
-			} else if((IF & MMU::LCDSTAT) & (IE & MMU::LCDSTAT)) {
+			} else if(IF & MMU::LCDSTAT) {
 				exec_interrupt(MMU::LCDSTAT, 0x0048);
-			} else if((IF & MMU::TimerOverflow) & (IE & MMU::TimerOverflow)) {
+			} else if(IF & MMU::TimerOverflow) {
 				exec_interrupt(MMU::TimerOverflow, 0x0050);
-			} else if((IF & MMU::TransferComplete) & (IE & MMU::TransferComplete)) {
+			} else if(IF & MMU::TransferComplete) {
 				exec_interrupt(MMU::TransferComplete, 0x0058);
-			} else if((IF & MMU::Transition) & (IE & MMU::Transition)) {
+			} else if(IF & MMU::Transition) {
 				exec_interrupt(MMU::Transition, 0x0060);
 			}
 		}
@@ -205,10 +206,15 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// Instructions
 	
-	// Helper function on opcodes
+	// Helper functions on opcodes
 	inline word_t extract_src_reg(word_t opcode) const { return (opcode + 1) & 0b111; }
 	inline word_t extract_dst_reg(word_t opcode) const { return ((opcode >> 3) + 1) & 0b111; }
-	inline void rel_jump(word_t offset) { _pc += offset - ((offset & 0b10000000) ? 0x100 : 0);  add_cycles(4); }
+	inline void rel_jump(word_t offset) { _pc += from_2c_to_signed(offset);  add_cycles(4); }
+	
+	inline int from_2c_to_signed(word_t src)
+	{
+		return (src & 0x80) ? -((~src + 1) & 0xFF) : src;
+	}
 	
 	#include "Z80Instr.inl"
 };

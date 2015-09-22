@@ -149,14 +149,13 @@ public:
 	
 	inline void key_down(word_t type, word_t key)
 	{
-		word_t& t = rw(MMU::P1);
-		t = ~(type | key);
+		rw(MMU::P1) = ~(type | key);
+		rw(IF) |= Transition; // Interrupt
 	}
 	
 	inline void key_up(word_t type, word_t key)
 	{
-		word_t& t = rw(MMU::P1);
-		t |= key;
+		rw(MMU::P1) |= key;
 	}
 	
 	inline bool check_key(word_t type, word_t key) const

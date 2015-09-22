@@ -12,7 +12,7 @@ Test					| Status
 ------------------------|--------
 01-special				| FAIL
 02-interrupts			| FAIL
-03-op sp,hl				| FAIL
+03-op sp,hl				| PASS
 04-op r,imm				| PASS
 05-op rp				| PASS
 06-ld r,r				| PASS

@@ -155,8 +155,6 @@ void Z80::execute()
 		}
 	}
 	
-	check_interrupts();
-	
 	word_t opcode = read(_pc++);
 	add_cycles(instr_cycles[opcode]);
 	
@@ -291,7 +289,7 @@ void Z80::execute()
 				if(reg_src > 6 && reg_dst > 6) // (HL), (HL) => HALT !
 					instr_halt();
 				else if(reg_dst > 6)
-					mmu->write(getHL(), fetch_reg(reg_src));
+					mmu->write(getHL(), fetch_val(reg_src));
 				else
 					_r[reg_dst] = fetch_val(reg_src);
 				break;
@@ -360,12 +358,7 @@ void Z80::execute()
 						case 0xE8: instr_add_sp(read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
-							int t = _sp + mmu->read(_pc++);
-							set_hl(t & 0xFFFF);
-							set(Flag::Zero, false);
-							set(Flag::Negative, false);
-							set(Flag::HalfCarry, t > 0xFF);
-							set(Flag::Carry, t > 0xFFFF);
+							set_hl(instr_add16(_sp, mmu->read(_pc++)) & 0xFFFF);
 							break;
 						}
 						
@@ -432,6 +425,8 @@ void Z80::execute()
 			mmu->rw(MMU::IF) |= MMU::TimerOverflow;
 		}
 	}
+	
+	check_interrupts();
 	
 	_breakpoint = (_breakpoints.count(_pc) != 0);
 }
