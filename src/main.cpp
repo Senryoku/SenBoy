@@ -89,8 +89,8 @@ int main(int argc, char* argv[])
 	
 	bool first_loop = true;
 	bool debug = true;
-	bool draw_tilemap = false;
-	bool draw_debug_text = false;
+	bool draw_tilemap = true;
+	bool draw_debug_text = true;
 	bool step = true;
 	
 	while (window.isOpen())
@@ -109,13 +109,13 @@ int main(int argc, char* argv[])
 					case sf::Keyboard::Return: 
 					{
 						debug = !debug;
-						draw_tilemap = debug;
-						draw_debug_text = debug;
-						log_text.setString(debug ? "Debugging" : "Running (Debug info disabled, toggle with T and Y)");
+						log_text.setString(debug ? "Debugging" : "Running");
 						break;
 					}
-					case sf::Keyboard::BackSpace: 
+					case sf::Keyboard::BackSpace:
+						mmu.reset();
 						gpu.reset(); 
+						cpu.reset();
 						cpu.reset_cart();
 						debug_text.setString("Reset");
 						break;
@@ -144,13 +144,13 @@ int main(int argc, char* argv[])
 					case sf::Keyboard::T:
 					{
 						draw_tilemap = !draw_tilemap;
-						log_text.setString("Debug Tilemap " (draw_tilemap ? "Enabled" : "Disabled"));
+						log_text.setString(draw_tilemap ? "Debug Text Enabled" : "Debug Text Disabled");
 						break;
 					}
 					case sf::Keyboard::Y:
 					{
 						draw_debug_text = !draw_debug_text;
-						log_text.setString("Debug Text " (draw_debug_text ? "Enabled" : "Disabled"));
+						log_text.setString(draw_debug_text ? "Debug Tilemap Enabled" : "Debug Tilemap Disabled");
 						break;
 					}
 					default: break;

@@ -81,6 +81,8 @@ public:
 	
 	~MMU();
 	
+	void reset();
+	
 	inline word_t read(addr_t addr) const
 	{
 		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM

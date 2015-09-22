@@ -120,7 +120,7 @@ void Z80::execute()
 			{
 				word_t& value = fetch_reg(reg);
 				
-				switch((opcode >> 2) & 0b111)
+				switch((opcode >> 3) & 0b111)
 				{
 					case 0: instr_rlc(value); break;
 					case 1: instr_rrc(value); break;
@@ -163,7 +163,7 @@ void Z80::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6)	{ // LD (HL), d8
-							mmu->write(mmu->read(getHL()), mmu->read(_pc++));
+							mmu->write(getHL(), mmu->read(_pc++));
 							add_cycles(3);
 						} else {
 							instr_ld(fetch_reg(dst_reg), mmu->read(_pc++));
@@ -200,7 +200,7 @@ void Z80::execute()
 						case 0x37: instr_scf(); break;
 						//
 						case 0x08: mmu->write(mmu->read16(_pc), _sp); _pc += 2; add_cycles(5); break;	// 16bits LD
-						case 0x18: instr_jr(read(_pc++)); break;
+						case 0x18: instr_jr(mmu->read(_pc++)); break;
 						case 0x28: instr_jr(check(Flag::Zero), mmu->read(_pc++)); break;
 						case 0x38: instr_jr(check(Flag::Carry), mmu->read(_pc++)); break;
 						// ADD HL, 16bits Reg
@@ -334,8 +334,8 @@ void Z80::execute()
 						
 						case 0xC9: instr_ret(); break;
 						case 0xD9: instr_reti(); break;
-						case 0xE9: instr_jp(getHL()); break;
-						case 0xF9: instr_ld(_sp, getHL()); break;
+						case 0xE9: _pc = getHL(); add_cycles(1); break;	// JP (HL)
+						case 0xF9: instr_ld(_sp, getHL()); add_cycles(1); break;
 						
 						case 0xCA: _pc +=2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xDA: _pc +=2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;
@@ -352,9 +352,9 @@ void Z80::execute()
 						
 						case 0xFB: instr_ei(); break;
 					
-						case 0xCE: instr_and(read(_pc++)); break;
-						case 0xDE: instr_xor(read(_pc++)); break;
-						case 0xEE: instr_or(read(_pc++)); break;
+						case 0xCE: instr_adc(read(_pc++)); break;
+						case 0xDE: instr_sbc(read(_pc++)); break;
+						case 0xEE: instr_xor(read(_pc++)); break;
 						case 0xFE: instr_cp(read(_pc++)); break;
 						default:
 							instr_nop();

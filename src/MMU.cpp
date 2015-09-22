@@ -5,10 +5,15 @@
 MMU::MMU() :
 	_mem(new word_t[MemSize])
 {
-	std::memset(_mem, 0x00, MemSize);
+	reset();
 }
 
 MMU::~MMU()
 {
 	delete[] _mem;
+}
+
+void MMU::reset()
+{
+	std::memset(_mem, 0x00, MemSize);
 }

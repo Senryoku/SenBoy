@@ -112,6 +112,7 @@ inline void instr_inc(word_t& src)
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry, (src & 0x0F) == 0x00);
+	add_cycles(1);
 }
 
 inline void instr_dec(word_t& src)
@@ -120,35 +121,27 @@ inline void instr_dec(word_t& src)
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, true);
 	set(Flag::HalfCarry, (src & 0x0F) == 0x0F);
+	add_cycles(1);
 }
 
 inline void instr_and(word_t src)
 {
 	_a &= src;
-	set(Flag::Zero, _a == 0);
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry, true);
-	set(Flag::Carry, false);
+	_f = Flag::HalfCarry | ((_a == 0) ? Flag::Zero : 0);
 	add_cycles(1);
 }
 
 inline void instr_xor(word_t src)
 {
 	_a ^= src;
-	set(Flag::Zero, _a == 0);
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry, false);
-	set(Flag::Carry, false);
+	_f = (_a == 0) ? Flag::Zero : 0;
 	add_cycles(1);
 }
 
 inline void instr_or(word_t src)
 {
 	_a |= src;
-	set(Flag::Zero, _a == 0);
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry, false);
-	set(Flag::Carry, false);
+	_f = (_a == 0) ? Flag::Zero : 0;
 	add_cycles(1);
 }
 
@@ -163,7 +156,7 @@ inline void instr_or(word_t src)
 */
 inline void instr_cp(word_t src)
 {
-	set(Flag::HalfCarry, ((_a & 0xF) - (src & 0xF)) == 0x0F);
+	set(Flag::HalfCarry, (_a & 0xF) < (src & 0xF));
 	int16_t t = _a - src;
 	set(Flag::Carry, t < 0x00);
 	set(Flag::Zero, t == 0);
@@ -179,50 +172,55 @@ inline void instr_bit(word_t bit, word_t r)
 	add_cycles(2);
 }
 
+/// Rotate n left. Old bit 0 to Carry flag.
 inline void instr_rlc(word_t& v)
 {
 	add_cycles(2);
+	set(Flag::Carry, v & 0b10000000);
 	word_t t = v << 1;
-	if(check(Flag::Carry)) t = t | 0b00000001;
-	set(Flag::Carry, v & 0b1000000);
+	if(v & 0b10000000) t = t | 0b00000001;
 	v = t;
 	set(Flag::Zero, v == 0);
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
+/// Rotate n left through Carry flag.
 inline void instr_rl(word_t& v)
 {
 	add_cycles(2);
-	set(Flag::Carry, v & 0b1000000);
 	word_t t = v << 1;
 	if(check(Flag::Carry)) t = t | 0b00000001;
+	set(Flag::Carry, v & 0b10000000);
 	v = t;
 	set(Flag::Zero, v == 0);
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
+/// Rotate n right. Old bit 0 to Carry flag.
 inline void instr_rrc(word_t& v)
 {
 	add_cycles(2);
+	set(Flag::Carry, v & 0b00000001);
 	word_t t = v >> 1;
-	if(check(Flag::Carry)) t = t | 0b10000000;
-	set(Flag::Carry, v & 0b0000001);
+	if(v & 0b00000001) t = t | 0b10000000;
 	v = t;
 	set(Flag::Zero, v == 0);
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
+/// Rotate n right through Carry flag.
 inline void instr_rr(word_t& v)
 {
 	add_cycles(2);
-	set(Flag::Carry, v & 0b0000001);
 	word_t t = v >> 1;
 	if(check(Flag::Carry)) t = t | 0b10000000;
+	set(Flag::Carry, v & 0b00000001);
 	v = t;
 	set(Flag::Zero, v == 0);
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
+/// Shift n left into Carry. LSB of n set to 0.
 inline void instr_sla(word_t& v)
 {
 	add_cycles(2);
@@ -232,12 +230,23 @@ inline void instr_sla(word_t& v)
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
+/// Shift n right into Carry. MSB set to 0.
+inline void instr_srl(word_t& v)
+{
+	add_cycles(2);
+	set(Flag::Carry, v & 0b00000001);
+	v = (v >> 1);
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
 inline void instr_sra(word_t& v)
 {
 	add_cycles(2);
-	set(Flag::Carry, _a & 0b00000001);
-	_a = _a >> 1;
-	set(Flag::Zero, _a == 0);
+	word_t t = v & 0b10000000;
+	set(Flag::Carry, v & 0b00000001);
+	v = (v >> 1) | t;
+	set(Flag::Zero, v == 0);
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
@@ -252,18 +261,6 @@ inline void instr_swap(word_t& v)
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry, false);
 	set(Flag::Carry, false);
-}
-
-/**
- * Shift n right into Carry. MSB set to 0.
-**/
-inline void instr_srl(word_t& v)
-{
-	set(Flag::Zero, v == 0);
-	v = v >> 1;
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry, false);
-	set(Flag::Carry, v & 0b0000001);
 }
 
 inline void instr_push(addr_t addr)

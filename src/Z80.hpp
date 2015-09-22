@@ -108,7 +108,7 @@ private:
 	inline void set_de(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
 	inline void set_bc(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
 	inline void set_af(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xFF; } 
-	inline word_t& fetch_hl() { add_cycles(1); return rw(getHL()); } // @todo replace add_cycles by read ?
+	inline word_t& fetch_hl() { add_cycles(1); return rw(getHL()); }
 	inline word_t& fetch_reg(word_t n) { return (n > 6) ? fetch_hl() : _r[n]; }
 	inline void incr_hl() { _l++; if(_l == 0) _h++; }
 	inline void decr_hl() { if(_l == 0) _h--; _l--; }
