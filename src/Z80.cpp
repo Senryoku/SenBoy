@@ -323,8 +323,8 @@ void Z80::execute()
 					{
 						case 0xC0: instr_ret(!check(Flag::Zero)); break;
 						case 0xD0: instr_ret(!check(Flag::Carry)); break;
-						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break; // LDH (n), a	
-						case 0xF0: _a = read(0xFF00 + mmu->read(_pc++)); break;	// LDH a, (n)
+						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break; //	LDH (n), a	
+						case 0xF0: _a = read(0xFF00 + mmu->read(_pc++)); break;	//		LDH a, (n)
 						// POP
 						case 0xC1: set_bc(instr_pop()); break;
 						case 0xD1: set_de(instr_pop()); break;
