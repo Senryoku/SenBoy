@@ -14,7 +14,7 @@ Test					| Status
 02-interrupts			| FAIL
 03-op sp,hl				| FAIL
 04-op r,imm				| PASS
-05-op rp				| FAIL
+05-op rp				| PASS
 06-ld r,r				| PASS
 07-jr,jp,call,ret,rst	| FAIL
 08-misc instrs			| FAIL

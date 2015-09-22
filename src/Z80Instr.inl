@@ -25,21 +25,21 @@ inline void instr_add(word_t src)
 	set(Flag::Negative, false);
 }
 
-inline void instr_add(addr_t& reg16, word_t src)
+inline void instr_add_sp(word_t src)
 {
-	set(Flag::HalfCarry, ((reg16 & 0xFF) + src) & 0x0100);
-	uint32_t t = reg16 + src;
+	set(Flag::HalfCarry, ((_sp & 0x07FF) + src) > 0x07FF);
+	uint32_t t = _sp + src;
 	set(Flag::Carry, t > 0xFFFF);
-	reg16 = t;
-	set(Flag::Zero, false);
-	set(Flag::Negative, false);
+	_sp = t & 0xFFFF;
+	set(Flag::Zero | Flag::Negative, false);
 }
 
 inline void instr_add_hl(addr_t src)
 {
-	set(Flag::HalfCarry, ((getHL() & 0xFF) + (src & 0xFF)) & 0xFF00);
-	set(Flag::Carry, (static_cast<uint32_t>(getHL()) + src) > 0xFFFF);
-	set_hl(getHL() + src);
+	set(Flag::HalfCarry, ((getHL() & 0x07FF) + (src & 0x07FF)) > 0x07FF);
+	uint32_t t = getHL() + src;
+	set(Flag::Carry, t > 0xFFFF);
+	set_hl(t & 0xFFFF);
 	set(Flag::Negative, false);
 }
 		

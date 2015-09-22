@@ -76,7 +76,7 @@ public:
 	/// Cycle count for each instruction (Some jump may cost more)
 	static size_t	instr_cycles[0x100];
 	/// Cycle count for each 0xCB prefixed instruction
-	static size_t	instr_cycles_cb[0x10];
+	static size_t	instr_cycles_cb[0x100];
 	
 private:
 	///////////////////////////////////////////////////////////////////////////
@@ -173,8 +173,10 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// Cycles management
 	
-	unsigned int	_clock_cycles = 0;			// Clock cycles since reset
-	unsigned int	_clock_instr_cycles = 0;	// Clock cycles of the last instruction
+	unsigned int	_clock_cycles = 0;			///< Clock cycles since reset
+	unsigned int	_clock_instr_cycles = 0;	///< Clock cycles of the last instruction
+	unsigned int	_divider_register = 0;		///< Cycles not yet counted in DIV
+	unsigned int	_timer_counter = 0;			///< Cycles not yet counted in TIMA
 	
 	inline void add_cycles(unsigned int c)
 	{

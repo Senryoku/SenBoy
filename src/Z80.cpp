@@ -39,7 +39,22 @@ size_t	Z80::instr_cycles[0x100] = {
 	12, 12, 8, 4, 0, 16, 8, 16, 12, 8, 16, 4, 0, 0, 8, 16
 };
 
-size_t	Z80::instr_cycles_cb[0x10] = {
+size_t	Z80::instr_cycles_cb[0x100] = {
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 12, 8,
+	8, 8, 8, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 12, 8,
+	8, 8, 8, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 12, 8,
+	8, 8, 8, 8, 8, 8, 12, 8, 8, 8, 8, 8, 8, 8, 12, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
 	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8
 };
 
@@ -152,7 +167,7 @@ void Z80::execute()
 	if(opcode == 0xCB) // Almost done @todo: Impl. S&R
 	{
 		opcode = read(_pc++);
-		add_cycles(instr_cycles[opcode & 0x0F]);
+		add_cycles(instr_cycles_cb[opcode]);
 		word_t x = opcode >> 6; // bits 6 & 7
 		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
 		word_t reg = extract_src_reg(opcode);
@@ -342,7 +357,7 @@ void Z80::execute()
 						
 						case 0xC8: instr_ret(check(Flag::Zero)); break;
 						case 0xD8: instr_ret(check(Flag::Carry)); break;
-						case 0xE8: instr_add(_sp, read(_pc++)); break;	// ADD SP, n
+						case 0xE8: instr_add_sp(read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
 							int t = _sp + mmu->read(_pc++);
@@ -391,6 +406,32 @@ void Z80::execute()
 		}
 	}
 	_clock_cycles += _clock_instr_cycles;
+	
+	_divider_register += _clock_instr_cycles;
+	if(_divider_register > 256)
+	{
+		_divider_register -= 256;
+		mmu->rw(MMU::DIV)++;
+	}
+		
+	_timer_counter += _clock_instr_cycles;
+	word_t TAC = mmu->read(MMU::TAC);
+	unsigned int tac_divisor = 1026;
+	if((TAC & 0b11) == 0b01) tac_divisor = 16;
+	if((TAC & 0b11) == 0b10) tac_divisor = 64;
+	if((TAC & 0b11) == 0b11) tac_divisor = 256;
+	if((TAC & 0b10) && _timer_counter > tac_divisor)
+	{
+		_timer_counter -= tac_divisor;
+		if(mmu->read(MMU::TIMA) != 0xFF)
+		{
+			mmu->rw(MMU::TIMA)++;
+		} else {
+			mmu->rw(MMU::TIMA) = mmu->read(MMU::TMA);
+			// Interrupt
+			mmu->rw(MMU::IF) |= MMU::TimerOverflow;
+		}
+	}
 	
 	_breakpoint = (_breakpoints.count(_pc) != 0);
 }

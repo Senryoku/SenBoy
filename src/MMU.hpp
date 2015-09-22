@@ -135,6 +135,8 @@ public:
 			rw(addr) = value;
 		else if(addr < 0x8000) // Memory Banks management
 			cartridge->write(addr, value);
+		else if(addr == DIV) // DIV reset when written to
+			_mem[DIV] = 0;
 		else
 			rw(addr) = value;
 	}
