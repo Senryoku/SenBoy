@@ -64,6 +64,17 @@ public:
 		All = 0xFF
 	};
 	
+	/// 0 = Pressed/Selected
+	enum Joypad : word_t
+	{
+		RightA = 0x01,
+		LeftB = 0x02,
+		UpSelect = 0x04,
+		DownStart = 0x08,
+		Direction = 0x10,
+		Button = 0x20
+	};
+	
 	Cartridge*		cartridge = nullptr;
 	
 	MMU();
@@ -113,7 +124,7 @@ public:
 	
 	inline addr_t read16(addr_t addr)
 	{
-		return ((static_cast<addr_t>(read(addr + 1)) << 8) & 0xFF00) | (read(addr) & 0xFF);
+		return ((static_cast<addr_t>(read(addr + 1)) << 8) & 0xFF00) + read(addr);
 	}
 	
 	inline void	write(addr_t addr, word_t value)
@@ -130,6 +141,28 @@ public:
 	{
 		write(addr, static_cast<word_t>(value & 0xFF));
 		write(addr + 1, static_cast<word_t>(value >> 8));
+	}
+	
+	inline void key_down(word_t type, word_t key)
+	{
+		word_t& t = rw(MMU::P1);
+		t = ~(type | key);
+	}
+	
+	inline void key_up(word_t type, word_t key)
+	{
+		word_t& t = rw(MMU::P1);
+		t |= key;
+	}
+	
+	inline bool check_key(word_t type, word_t key) const
+	{
+		return (read(MMU::P1) & (type | key)) == 0;
+	}
+	
+	inline bool any_key() const
+	{
+		return (read(MMU::P1) & 0x3F) != 0x3F;
 	}
 	
 	inline word_t* getPtr() { return _mem; }

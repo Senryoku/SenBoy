@@ -65,6 +65,8 @@ void Z80::reset_cart()
 	mmu->write(0xFF4A, word_t(0x00));
 	mmu->write(0xFF4B, word_t(0x00));
 	mmu->write(0xFFFF, word_t(0x00));
+	
+	mmu->write(MMU::P1, word_t(0xCF)); // GB Only
 }
 
 bool Z80::loadBIOS(const std::string& path)
@@ -88,6 +90,16 @@ void Z80::execute()
 {	
 	_clock_instr_cycles = 0;
 	_machine_instr_cycles = 0;
+	
+	if(_stop)
+	{
+		if(mmu->any_key())
+		{
+			_stop = false;
+		} else {
+			return;
+		}
+	}
 	
 	check_interrupts();
 	
@@ -224,6 +236,8 @@ void Z80::execute()
 				word_t reg_dst = extract_dst_reg(opcode);
 				if(reg_src > 6 && reg_dst > 6) // (HL), (HL) => HALT !
 					instr_halt();
+				else if(reg_dst > 6) // We need to take care not to write on ROM (HL could be used to setup the memory banks)
+					mmu->write(getHL(), fetch_reg(reg_src));
 				else
 					instr_ld(fetch_reg(reg_dst), fetch_reg(reg_src));
 				break;
@@ -272,7 +286,7 @@ void Z80::execute()
 						case 0xC0: instr_ret(!check(Flag::Zero)); break;
 						case 0xD0: instr_ret(!check(Flag::Carry)); break;
 						case 0xE0: // LDH (n), a
-							mmu->write(mmu->read(0xFF00 + mmu->read(_pc++)), _a); 
+							mmu->write(0xFF00 + mmu->read(_pc++), _a); 
 							add_cycles(2); 
 							break;	
 						case 0xF0: // LDH a, (n)

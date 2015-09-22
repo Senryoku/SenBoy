@@ -101,6 +101,8 @@ private:
 	
 	word_t	_ime; // Interrupt Master Enable
 	
+	bool	_stop = false;	// instr_stop
+	
 	// 8/16bits registers access helpers
 	inline void set_hl(addr_t val) { _h = static_cast<word_t>((val >> 8) & 0xFF); _l = val & 0xFF; } 
 	inline void set_de(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
@@ -114,6 +116,7 @@ private:
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
 	inline void set(Flag m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
+	inline void set(word_t m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
 	
 	inline word_t& rw(addr_t addr) { return mmu->rw(addr); }
 	inline word_t read(addr_t addr) const { return mmu->read(addr); }

@@ -17,6 +17,10 @@ public:
 			r = g = b = a = val;
 			return *this;
 		}
+		void set(word_t val)
+		{
+			r = g = b = a = val;
+		}
 	};
 	
 	MMU*		mmu = nullptr;
@@ -84,6 +88,24 @@ public:
 	word_t& getLCDStatus() const { return mmu->rw(MMU::STAT);; }
 	word_t& getLine() const { return mmu->rw(MMU::LY);; }
 	word_t& getLYC() const { return mmu->rw(MMU::LYC);; }
+		
+	/**
+	 * Treats bits in l as low bits and in h as high bits of 2bits values.
+	**/
+	static void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
+	{
+		r0 = r1 = 0;
+		for(int i = 0; i < 4; i++)
+			r0 |= (((l & (1 << (i + 4))) >> (4 + i)) << (2 * i)) | (((h & (1 << (i + 4))) >> (4 + i))  << (2 * i + 1));
+		for(int i = 0; i < 4; i++)
+			r1 |= ((l & (1 << i)) << (2 * i - i)) | ((h & (1 << i)) << (2 * i + 1 - i));
+	}
+	
+	/// @param val 0 <= val < 4
+	word_t getPaletteColor(word_t val)
+	{
+		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
+	}
 	
 private:
 	// Timing
@@ -163,14 +185,14 @@ private:
 	{
 		/// @see http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics
 		// Selects the Tile Map & Tile Data Set
-		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x1C00 : 0x1800;
-		addr_t base_tile_data = (getLCDControl() & BGWindowsTileDataSelect) ? 0x8800 : 0x8000;
+		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
+		addr_t base_tile_data = (getLCDControl() & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
 		
-		mapoffs += ((getLine() + getScrollX()) & 255) >> 3;
+		mapoffs += ((getLine() + getScrollY()) & 0xFF) >> 3;
 		word_t lineoffs = (getScrollX() >> 3);
-		
-		word_t x = getScrollX() & 7;
-		word_t y = (getLine() + getScrollY()) & 7;
+
+		word_t x = getScrollX() & 0b111;
+		word_t y = (getLine() + getScrollY()) & 0b111;
 		
 		// Tile Index
 		word_t tile;
@@ -178,41 +200,32 @@ private:
 		word_t tile_h;
 		word_t tile_data0, tile_data1;
 		
-		for(word_t i = 0; i < ScreenWidth; i++)
+		for(word_t i = 0; i < ScreenWidth; ++i)
 		{
 			if(x == 8 || i == 0)
 			{
 				x = x % 8;
-				lineoffs = (lineoffs + 1) & 31;
-				tile = mmu->rw(mapoffs + lineoffs + 0x8000);
-				tile_l = mmu->rw(base_tile_data + tile * 16);
-				tile_h = mmu->rw(base_tile_data + tile * 16 + 1);
+				lineoffs = (lineoffs + 1) & 0x1F;
+				tile = mmu->read(mapoffs + lineoffs);
+				int idx = tile;
+				// If the second Tile Set is used, the tile index is signed.
+				if(!(getLCDControl() & BGWindowsTileDataSelect) && (tile & 0b10000000))
+					idx = ~tile + 1;
+				/*
+				std::cout << "Tile: " << (int)  tile << " IDX " << (int) idx << 
+					" X " << x <<
+					" TileMap: "  << (int) (mapoffs + lineoffs) << std::endl;
+				*/
+				tile_l = mmu->read(base_tile_data + 16 * idx + y * 2);
+				tile_h = mmu->read(base_tile_data + 16 * idx + y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 			}
 			
-			word_t idx = y * 8 + x;
-			word_t color = ((idx > 3 ? tile_data1 : tile_data0) >> (idx * 2)) & 0b11; // 0-3
+			word_t shift = ((7 - x) % 4) * 2;
+			GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
 			screen[to1D(i, getLine())] = getPaletteColor(color);
 			
 			++x;
 		}
-	}
-	
-	/**
-	 * Treats bits in l as low bits and in h as high bits of 2bits values.
-	**/
-	void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
-	{
-		r0 = r1 = 0;
-		for(int i = 0; i < 4; i++)
-			r0 |= (((l & (1 << (i + 4))) >> (4 + i)) << (2 * i)) | (((h & (1 << (i + 4))) >> (4 + i))  << (2 * i + 1));
-		for(int i = 0; i < 4; i++)
-			r1 |= ((l & (1 << i)) << (2 * i - i)) | ((h & (1 << i)) << (2 * i + 1 - i));
-	}
-	
-	/// @param val 0 <= val < 4
-	word_t getPaletteColor(word_t val)
-	{
-		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
 	}
 };

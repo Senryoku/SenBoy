@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 	float screen_scale = 2.0f;
 	
 	size_t padding = 400;
-	sf::RenderWindow window(sf::VideoMode(gpu.ScreenWidth + padding, gpu.ScreenHeight + padding), "SenBoy");
+	sf::RenderWindow window(sf::VideoMode(gpu.ScreenWidth + padding + 600, gpu.ScreenHeight + padding), "SenBoy");
 	window.setVerticalSyncEnabled(false);
 	
 	sf::Texture	gameboy_screen;
@@ -60,6 +60,17 @@ int main(int argc, char* argv[])
 	gameboy_screen_sprite.setPosition(padding / 2 - (screen_scale - 1.0) * gpu.ScreenWidth * 0.5, 
 									padding / 2 - (screen_scale - 1.0) * gpu.ScreenHeight * 0.5);
 	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
+	
+	sf::Texture	gameboy_tilemap;
+	if(!gameboy_tilemap.create(16 * 8, (8 * 3) * 8))
+		std::cerr << "Error creating the vram texture!" << std::endl;
+	sf::Sprite gameboy_tilemap_sprite;
+	gameboy_tilemap_sprite.setTexture(gameboy_tilemap);
+	gameboy_tilemap_sprite.setPosition(600, 
+									padding / 2 - (screen_scale - 1.0) * gpu.ScreenHeight * 0.5);
+	gameboy_tilemap_sprite.setScale(screen_scale, screen_scale);
+	GPU::color_t* tile_map = new GPU::color_t[(16 * 8) * ((8 * 3) * 8)];
+	std::memset(tile_map, 128, 4 * (16 * 8) * ((8 * 3) * 8));
 	
 	sf::Font font;
 	if(!font.loadFromFile("data/Hack-Regular.ttf"))
@@ -120,7 +131,41 @@ int main(int argc, char* argv[])
 						log_text.setString("Cleared breakpoints.");
 						break;
 					}
+					case sf::Keyboard::A:
+					{
+						mmu.key_down(MMU::Button, MMU::RightA);
+						break;
+					}
 					default: break;
+				}
+			} else if (event.type == sf::Event::KeyReleased) {
+				switch(event.key.code)
+				{
+					case sf::Keyboard::A:
+					{
+						mmu.key_up(MMU::Button, MMU::RightA);
+						break;
+					}
+					default: break;
+				}
+			} else if (event.type == sf::Event::JoystickButtonPressed) {
+				switch(event.joystickButton.button)
+				{
+					case 0: mmu.key_down(MMU::Button, MMU::RightA); break;
+					case 2:
+					case 1: mmu.key_down(MMU::Button, MMU::LeftB); break;
+					case 6: mmu.key_down(MMU::Button, MMU::UpSelect); break;
+					case 7: mmu.key_down(MMU::Button, MMU::DownStart); break;
+					default: break;
+				}
+			} else if (event.type == sf::Event::JoystickMoved) {
+				if (event.joystickMove.axis == sf::Joystick::X)
+				{
+					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::RightA);
+					if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
+				} else if (event.joystickMove.axis == sf::Joystick::Y) {
+					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::UpSelect);
+					if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::DownStart);
 				}
 			}
         }
@@ -130,6 +175,9 @@ int main(int argc, char* argv[])
 			for(int i = 0; i < (debug ? 1 : 17556); )
 			{
 				cpu.execute();
+				if(cpu.getInstrCycles() == 0)
+					break;
+				
 				gpu.step(cpu.getInstrCycles());
 				i += cpu.getInstrCycles();
 			
@@ -145,6 +193,31 @@ int main(int argc, char* argv[])
 			}
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
+			
+			// Debug display Tilemap
+			//if(debug)
+			{
+				GPU::word_t tile_l;
+				GPU::word_t tile_h;
+				GPU::word_t tile_data0, tile_data1;
+				for(int t = 0; t < 256 + 128; ++t)
+				{
+					size_t tile_off = 8 * (t % 16) + (16 * 8 * 8) * (t / 16); 
+					for(int y = 0; y < 8; ++y)
+					{
+						tile_l = mmu.read(0x8000 + t * 16 + y * 2);
+						tile_h = mmu.read(0x8000 + t * 16 + y * 2 + 1);
+						GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+						for(int x = 0; x < 8; ++x)
+						{
+							GPU::word_t shift = ((7 - x) % 4) * 2;
+							GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+							tile_map[tile_off + 16 * 8 * y + x] = (4 - color) * (255/4.0);
+						}
+					}
+				}
+				gameboy_tilemap.update(reinterpret_cast<uint8_t*>(tile_map));
+			}
 			
 			std::stringstream dt;
 			dt << "PC: " << Hexa(cpu.getPC());
@@ -164,14 +237,18 @@ int main(int argc, char* argv[])
 			dt << "LY: " << Hexa(gpu.getLine());
 			dt << " LCDC: " << Hexa(gpu.getLCDControl());
 			dt << " STAT: " << Hexa(gpu.getLCDStatus());
+			dt << " P1: " << Hexa(mmu.read(MMU::P1));
 			debug_text.setString(dt.str());
 			step = false;
 		}
 		
         window.clear(sf::Color::Black);
 		window.draw(gameboy_screen_sprite);
+		window.draw(gameboy_tilemap_sprite);
 		window.draw(debug_text);
 		window.draw(log_text);
         window.display();
     }
+	
+	delete[] tile_map;
 }

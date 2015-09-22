@@ -6,7 +6,8 @@ inline void instr_nop() { add_cycles(1); }
 
 inline void instr_stop()
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	_stop = true;
+	add_cycles(2);
 }
 
 inline void instr_ld(word_t& dst, word_t src)
@@ -178,40 +179,66 @@ inline void instr_bit(word_t bit, word_t r)
 	add_cycles(2);
 }
 
-inline void instr_rlc(word_t v)
+inline void instr_rlc(word_t& v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	add_cycles(2);
+	word_t t = v << 1;
+	if(check(Flag::Carry)) t = t | 0b00000001;
+	set(Flag::Carry, v & 0b1000000);
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-inline void instr_rrc(word_t v)
+inline void instr_rl(word_t& v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	add_cycles(2);
+	set(Flag::Carry, v & 0b1000000);
+	word_t t = v << 1;
+	if(check(Flag::Carry)) t = t | 0b00000001;
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-inline void instr_rl(word_t v)
+inline void instr_rrc(word_t& v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	add_cycles(2);
+	word_t t = v >> 1;
+	if(check(Flag::Carry)) t = t | 0b10000000;
+	set(Flag::Carry, v & 0b0000001);
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-inline void instr_rr(word_t v)
+inline void instr_rr(word_t& v)
 {
-	std::cerr << __PRETTY_FUNCTION__ << " not implemented!" << std::endl;
+	add_cycles(2);
+	set(Flag::Carry, v & 0b0000001);
+	word_t t = v >> 1;
+	if(check(Flag::Carry)) t = t | 0b10000000;
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-inline void instr_sla(word_t v)
+inline void instr_sla(word_t& v)
 {
-	add_cycles(1);
+	add_cycles(2);
 	set(Flag::Carry, _a & 0b10000000);
 	_a = _a << 1;
 	set(Flag::Zero, _a == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-inline void instr_sra(word_t v)
+inline void instr_sra(word_t& v)
 {
-	add_cycles(1);
+	add_cycles(2);
 	set(Flag::Carry, _a & 0b00000001);
 	_a = _a >> 1;
 	set(Flag::Zero, _a == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
 /**
