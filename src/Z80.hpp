@@ -107,7 +107,7 @@ private:
 	inline void set_hl(addr_t val) { _h = static_cast<word_t>((val >> 8) & 0xFF); _l = val & 0xFF; } 
 	inline void set_de(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
 	inline void set_bc(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
-	inline void set_af(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xFF; } 
+	inline void set_af(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xF0; } // Low nibble of F is always 0!
 	inline word_t& fetch_hl() { add_cycles(1); return rw(getHL()); }
 	inline word_t& fetch_reg(word_t n) { return (n > 6) ? fetch_hl() : _r[n]; }
 	inline void incr_hl() { _l++; if(_l == 0) _h++; }
