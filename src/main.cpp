@@ -87,7 +87,10 @@ int main(int argc, char* argv[])
 	log_text.setPosition(5, 450);
 	log_text.setString("Log");
 	
+	bool first_loop = true;
 	bool debug = true;
+	bool draw_tilemap = false;
+	bool draw_debug_text = false;
 	bool step = true;
 	
 	while (window.isOpen())
@@ -106,7 +109,9 @@ int main(int argc, char* argv[])
 					case sf::Keyboard::Return: 
 					{
 						debug = !debug;
-						log_text.setString(debug ? "Debugging" : "Running");
+						draw_tilemap = debug;
+						draw_debug_text = debug;
+						log_text.setString(debug ? "Debugging" : "Running (Debug info disabled, toggle with T and Y)");
 						break;
 					}
 					case sf::Keyboard::BackSpace: 
@@ -134,6 +139,18 @@ int main(int argc, char* argv[])
 					case sf::Keyboard::A:
 					{
 						mmu.key_down(MMU::Button, MMU::RightA);
+						break;
+					}
+					case sf::Keyboard::T:
+					{
+						draw_tilemap = !draw_tilemap;
+						log_text.setString("Debug Tilemap " (draw_tilemap ? "Enabled" : "Disabled"));
+						break;
+					}
+					case sf::Keyboard::Y:
+					{
+						draw_debug_text = !draw_debug_text;
+						log_text.setString("Debug Text " (draw_debug_text ? "Enabled" : "Disabled"));
 						break;
 					}
 					default: break;
@@ -194,31 +211,36 @@ int main(int argc, char* argv[])
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			
-			// Debug display Tilemap
-			//if(debug)
+			step = false;
+		}
+			
+		// Debug display Tilemap
+		if(draw_tilemap || first_loop)
+		{
+			GPU::word_t tile_l;
+			GPU::word_t tile_h;
+			GPU::word_t tile_data0, tile_data1;
+			for(int t = 0; t < 256 + 128; ++t)
 			{
-				GPU::word_t tile_l;
-				GPU::word_t tile_h;
-				GPU::word_t tile_data0, tile_data1;
-				for(int t = 0; t < 256 + 128; ++t)
+				size_t tile_off = 8 * (t % 16) + (16 * 8 * 8) * (t / 16); 
+				for(int y = 0; y < 8; ++y)
 				{
-					size_t tile_off = 8 * (t % 16) + (16 * 8 * 8) * (t / 16); 
-					for(int y = 0; y < 8; ++y)
+					tile_l = mmu.read(0x8000 + t * 16 + y * 2);
+					tile_h = mmu.read(0x8000 + t * 16 + y * 2 + 1);
+					GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+					for(int x = 0; x < 8; ++x)
 					{
-						tile_l = mmu.read(0x8000 + t * 16 + y * 2);
-						tile_h = mmu.read(0x8000 + t * 16 + y * 2 + 1);
-						GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-						for(int x = 0; x < 8; ++x)
-						{
-							GPU::word_t shift = ((7 - x) % 4) * 2;
-							GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
-							tile_map[tile_off + 16 * 8 * y + x] = (4 - color) * (255/4.0);
-						}
+						GPU::word_t shift = ((7 - x) % 4) * 2;
+						GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+						tile_map[tile_off + 16 * 8 * y + x] = (4 - color) * (255/4.0);
 					}
 				}
-				gameboy_tilemap.update(reinterpret_cast<uint8_t*>(tile_map));
 			}
-			
+			gameboy_tilemap.update(reinterpret_cast<uint8_t*>(tile_map));
+		}
+		
+		if(draw_debug_text || first_loop)
+		{
 			std::stringstream dt;
 			dt << "PC: " << Hexa(cpu.getPC());
 			dt << " SP: " << Hexa(cpu.getSP());
@@ -239,7 +261,6 @@ int main(int argc, char* argv[])
 			dt << " STAT: " << Hexa(gpu.getLCDStatus());
 			dt << " P1: " << Hexa(mmu.read(MMU::P1));
 			debug_text.setString(dt.str());
-			step = false;
 		}
 		
         window.clear(sf::Color::Black);
@@ -248,6 +269,8 @@ int main(int argc, char* argv[])
 		window.draw(debug_text);
 		window.draw(log_text);
         window.display();
+		
+		first_loop = false;
     }
 	
 	delete[] tile_map;

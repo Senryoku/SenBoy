@@ -188,24 +188,23 @@ private:
 		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
 		addr_t base_tile_data = (getLCDControl() & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
 		
-		mapoffs += ((getLine() + getScrollY()) & 0xFF) >> 3;
+		mapoffs += 0x20 * (((getLine() + getScrollY()) & 0xFF) >> 3);
 		word_t lineoffs = (getScrollX() >> 3);
 
 		word_t x = getScrollX() & 0b111;
-		word_t y = (getLine() + getScrollY()) & 0b111;
+		word_t y = getLine() & 0b111;
 		
 		// Tile Index
 		word_t tile;
 		word_t tile_l;
 		word_t tile_h;
-		word_t tile_data0, tile_data1;
+		word_t tile_data0 = 0, tile_data1 = 0;
 		
 		for(word_t i = 0; i < ScreenWidth; ++i)
 		{
 			if(x == 8 || i == 0)
 			{
 				x = x % 8;
-				lineoffs = (lineoffs + 1) & 0x1F;
 				tile = mmu->read(mapoffs + lineoffs);
 				int idx = tile;
 				// If the second Tile Set is used, the tile index is signed.
@@ -219,6 +218,7 @@ private:
 				tile_l = mmu->read(base_tile_data + 16 * idx + y * 2);
 				tile_h = mmu->read(base_tile_data + 16 * idx + y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+				lineoffs = (lineoffs + 1) & 31;
 			}
 			
 			word_t shift = ((7 - x) % 4) * 2;
