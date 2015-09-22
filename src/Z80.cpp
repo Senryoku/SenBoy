@@ -316,8 +316,8 @@ void Z80::execute()
 			{
 				switch(opcode & 0x0F)
 				{
-					case 0x07: instr_rst(y); break;
-					case 0x0F: instr_rst(y); break;
+					case 0x07: instr_rst(y * 0x08); break;
+					case 0x0F: instr_rst(y * 0x08); break;
 					default: // Uncategorized codes
 					switch(opcode)
 					{

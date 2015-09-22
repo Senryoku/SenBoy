@@ -10,7 +10,7 @@ To Do :
 ## Tests
 Test					| Status
 ------------------------|--------
-01-special				| FAIL
+01-special				| PASS
 02-interrupts			| FAIL
 03-op sp,hl				| PASS
 04-op r,imm				| PASS

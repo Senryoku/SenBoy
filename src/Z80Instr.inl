@@ -9,6 +9,9 @@ inline void instr_stop()
 	_stop = true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Arithmetic
+
 /**
  * Z - Set if result is zero.
  * N - Reset.
@@ -19,6 +22,17 @@ inline void instr_add(word_t src)
 {
 	set(Flag::HalfCarry, ((_a & 0xF) + (src & 0xF)) > 0x0F);
 	uint16_t t = _a + src;
+	set(Flag::Carry, t > 0xFF);
+	_a = t & 0xFF;
+	set(Flag::Zero, _a == 0);
+	set(Flag::Negative, false);
+}
+	
+/// Add n + Carry flag to A.
+inline void instr_adc(word_t src)
+{
+	set(Flag::HalfCarry, ((((_a & 0xF) + (src & 0xF) + (check(Flag::Carry) ? 1 : 0)) > 0xF)));
+	uint16_t t = _a + src + (check(Flag::Carry) ? 1 : 0);
 	set(Flag::Carry, t > 0xFF);
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
@@ -36,8 +50,8 @@ inline addr_t instr_add16(addr_t lhs, word_t rhs)
 	set(Flag::Negative, false);
 	if(r > 0)
 	{
-		set(Flag::HalfCarry, (lhs & 0xF) + (r & 0xF) > 0xF);
-		set(Flag::Carry, (lhs & 0xFF) + r > 0xFF);
+		set(Flag::HalfCarry, (lhs & 0xF) + (rhs & 0xF) > 0xF);
+		set(Flag::Carry, (lhs & 0xFF) + rhs > 0xFF);
 	} else {
 		set(Flag::HalfCarry, (t & 0xF) <= (lhs & 0xF));
 		set(Flag::Carry, (t & 0xFF) <= (lhs & 0xFF));
@@ -61,16 +75,6 @@ inline void instr_add_hl(addr_t src)
 	set_hl(t & 0xFFFF);
 	set(Flag::Negative, false);
 }
-		
-inline void instr_adc(word_t src)
-{
-	set(Flag::HalfCarry, ((((_a & 0xF) + (src & 0xF) + (check(Flag::Carry) ? 1 : 0)) > 0xF)));
-	uint16_t t = _a + src + (check(Flag::Carry) ? 1 : 0);
-	set(Flag::Carry, t > 0xFF);
-	_a = t & 0xFF;
-	set(Flag::Zero, _a == 0);
-	set(Flag::Negative, false);
-}
 
 /**
  * Subtract n from A.
@@ -82,9 +86,8 @@ inline void instr_adc(word_t src)
 inline void instr_sub(word_t src)
 {
 	set(Flag::HalfCarry, (_a & 0xF) < (src & 0xF));
-	int16_t t = _a - src;
-	set(Flag::Carry, t < 0x00);
-	_a = t & 0xFF;
+	set(Flag::Carry, _a < src);
+	_a -= src;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, true);
 }
@@ -122,21 +125,62 @@ inline void instr_dec(word_t& src)
 	set(Flag::Negative, true);
 }
 
+inline void instr_daa() ///< @todo check
+{
+	int tmp = _a;
+	word_t ln = _a & 0x0F;			// Low Nibble
+
+	bool carry = false;
+	if(!check(Flag::Negative))
+	{
+		if(check(Flag::HalfCarry) || (ln > 0x09))
+		{
+			tmp += 0x06;
+		}
+		if(check(Flag::Carry) || (tmp > 0x9F))
+		{
+			tmp += 0x60;
+			carry = true;
+		}
+		//set(Flag::Carry, tmp > 0x5f);
+	} else {
+		if(check(Flag::HalfCarry))
+		{
+			tmp = (tmp - 6) & 0xFF;
+		} 
+		if(check(Flag::Carry))
+		{
+			tmp -= 0x60;
+			carry = true;
+		}
+	}
+	
+	set(Flag::Carry, carry);
+	set(Flag::HalfCarry, false);
+	_a = tmp & 0xFF;
+	set(Flag::Zero, _a == 0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Logical
+
 inline void instr_and(word_t src)
 {
 	_a &= src;
 	_f = Flag::HalfCarry | ((_a == 0) ? Flag::Zero : 0);
 }
 
-inline void instr_xor(word_t src)
-{
-	_a ^= src;
-	_f = (_a == 0) ? Flag::Zero : 0;
-}
-
 inline void instr_or(word_t src)
 {
 	_a |= src;
+	_f = (_a == 0) ? Flag::Zero : 0;
+}
+
+inline void instr_xor(word_t src)
+{
+	_a ^= src;
 	_f = (_a == 0) ? Flag::Zero : 0;
 }
 
@@ -156,84 +200,8 @@ inline void instr_cp(word_t src)
 	set(Flag::Zero, _a == src);
 	set(Flag::Negative, true);
 }
-	
-inline void instr_bit(word_t bit, word_t r)
-{
-	set(Flag::Zero, r & (1 << bit));
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry);
-}
 
-/// Rotate n left. Old bit 0 to Carry flag.
-inline void instr_rlc(word_t& v)
-{
-	set(Flag::Carry, v & 0b10000000);
-	word_t t = v << 1;
-	if(v & 0b10000000) t = t | 0b00000001;
-	v = t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-/// Rotate n left through Carry flag.
-inline void instr_rl(word_t& v)
-{
-	word_t t = v << 1;
-	if(check(Flag::Carry)) t = t | 0b00000001;
-	set(Flag::Carry, v & 0b10000000);
-	v = t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-/// Rotate n right. Old bit 0 to Carry flag.
-inline void instr_rrc(word_t& v)
-{
-	set(Flag::Carry, v & 0b00000001);
-	word_t t = v >> 1;
-	if(v & 0b00000001) t = t | 0b10000000;
-	v = t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-/// Rotate n right through Carry flag.
-inline void instr_rr(word_t& v)
-{
-	word_t t = v >> 1;
-	if(check(Flag::Carry)) t = t | 0b10000000;
-	set(Flag::Carry, v & 0b00000001);
-	v = t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-/// Shift n left into Carry. LSB of n set to 0.
-inline void instr_sla(word_t& v)
-{
-	set(Flag::Carry, _a & 0b10000000);
-	_a = _a << 1;
-	set(Flag::Zero, _a == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-/// Shift n right into Carry. MSB set to 0.
-inline void instr_srl(word_t& v)
-{
-	set(Flag::Carry, v & 0b00000001);
-	v = (v >> 1);
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-inline void instr_sra(word_t& v)
-{
-	word_t t = v & 0b10000000;
-	set(Flag::Carry, v & 0b00000001);
-	v = (v >> 1) | t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Swaps nibbles (groups of 4bits) of n.
@@ -254,6 +222,9 @@ inline addr_t instr_pop()
 {
 	return pop();
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Jumps
 
 inline void instr_jp(addr_t addr)
 {
@@ -299,91 +270,170 @@ inline void instr_reti()
 	_ime = 0x01;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// Rotate
+
 inline void instr_rlca()
 {
-	set(Flag::Carry, _a & 0b10000000);
+	bool b = _a & 0x80;
+	set(Flag::Carry, b);
 	_a = _a << 1;
+	if(b)
+		_a |= 1;
 	set(Flag::Zero, _a == 0);
 }
 
 inline void instr_rla()
 {
 	word_t tmp = check(Flag::Carry) ? 1 : 0;
-	set(Flag::Carry, _a & 0b10000000);
+	set(Flag::Carry, _a & 0x80);
 	_a = _a << 1;
 	_a += tmp;
 	set(Flag::Zero, _a == 0);
 }
 
-inline void instr_daa() ///< @todo check
-{
-	word_t tmp = 0;
-	word_t nl = _a & 0x0f;
-	word_t nh = (_a & 0xf0) >> 4;
-
-	if(!check(Flag::Negative))
-	{
-		if (check(Flag::HalfCarry) || (nl > 0x09))
-		{
-			tmp += 0x06;
-		}
-		if (check(Flag::Carry) || (nh > 0x09) || ((nh == 9) && (nl > 9)))
-		{
-			tmp += 0x60;
-		}
-		set(Flag::Carry, tmp > 0x5f);
-	} else {
-		if (!check(Flag::Carry) && check(Flag::HalfCarry))
-		{
-			tmp += 0xfa;
-			set(Flag::Carry, false);
-		} else if (check(Flag::Carry) && !check(Flag::HalfCarry)) {
-			tmp += 0xa0;
-			set(Flag::Carry);
-		} else if (check(Flag::Carry) && check(Flag::HalfCarry)) {
-			tmp += 0x9a;
-			set(Flag::Carry);
-		} else {
-			set(Flag::Carry, false);
-		}
-	}
-	set(Flag::Zero, tmp == 0);
-	set(Flag::HalfCarry, false);
-	_a -= tmp;
-}
-
-inline void instr_scf()
-{
-	set(Flag::Carry);
-}
-
 inline void instr_rrca()
 {
-	set(Flag::Carry, _a & 0b00000001);
+	bool b = _a & 1;
+	set(Flag::Carry, b);
 	_a = _a >> 1;
+	if(b)
+		_a |= 0x80;
 	set(Flag::Zero, _a == 0);
 }
 
 inline void instr_rra()
 {
-	word_t tmp = check(Flag::Carry) ? 0b10000000 : 0;
-	set(Flag::Carry, _a & 0b00000001);
+	word_t tmp = check(Flag::Carry) ? 0x80 : 0;
+	set(Flag::Carry, _a & 1);
 	_a = _a >> 1;
-	_a += tmp;
+	_a |= tmp;
 	set(Flag::Zero, _a == 0);
 }
 
-inline void instr_cpl()
+/// Rotate n left. Old bit 0 to Carry flag.
+inline void instr_rlc(word_t& v)
+{
+	set(Flag::Carry, v & 0x80);
+	word_t t = v << 1;
+	if(v & 0x80) t = t | 1;
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+/// Rotate n left through Carry flag.
+inline void instr_rl(word_t& v)
+{
+	word_t t = v << 1;
+	if(check(Flag::Carry)) t = t | 1;
+	set(Flag::Carry, v & 0x80);
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+/// Rotate n right. Old bit 0 to Carry flag.
+inline void instr_rrc(word_t& v)
+{
+	set(Flag::Carry, v & 1);
+	word_t t = v >> 1;
+	if(v & 1) t = t | 0x80;
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+/// Rotate n right through Carry flag.
+inline void instr_rr(word_t& v)
+{
+	word_t t = v >> 1;
+	if(check(Flag::Carry)) t = t | 0x80;
+	set(Flag::Carry, v & 1);
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Shifts
+
+/// Shift n left into Carry. LSB of n set to 0.
+inline void instr_sla(word_t& v)
+{
+	set(Flag::Carry, _a & 0x80);
+	_a = _a << 1;
+	set(Flag::Zero, _a == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+/// Shift n right into Carry. MSB doesn't change.
+inline void instr_sra(word_t& v)
+{
+	word_t t = v & 0x80;
+	set(Flag::Carry, v & 1);
+	v = (v >> 1) | t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+/// Shift n right into Carry. MSB set to 0.
+inline void instr_srl(word_t& v)
+{
+	set(Flag::Carry, v & 1);
+	v = (v >> 1);
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Complement A register. (Flip all bits.)
+ * 
+ * Z - Not affected.
+ * N - Set.
+ * H - Set.
+ * C - Not affected.
+**/
+ inline void instr_cpl()
 {
 	_a = ~_a;
 	set(Flag::Negative | Flag::HalfCarry);
 }
-
+/**
+ * Complement carry flag.
+ * 
+ * If C flag is set, then reset it.
+ * If C flag is reset, then set it.
+ * Z - Not affected.
+ * N - Reset.
+ * H - Reset.
+ * C - Complemented.
+**/
 inline void instr_ccf()
 {
 	set(Flag::Carry, !check(Flag::Carry));
-	set(Flag::Negative, false);
-	set(Flag::HalfCarry, false);
+	set(Flag::Negative | Flag::HalfCarry);
+}
+
+/**
+ * Set Carry flag.
+ * 
+ * Z - Not affected.
+ * N - Reset.
+ * H - Reset.
+ * C - Set.
+**/
+inline void instr_scf()
+{
+	set(Flag::Carry);
+	set(Flag::Negative | Flag::HalfCarry);
 }
 
 inline void instr_call(addr_t addr)
@@ -404,6 +454,7 @@ inline void instr_call(bool b, addr_t addr)
 
 inline void instr_rst(word_t rel_addr)
 {
+	assert(rel_addr <= 0x38 && ((rel_addr & 0x0F) == 0 || (rel_addr & 0x0F) == 8));
 	push(_pc);
 	_pc = rel_addr;
 }
@@ -418,15 +469,40 @@ inline void instr_di()
 	_ime = 0x00;
 }
 
-inline void instr_res(word_t bit, word_t& r)
+///////////////////////////////////////////////////////////////////////////////
+// Bit Manipulation
+
+/**
+ * Test bit b in register r.
+ *
+ * Z - Set if bit b of register r is 0.
+ * N - Reset.
+ * H - Set.
+ * C - Not affected.
+**/
+inline void instr_bit(word_t bit, word_t r)
 {
-	r = (r & ~(1 << bit));
+	assert(bit < 8);
+	set(Flag::Zero, r & (1 << bit));
+	set(Flag::Negative, false);
+	set(Flag::HalfCarry);
 }
 
+/// Set bit b in register r.
 inline void instr_set(word_t bit, word_t& r)
 {
-	r = (r | (1 << bit));
+	assert(bit < 8);
+	r |= (1 << bit);
 }
+
+/// Reset bit b in register r.
+inline void instr_res(word_t bit, word_t& r)
+{
+	assert(bit < 8);
+	r &= ~(1 << bit);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 inline void instr_halt()
 {
