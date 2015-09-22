@@ -70,6 +70,14 @@ public:
 	/// Return true if the specified flag is set, false otherwise.
 	inline bool check(Flag m) { return _f & m; }
 	
+	// Static
+	/// Length for each instruction (in bytes)
+	static size_t	instr_length[0x100];
+	/// Cycle count for each instruction (Some jump may cost more)
+	static size_t	instr_cycles[0x100];
+	/// Cycle count for each 0xCB prefixed instruction
+	static size_t	instr_cycles_cb[0x10];
+	
 private:
 	///////////////////////////////////////////////////////////////////////////
 	// Debug
@@ -108,8 +116,13 @@ private:
 	inline void set_de(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
 	inline void set_bc(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
 	inline void set_af(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xF0; } // Low nibble of F is always 0!
-	inline word_t& fetch_hl() { add_cycles(1); return rw(getHL()); }
+	
+	inline word_t& fetch_hl() { return mmu->rw(getHL()); }
 	inline word_t& fetch_reg(word_t n) { return (n > 6) ? fetch_hl() : _r[n]; }
+	
+	inline word_t fetch_hl_val() { return mmu->read(getHL()); }
+	inline word_t fetch_val(word_t n) { return (n > 6) ? fetch_hl_val() : _r[n]; }
+	
 	inline void incr_hl() { _l++; if(_l == 0) _h++; }
 	inline void decr_hl() { if(_l == 0) _h--; _l--; }
 	
@@ -129,7 +142,7 @@ private:
 		push(_pc);
 		_pc = addr;
 		_ime = 0x00;
-		add_cycles(5);
+		add_cycles(20);
 		mmu->rw(MMU::IF) &= ~i;
 	}
 	
@@ -162,24 +175,23 @@ private:
 	
 	unsigned int	_clock_cycles = 0;			// Clock cycles since reset
 	unsigned int	_clock_instr_cycles = 0;	// Clock cycles of the last instruction
-	unsigned int	_machine_instr_cycles = 0;	// Machine cycles of the last instruction
 	
-	inline void add_cycles(unsigned int c, unsigned int m = 0)
+	inline void add_cycles(unsigned int c)
 	{
 		_clock_instr_cycles += c;
-		_machine_instr_cycles += (m == 0) ? 4 * c : m;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Stack management
 	
-	void push(addr_t addr)
+	inline void push(addr_t addr)
 	{
 		rw(_sp--) = addr & 0xFF;
 		rw(_sp--) = (addr >> 8) & 0xFF;
+		assert(_sp <= 0xFFFF - 2);
 	}
 	
-	addr_t pop()
+	inline addr_t pop()
 	{
 		assert(_sp <= 0xFFFF - 2);
 		addr_t addr = 0;
@@ -194,7 +206,7 @@ private:
 	// Helper function on opcodes
 	inline word_t extract_src_reg(word_t opcode) const { return (opcode + 1) & 0b111; }
 	inline word_t extract_dst_reg(word_t opcode) const { return ((opcode >> 3) + 1) & 0b111; }
-	inline void rel_jump(word_t offset) { _pc += offset - ((offset & 0b10000000) ? 0x100 : 0);  add_cycles(1); }
+	inline void rel_jump(word_t offset) { _pc += offset - ((offset & 0b10000000) ? 0x100 : 0);  add_cycles(4); }
 	
 	#include "Z80Instr.inl"
 };

@@ -122,9 +122,9 @@ private:
 		switch(getLCDStatus() & LCDMode)
 		{
 			case Mode::HBlank:
-				if(_cycles >= 51)
+				if(_cycles >= 204)
 				{
-					_cycles -= 51;
+					_cycles -= 204;
 					getLine()++;
 					if(getLine() >= 143)
 					{
@@ -139,9 +139,9 @@ private:
 				}
 				break;
 			case Mode::VBlank:
-				if(_cycles >= 114)
+				if(_cycles >= 456)
 				{
-					_cycles -= 114;
+					_cycles -= 456;
 					getLine()++;
 					if(getLine() >= 153)
 					{
@@ -152,17 +152,17 @@ private:
 				}
 				break;
 			case Mode::OAM:
-				if(_cycles >= 20)
+				if(_cycles >= 80)
 				{
-					_cycles -= 20;
+					_cycles -= 80;
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VRAM;
 					exec_stat_interrupt(Mode10); /// @todo Check
 				}
 				break;
 			case Mode::VRAM:
-				if(_cycles >= 43)
+				if(_cycles >= 172)
 				{
-					_cycles -= 43;
+					_cycles -= 172;
 					renderget_line();
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
 					exec_stat_interrupt(Mode00);
@@ -210,11 +210,6 @@ private:
 				// If the second Tile Set is used, the tile index is signed.
 				if(!(getLCDControl() & BGWindowsTileDataSelect) && (tile & 0b10000000))
 					idx = ~tile + 1;
-				/*
-				std::cout << "Tile: " << (int)  tile << " IDX " << (int) idx << 
-					" X " << x <<
-					" TileMap: "  << (int) (mapoffs + lineoffs) << std::endl;
-				*/
 				tile_l = mmu->read(base_tile_data + 16 * idx + y * 2);
 				tile_h = mmu->read(base_tile_data + 16 * idx + y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);

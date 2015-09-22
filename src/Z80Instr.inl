@@ -2,24 +2,21 @@
  * Implementations of the Z80 instructions
 ******************************************************************************/
 
-inline void instr_nop() { add_cycles(1); }
+inline void instr_nop() { }
 
 inline void instr_stop()
 {
 	_stop = true;
-	add_cycles(2);
 }
 
 inline void instr_ld(word_t& dst, word_t src)
 {
 	dst = src;
-	add_cycles(1);
 }
 
 inline void instr_ld(addr_t& dst, addr_t src)
 {
 	dst = src;
-	add_cycles(1);
 }
 
 /**
@@ -36,7 +33,6 @@ inline void instr_add(word_t src)
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, false);
-	add_cycles(1);
 }
 
 inline void instr_add(addr_t& reg16, word_t src)
@@ -47,7 +43,6 @@ inline void instr_add(addr_t& reg16, word_t src)
 	reg16 = t;
 	set(Flag::Zero, false);
 	set(Flag::Negative, false);
-	add_cycles(3);
 }
 
 inline void instr_add_hl(addr_t src)
@@ -56,7 +51,6 @@ inline void instr_add_hl(addr_t src)
 	set(Flag::HalfCarry, ((getHL() & 0xFF) + (src & 0xFF)) & 0x100);
 	set(Flag::Carry, (static_cast<uint32_t>(getHL()) + src) > 0xFFFF);
 	set_hl(getHL() + src);
-	add_cycles(2);
 }
 		
 inline void instr_adc(word_t src)
@@ -67,7 +61,6 @@ inline void instr_adc(word_t src)
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, false);
-	add_cycles(1);
 }
 
 /**
@@ -85,7 +78,6 @@ inline void instr_sub(word_t src)
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, true);
-	add_cycles(1);
 }
 
 /**
@@ -103,7 +95,6 @@ inline void instr_sbc(word_t src)
 	_a = t & 0xFF;
 	set(Flag::Zero, _a == 0);
 	set(Flag::Negative, true);
-	add_cycles(1);
 }
 
 inline void instr_inc(word_t& src)
@@ -112,7 +103,6 @@ inline void instr_inc(word_t& src)
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry, (src & 0x0F) == 0x00);
-	add_cycles(1);
 }
 
 inline void instr_dec(word_t& src)
@@ -121,28 +111,24 @@ inline void instr_dec(word_t& src)
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, true);
 	set(Flag::HalfCarry, (src & 0x0F) == 0x0F);
-	add_cycles(1);
 }
 
 inline void instr_and(word_t src)
 {
 	_a &= src;
 	_f = Flag::HalfCarry | ((_a == 0) ? Flag::Zero : 0);
-	add_cycles(1);
 }
 
 inline void instr_xor(word_t src)
 {
 	_a ^= src;
 	_f = (_a == 0) ? Flag::Zero : 0;
-	add_cycles(1);
 }
 
 inline void instr_or(word_t src)
 {
 	_a |= src;
 	_f = (_a == 0) ? Flag::Zero : 0;
-	add_cycles(1);
 }
 
 /**
@@ -161,7 +147,6 @@ inline void instr_cp(word_t src)
 	set(Flag::Carry, t < 0x00);
 	set(Flag::Zero, t == 0);
 	set(Flag::Negative, true);
-	add_cycles(1);
 }
 
 inline void instr_bit(word_t bit, word_t r)
@@ -169,13 +154,11 @@ inline void instr_bit(word_t bit, word_t r)
 	set(Flag::Zero, r & (1 << bit));
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry);
-	add_cycles(2);
 }
 
 /// Rotate n left. Old bit 0 to Carry flag.
 inline void instr_rlc(word_t& v)
 {
-	add_cycles(2);
 	set(Flag::Carry, v & 0b10000000);
 	word_t t = v << 1;
 	if(v & 0b10000000) t = t | 0b00000001;
@@ -187,7 +170,6 @@ inline void instr_rlc(word_t& v)
 /// Rotate n left through Carry flag.
 inline void instr_rl(word_t& v)
 {
-	add_cycles(2);
 	word_t t = v << 1;
 	if(check(Flag::Carry)) t = t | 0b00000001;
 	set(Flag::Carry, v & 0b10000000);
@@ -199,7 +181,6 @@ inline void instr_rl(word_t& v)
 /// Rotate n right. Old bit 0 to Carry flag.
 inline void instr_rrc(word_t& v)
 {
-	add_cycles(2);
 	set(Flag::Carry, v & 0b00000001);
 	word_t t = v >> 1;
 	if(v & 0b00000001) t = t | 0b10000000;
@@ -211,7 +192,6 @@ inline void instr_rrc(word_t& v)
 /// Rotate n right through Carry flag.
 inline void instr_rr(word_t& v)
 {
-	add_cycles(2);
 	word_t t = v >> 1;
 	if(check(Flag::Carry)) t = t | 0b10000000;
 	set(Flag::Carry, v & 0b00000001);
@@ -223,7 +203,6 @@ inline void instr_rr(word_t& v)
 /// Shift n left into Carry. LSB of n set to 0.
 inline void instr_sla(word_t& v)
 {
-	add_cycles(2);
 	set(Flag::Carry, _a & 0b10000000);
 	_a = _a << 1;
 	set(Flag::Zero, _a == 0);
@@ -233,7 +212,6 @@ inline void instr_sla(word_t& v)
 /// Shift n right into Carry. MSB set to 0.
 inline void instr_srl(word_t& v)
 {
-	add_cycles(2);
 	set(Flag::Carry, v & 0b00000001);
 	v = (v >> 1);
 	set(Flag::Zero, v == 0);
@@ -242,7 +220,6 @@ inline void instr_srl(word_t& v)
 
 inline void instr_sra(word_t& v)
 {
-	add_cycles(2);
 	word_t t = v & 0b10000000;
 	set(Flag::Carry, v & 0b00000001);
 	v = (v >> 1) | t;
@@ -265,58 +242,55 @@ inline void instr_swap(word_t& v)
 
 inline void instr_push(addr_t addr)
 {
-	add_cycles(4);
 	push(addr);
 }
 
 inline addr_t instr_pop()
 {
-	add_cycles(3);
 	return pop();
 }
 
 inline void instr_jp(addr_t addr)
 {
-	add_cycles(4);
 	_pc = addr;
 }
 
 inline void instr_jp(bool b, addr_t addr)
 {
-	add_cycles(b ? 4 : 3);
 	if(b)
+	{
+		add_cycles(4);
 		_pc = addr;
+	}
 }
 
 inline void instr_jr(word_t offset)
 {
-	add_cycles(2);
 	rel_jump(offset);
 }
 
 inline void instr_jr(bool b, word_t offset)
 {
-	add_cycles(2);
 	if(b) rel_jump(offset);
 }
 	
 inline void instr_ret(bool b = true)
 {
-	add_cycles(1);
 	if(b)
+	{
+		add_cycles(12);
 		_pc = pop();
+	}
 }
 
 inline void instr_reti()
 {
-	add_cycles(1);
 	_pc = pop();
 	_ime = 0x01;
 }
 
 inline void instr_rlca()
 {
-	add_cycles(1);
 	set(Flag::Carry, _a & 0b10000000);
 	_a = _a << 1;
 	set(Flag::Zero, _a == 0);
@@ -324,7 +298,6 @@ inline void instr_rlca()
 
 inline void instr_rla()
 {
-	add_cycles(1);
 	word_t tmp = check(Flag::Carry) ? 1 : 0;
 	set(Flag::Carry, _a & 0b10000000);
 	_a = _a << 1;
@@ -334,7 +307,6 @@ inline void instr_rla()
 
 inline void instr_daa() ///< @todo check
 {
-	add_cycles(1);
 	word_t tmp = 0;
 	word_t nl = _a & 0x0f;
 	word_t nh = (_a & 0xf0) >> 4;
@@ -372,13 +344,11 @@ inline void instr_daa() ///< @todo check
 
 inline void instr_scf()
 {
-	add_cycles(1);
 	set(Flag::Carry);
 }
 
 inline void instr_rrca()
 {
-	add_cycles(1);
 	set(Flag::Carry, _a & 0b00000001);
 	_a = _a >> 1;
 	set(Flag::Zero, _a == 0);
@@ -386,7 +356,6 @@ inline void instr_rrca()
 
 inline void instr_rra()
 {
-	add_cycles(1);
 	word_t tmp = check(Flag::Carry) ? 0b10000000 : 0;
 	set(Flag::Carry, _a & 0b00000001);
 	_a = _a >> 1;
@@ -396,7 +365,6 @@ inline void instr_rra()
 
 inline void instr_cpl()
 {
-	add_cycles(1);
 	_a = ~_a;
 	set(Flag::Negative);
 	set(Flag::HalfCarry);
@@ -404,7 +372,6 @@ inline void instr_cpl()
 
 inline void instr_ccf()
 {
-	add_cycles(1);
 	set(Flag::Carry, !check(Flag::Carry));
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry, false);
@@ -412,50 +379,44 @@ inline void instr_ccf()
 
 inline void instr_call(addr_t addr)
 {
-	add_cycles(1);
 	push(_pc);
 	_pc = addr;
 }
 
 inline void instr_call(bool b, addr_t addr)
 {
-	add_cycles(1);
 	if(b)
 	{
 		push(_pc);
 		_pc = addr;
+		add_cycles(12);
 	}
 }
 
 inline void instr_rst(word_t rel_addr)
 {
-	add_cycles(1);
 	push(_pc);
 	_pc = rel_addr;
 }
 
 inline void instr_ei()
 {
-	add_cycles(1);
 	_ime = 0x01;
 }
 
 inline void instr_di()
 {
-	add_cycles(1);
 	_ime = 0x00;
 }
 
 inline void instr_res(word_t bit, word_t& r)
 {
 	r = (r | (1 << bit));
-	add_cycles(2);
 }
 
 inline void instr_set(word_t bit, word_t& r)
 {
 	r = (r & ~(1 << bit));
-	add_cycles(2);
 }
 
 inline void instr_halt()

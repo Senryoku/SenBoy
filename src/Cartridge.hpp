@@ -46,6 +46,12 @@ public:
 		std::cout << "Loaded '" << path << "' : " << getName() << std::endl;
 		std::cout << " (Size: " << _data.size() << ", Type: " << std::hex << getType() << ")" << std::endl;
 		
+		if(getType() > 0x01)
+		{
+			std::cerr << "Cartridge format not supported! Exiting..." << std::endl;
+			exit(1);
+		}
+		
 		return true;
 	}
 	

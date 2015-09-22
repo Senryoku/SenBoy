@@ -24,6 +24,7 @@ std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 }
 
 using Hexa = HexaGen<Z80::addr_t>;
+using Hexa8 = HexaGen<Z80::word_t>;
 
 int main(int argc, char* argv[])
 {
@@ -44,7 +45,7 @@ int main(int argc, char* argv[])
 	cpu.reset();
 	cpu.reset_cart();
 	
-	//cpu.loadBIOS("data/bios.bin");
+	cpu.loadBIOS("data/bios.bin");
 	
 	float screen_scale = 2.0f;
 	
@@ -189,7 +190,7 @@ int main(int argc, char* argv[])
 		
 		if(!debug || step)
 		{
-			for(int i = 0; i < (debug ? 1 : 17556); )
+			for(int i = 0; i < (debug ? 1 : 4 * 17556); )
 			{
 				cpu.execute();
 				if(cpu.getInstrCycles() == 0)
@@ -242,11 +243,14 @@ int main(int argc, char* argv[])
 		if(draw_debug_text || first_loop)
 		{
 			std::stringstream dt;
-			dt << "PC: " << Hexa(cpu.getPC());
+			dt << "PC: " << Hexa8(cpu.getPC());
 			dt << " SP: " << Hexa(cpu.getSP());
-			dt << " | OP: " << Hexa(cpu.getNextOpcode()) << " [" 
-				<< Hexa(cpu.getNextOperand0()) << " " 
-				<< Hexa(cpu.getNextOperand1()) << "]" << std::endl;
+			dt << " | OP: " << Hexa8(cpu.getNextOpcode()) << " ";
+			if(Z80::instr_length[cpu.getNextOpcode()] > 1)
+				dt << Hexa8(cpu.getNextOperand0()) << " ";
+			if(Z80::instr_length[cpu.getNextOpcode()] > 2)
+				dt << Hexa8(cpu.getNextOperand1());
+			dt << std::endl;
 			dt << "AF: " << Hexa(cpu.getAF());
 			dt << " BC: " << Hexa(cpu.getBC());
 			dt << " DE: " << Hexa(cpu.getDE());
@@ -256,10 +260,10 @@ int main(int argc, char* argv[])
 			if(cpu.check(Z80::Flag::HalfCarry)) dt << " HC";
 			if(cpu.check(Z80::Flag::Carry)) dt << " C";
 			dt << std::endl;
-			dt << "LY: " << Hexa(gpu.getLine());
-			dt << " LCDC: " << Hexa(gpu.getLCDControl());
-			dt << " STAT: " << Hexa(gpu.getLCDStatus());
-			dt << " P1: " << Hexa(mmu.read(MMU::P1));
+			dt << "LY: " << Hexa8(gpu.getLine());
+			dt << " LCDC: " << Hexa8(gpu.getLCDControl());
+			dt << " STAT: " << Hexa8(gpu.getLCDStatus());
+			dt << " P1: " << Hexa8(mmu.read(MMU::P1));
 			debug_text.setString(dt.str());
 		}
 		
