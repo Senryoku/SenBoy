@@ -16,21 +16,21 @@ public:
 	enum Register : addr_t
 	{
 		//
-		P1		= 0xFF00, // Joypad
-		SB		= 0xFF01, // Serial transfer data
-		SC		= 0xFF02, // SIO control
-		DIV		= 0xFF04, // Divider Register
-		TIMA	= 0xFF05, // Timer counter
-		TMA		= 0xFF06, // Timer Modulo
-		TAC		= 0xFF07, // Timer Control
+		P1		= 0xFF00, ///< Joypad
+		SB		= 0xFF01, ///< Serial transfer data
+		SC		= 0xFF02, ///< SIO control
+		DIV		= 0xFF04, ///< Divider Register
+		TIMA	= 0xFF05, ///< Timer counter
+		TMA		= 0xFF06, ///< Timer Modulo
+		TAC		= 0xFF07, ///< Timer Control
 		
 		// Sound
-		NR10	= 0xFF10, // Sound Mode 1 register
-		NR11	= 0xFF11, // ...
-		NR12	= 0xFF12, // ...
-		NR13	= 0xFF13, // ...
-		NR14	= 0xFF14, // ...
-		NR21	= 0xFF16, // ...
+		NR10	= 0xFF10, ///< Sound Mode 1 register
+		NR11	= 0xFF11, ///< ...
+		NR12	= 0xFF12, ///< ...
+		NR13	= 0xFF13, ///< ...
+		NR14	= 0xFF14, ///< ...
+		NR21	= 0xFF16, ///< ...
 		// And others...
 		
 		// Video Registers
@@ -41,16 +41,16 @@ public:
 		LY		= 0xFF44,
 		LYC		= 0xFF45,
 		BGP		= 0xFF47,
-		OBP0	= 0xFF48,
-		OBP1	= 0xFF49,
+		OBP0	= 0xFF48, ///< Object Palette 0
+		OBP1	= 0xFF49, ///< Object Palette 1
 		WY		= 0xFF4A,
 		WX		= 0xFF4B,
 		
-		DMA		= 0xFF46, // DMA Transfer and Start Address
+		DMA		= 0xFF46, ///< DMA Transfer and Start Address
 		
 		//
-		IF		= 0xFF0F, // Interrupt Flag
-		IE		= 0xFFFF // Interrupt Enable
+		IF		= 0xFF0F, ///< Interrupt Flag
+		IE		= 0xFFFF  ///< Interrupt Enable
 	};
 	
 	enum InterruptFlag : word_t
@@ -137,6 +137,8 @@ public:
 			cartridge->write(addr, value);
 		else if(addr == DIV) // DIV reset when written to
 			_mem[DIV] = 0;
+		else if(addr == DMA) // Initialize DMA transfer
+			init_dma(value);
 		else
 			rw(addr) = value;
 	}
@@ -172,4 +174,15 @@ public:
 	
 private:
 	word_t*		_mem = nullptr;
+	
+	void init_dma(word_t val)
+	{
+		// Doing it here for now.
+		// It couldn't find the exact timing right now.
+		addr_t start = val * 0x100;
+		for(addr_t i = 0; i < 40 * 4; ++i)
+		{
+			write(0xFE00 + i, read(start + i));
+		}			
+	}
 };
