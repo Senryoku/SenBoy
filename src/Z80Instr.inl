@@ -305,56 +305,50 @@ inline void instr_rst(word_t addr)
 ///////////////////////////////////////////////////////////////////////////////
 // Rotate
 
+/**
+ * Rotate A left. Old bit 7 to Carry flag.
+ * @see rlc
+**/
 inline void instr_rlca()
 {
-	bool b = _a & 0x80;
-	set(Flag::Carry, b);
-	_a = _a << 1;
-	if(b)
-		_a |= 1;
-	set(Flag::Zero, _a == 0);
+	instr_rlc(_a);
 }
 
+/**
+ * Rotate A left through Carry flag.
+ * @see rl
+**/
 inline void instr_rla()
 {
-	word_t tmp = check(Flag::Carry) ? 1 : 0;
-	set(Flag::Carry, _a & 0x80);
-	_a = _a << 1;
-	_a += tmp;
-	set(Flag::Zero, _a == 0);
+	instr_rl(_a);
 }
 
+/**
+ * Rotate A right. Old bit 0 to Carry flag.
+ * @see rrc
+**/
 inline void instr_rrca()
 {
-	bool b = _a & 1;
-	set(Flag::Carry, b);
-	_a = _a >> 1;
-	if(b)
-		_a |= 0x80;
-	set(Flag::Zero, _a == 0);
+	instr_rrc(_a);
 }
 
+/**
+ * Rotate A right through Carry flag.
+ * @see rr
+*/
 inline void instr_rra()
 {
-	word_t tmp = check(Flag::Carry) ? 0x80 : 0;
-	set(Flag::Carry, _a & 1);
-	_a = _a >> 1;
-	_a |= tmp;
-	set(Flag::Zero, _a == 0);
+	instr_rr(_a);
 }
 
-/// Rotate n left. Old bit 0 to Carry flag.
-inline void instr_rlc(word_t& v)
-{
-	set(Flag::Carry, v & 0x80);
-	word_t t = v << 1;
-	if(v & 0x80) t = t | 1;
-	v = t;
-	set(Flag::Zero, v == 0);
-	set(Flag::Negative | Flag::HalfCarry, false);
-}
-
-/// Rotate n left through Carry flag.
+/**
+ * Rotate n left through Carry flag.
+ *
+ * Z - Set if result is zero.
+ * N - Reset.
+ * H - Reset.
+ * C - Contains old bit 7 data.
+**/
 inline void instr_rl(word_t& v)
 {
 	word_t t = v << 1;
@@ -365,7 +359,32 @@ inline void instr_rl(word_t& v)
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-/// Rotate n right. Old bit 0 to Carry flag.
+/**
+ * Rotate n left. Old bit 7 to Carry flag.
+ *
+ * Z - Set if result is zero.
+ * N - Reset.
+ * H - Reset.
+ * C - Contains old bit 7 data.
+**/
+inline void instr_rlc(word_t& v)
+{
+	set(Flag::Carry, v & 0x80);
+	word_t t = v << 1;
+	if(v & 0x80) t = t | 1;
+	v = t;
+	set(Flag::Zero, v == 0);
+	set(Flag::Negative | Flag::HalfCarry, false);
+}
+
+/**
+ * Rotate n right. Old bit 0 to Carry flag.
+ * 
+ * Z - Set if result is zero.
+ * N - Reset.
+ * H - Reset.
+ * C - Contains old bit 0 data.
+**/
 inline void instr_rrc(word_t& v)
 {
 	set(Flag::Carry, v & 1);
@@ -376,7 +395,14 @@ inline void instr_rrc(word_t& v)
 	set(Flag::Negative | Flag::HalfCarry, false);
 }
 
-/// Rotate n right through Carry flag.
+/**
+ * Rotate n right through Carry flag.
+ * 
+ * Z - Set if result is zero.
+ * N - Reset.
+ * H - Reset.
+ * C - Contains old bit 0 data.
+*/
 inline void instr_rr(word_t& v)
 {
 	word_t t = v >> 1;
