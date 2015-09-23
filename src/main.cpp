@@ -203,14 +203,13 @@ int main(int argc, char* argv[])
 		
 		if(!debug || step)
 		{
-			for(int i = 0; i < (debug ? 1 : 4 * 17556); )
+			do
 			{
 				cpu.execute();
 				if(cpu.getInstrCycles() == 0)
 					break;
 				
 				gpu.step(cpu.getInstrCycles());
-				i += cpu.getInstrCycles();
 			
 				if(cpu.reachedBreakpoint())
 				{
@@ -221,7 +220,7 @@ int main(int argc, char* argv[])
 					step = false;
 					break;
 				}
-			}
+			} while(!debug && !gpu.completed_frame());
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			

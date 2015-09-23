@@ -145,7 +145,8 @@ bool Z80::loadBIOS(const std::string& path)
 }
 
 void Z80::execute()
-{	
+{
+	assert((_f & 0x0F) == 0);
 	_clock_instr_cycles = 0;
 	if(_stop)
 	{
@@ -325,8 +326,8 @@ void Z80::execute()
 					{
 						case 0xC0: instr_ret(!check(Flag::Zero)); break;
 						case 0xD0: instr_ret(!check(Flag::Carry)); break;
-						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break; //	LDH (n), a	
-						case 0xF0: _a = mmu->read(0xFF00 + mmu->read(_pc++)); break;	//		LDH a, (n)
+						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break;	//	LDH (n), a	
+						case 0xF0: _a = mmu->read(0xFF00 + mmu->read(_pc++)); break;	//	LDH a, (n)
 						// POP
 						case 0xC1: set_bc(instr_pop()); break;
 						case 0xD1: set_de(instr_pop()); break;
@@ -335,8 +336,8 @@ void Z80::execute()
 						
 						case 0xC2: _pc += 2; instr_jp(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xD2: _pc += 2; instr_jp(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
-						case 0xE2: mmu->write(0xFF00 + _c, _a); break;			// LD ($FF00+C),A
-						case 0xF2: mmu->write(_a, mmu->read(0xFF00 + _c)); break;	// LD A,($FF00+C)
+						case 0xE2: mmu->write(0xFF00 + _c, _a); break;	// LD ($FF00+C),A
+						case 0xF2: _a = mmu->read(0xFF00 + _c); break;	// LD A,($FF00+C)
 						
 						case 0xC3: instr_jp(mmu->read16(_pc)); break;
 						case 0xF3: instr_di(); break;
@@ -360,14 +361,14 @@ void Z80::execute()
 						case 0xE8: instr_add_sp(mmu->read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
-							set_hl(instr_add16(_sp, mmu->read(_pc++)));
+							set_hl(add16(_sp, mmu->read(_pc++)));
 							break;
 						}
 						
 						case 0xC9: instr_ret(); break;
 						case 0xD9: instr_reti(); break;
 						case 0xE9: _pc = getHL(); break;	// JP (HL)
-						case 0xF9: _sp = getHL(); break;
+						case 0xF9: _sp = getHL(); break;	// LD SP, HL
 						
 						case 0xCA: _pc += 2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xDA: _pc += 2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;

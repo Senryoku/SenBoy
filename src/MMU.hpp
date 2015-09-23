@@ -126,7 +126,7 @@ public:
 	
 	inline addr_t read16(addr_t addr)
 	{
-		return ((static_cast<addr_t>(read(addr + 1)) << 8) & 0xFF00) + read(addr);
+		return ((static_cast<addr_t>(read(addr + 1)) << 8) & 0xFF00) | read(addr);
 	}
 	
 	inline void	write(addr_t addr, word_t value)

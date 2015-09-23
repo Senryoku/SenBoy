@@ -42,12 +42,11 @@ inline void instr_adc(word_t src)
 /**
  * (Helper) Adds a signed 8bits integer to a 16bits integer.
 **/
-inline addr_t instr_add16(addr_t lhs, word_t rhs)
+inline addr_t add16(addr_t lhs, word_t rhs)
 {
 	int r = from_2c_to_signed(rhs);
 	int t = lhs + r;
-	set(Flag::Zero, false);
-	set(Flag::Negative, false);
+	set(Flag::Zero | Flag::Negative, false);
 	if(r > 0)
 	{
 		set(Flag::HalfCarry, (lhs & 0xF) + (rhs & 0xF) > 0xF);
@@ -56,7 +55,7 @@ inline addr_t instr_add16(addr_t lhs, word_t rhs)
 		set(Flag::HalfCarry, (t & 0xF) <= (lhs & 0xF));
 		set(Flag::Carry, (t & 0xFF) <= (lhs & 0xFF));
 	}
-	return t;
+	return (t & 0xFFFF);
 }
 
 /**
@@ -64,7 +63,7 @@ inline addr_t instr_add16(addr_t lhs, word_t rhs)
 **/
 inline void instr_add_sp(word_t src)
 {
-	_sp = instr_add16(_sp, src);
+	_sp = add16(_sp, src);
 }
 
 inline void instr_add_hl(addr_t src)
