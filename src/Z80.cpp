@@ -158,6 +158,40 @@ void Z80::execute()
 		}
 	}
 	
+	/*
+	 * "If interrupts are disabled (DI) then
+	 * halt doesn't suspend operation but it does cause
+	 * the program counter to stop counting for one
+	 * instruction on the GB,GBP, and SGB." 
+	static bool repeat = false;
+	static word_t repeat_pc = 0;
+	
+	if(repeat)
+	{
+		repeat = false;
+		_pc = repeat_pc;
+	}
+	*/
+	
+	if(_halt)
+	{
+		if(mmu->read(MMU::IF))
+		{
+			/*
+			// @todo Doesn't happen in GBC mode
+			if(!_ime)
+			{
+				repeat = true;
+				repeat_pc = _pc;
+			}
+			*/
+			_halt = false;
+		} else { 
+			update_timing();
+			return;
+		}
+	}
+	
 	word_t opcode = mmu->read(_pc++);
 	add_cycles(instr_cycles[opcode]);
 	
@@ -403,31 +437,7 @@ void Z80::execute()
 	}
 	_clock_cycles += _clock_instr_cycles;
 	
-	_divider_register += _clock_instr_cycles;
-	if(_divider_register > 256)
-	{
-		_divider_register -= 256;
-		mmu->rw(MMU::DIV)++;
-	}
-		
-	_timer_counter += _clock_instr_cycles;
-	word_t TAC = mmu->read(MMU::TAC);
-	unsigned int tac_divisor = 1026;
-	if((TAC & 0b11) == 0b01) tac_divisor = 16;
-	if((TAC & 0b11) == 0b10) tac_divisor = 64;
-	if((TAC & 0b11) == 0b11) tac_divisor = 256;
-	if((TAC & 0b10) && _timer_counter > tac_divisor)
-	{
-		_timer_counter -= tac_divisor;
-		if(mmu->read(MMU::TIMA) != 0xFF)
-		{
-			mmu->rw(MMU::TIMA)++;
-		} else {
-			mmu->rw(MMU::TIMA) = mmu->read(MMU::TMA);
-			// Interrupt
-			mmu->rw(MMU::IF) |= MMU::TimerOverflow;
-		}
-	}
+	update_timing();
 	
 	check_interrupts();
 	

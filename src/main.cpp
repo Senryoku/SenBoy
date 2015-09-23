@@ -195,11 +195,20 @@ int main(int argc, char* argv[])
 			}
         }
 		
-		// (Test)
+		///////////////////////////
+		// (Input Tests)
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
 		{
 			mmu.key_down(MMU::Button, MMU::DownStart);
 		}
+		
+		if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50) mmu.key_down(MMU::Direction, MMU::RightA);
+		else if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
+		else {
+			mmu.key_up(MMU::Direction, MMU::RightA);
+			mmu.key_up(MMU::Direction, MMU::LeftB);
+		}
+		///////////////////////////
 		
 		if(!debug || step)
 		{

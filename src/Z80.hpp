@@ -110,6 +110,7 @@ private:
 	word_t	_ime; // Interrupt Master Enable
 	
 	bool	_stop = false;	// instr_stop
+	bool	_halt = false;	// instr_halt
 	
 	// 8/16bits registers access helpers
 	inline void set_hl(addr_t val) { _h = (val >> 8) & 0xFF; _l = val & 0xFF; } 
@@ -141,6 +142,36 @@ private:
 		_ime = 0x00;
 		add_cycles(20);
 		mmu->rw(MMU::IF) &= ~i;
+	}
+	
+	
+	inline void update_timing()
+	{
+		_divider_register += _clock_instr_cycles;
+		if(_divider_register > 256)
+		{
+			_divider_register -= 256;
+			mmu->rw(MMU::DIV)++;
+		}
+			
+		_timer_counter += _clock_instr_cycles;
+		word_t TAC = mmu->read(MMU::TAC);
+		unsigned int tac_divisor = 1026;
+		if((TAC & 0b11) == 0b01) tac_divisor = 16;
+		if((TAC & 0b11) == 0b10) tac_divisor = 64;
+		if((TAC & 0b11) == 0b11) tac_divisor = 256;
+		if((TAC & 0b100) && _timer_counter > tac_divisor)
+		{
+			_timer_counter -= tac_divisor;
+			if(mmu->read(MMU::TIMA) != 0xFF)
+			{
+				mmu->rw(MMU::TIMA)++;
+			} else {
+				mmu->rw(MMU::TIMA) = mmu->read(MMU::TMA);
+				// Interrupt
+				mmu->rw(MMU::IF) |= MMU::TimerOverflow;
+			}
+		}
 	}
 	
 	inline void check_interrupts()
