@@ -278,6 +278,29 @@ inline void instr_reti()
 	_ime = 0x01;
 }
 
+inline void instr_call(addr_t addr)
+{
+	push(_pc);
+	_pc = addr;
+}
+
+inline void instr_call(bool b, addr_t addr)
+{
+	if(b)
+	{
+		push(_pc);
+		_pc = addr;
+		add_cycles(12);
+	}
+}
+
+inline void instr_rst(word_t addr)
+{
+	assert(addr <= 0x38 && ((addr & 0x0F) == 0 || (addr & 0x0F) == 8));
+	push(_pc);
+	_pc = addr;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -442,29 +465,6 @@ inline void instr_scf()
 {
 	set(Flag::Carry);
 	set(Flag::Negative | Flag::HalfCarry);
-}
-
-inline void instr_call(addr_t addr)
-{
-	push(_pc);
-	_pc = addr;
-}
-
-inline void instr_call(bool b, addr_t addr)
-{
-	if(b)
-	{
-		push(_pc);
-		_pc = addr;
-		add_cycles(12);
-	}
-}
-
-inline void instr_rst(word_t rel_addr)
-{
-	assert(rel_addr <= 0x38 && ((rel_addr & 0x0F) == 0 || (rel_addr & 0x0F) == 8));
-	push(_pc);
-	_pc = rel_addr;
 }
 
 inline void instr_ei()

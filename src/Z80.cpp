@@ -123,6 +123,7 @@ void Z80::reset_cart()
 	mmu->write(0xFFFF, word_t(0x00));
 	
 	mmu->write(MMU::P1, word_t(0xCF)); // GB Only
+	mmu->write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
 
 bool Z80::loadBIOS(const std::string& path)

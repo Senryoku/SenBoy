@@ -189,8 +189,8 @@ private:
 	
 	inline void push(addr_t addr)
 	{
-		rw(_sp--) = addr & 0xFF;
-		rw(_sp--) = (addr >> 8) & 0xFF;
+		rw(--_sp) = addr & 0xFF;
+		rw(--_sp) = (addr >> 8) & 0xFF;
 		assert(_sp <= 0xFFFF - 2);
 	}
 	
@@ -198,8 +198,8 @@ private:
 	{
 		assert(_sp <= 0xFFFF - 2);
 		addr_t addr = 0;
-		addr = static_cast<addr_t>(read(++_sp)) << 8;
-		addr |= read(++_sp);
+		addr = static_cast<addr_t>(read(_sp++)) << 8;
+		addr |= read(_sp++);
 		return addr;
 	}
 	
@@ -209,7 +209,7 @@ private:
 	// Helper functions on opcodes
 	inline word_t extract_src_reg(word_t opcode) const { return (opcode + 1) & 0b111; }
 	inline word_t extract_dst_reg(word_t opcode) const { return ((opcode >> 3) + 1) & 0b111; }
-	inline void rel_jump(word_t offset) { _pc += from_2c_to_signed(offset);  add_cycles(4); }
+	inline void rel_jump(word_t offset) { _pc += from_2c_to_signed(offset); }
 	
 	inline int from_2c_to_signed(word_t src)
 	{
