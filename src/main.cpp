@@ -195,6 +195,12 @@ int main(int argc, char* argv[])
 			}
         }
 		
+		// (Test)
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+		{
+			mmu.key_down(MMU::Button, MMU::DownStart);
+		}
+		
 		if(!debug || step)
 		{
 			for(int i = 0; i < (debug ? 1 : 4 * 17556); )

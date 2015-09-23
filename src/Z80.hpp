@@ -48,9 +48,9 @@ public:
 	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
 	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
 	
-	inline int getNextOpcode() const { return read(_pc); };
-	inline int getNextOperand0() const { return read(_pc + 1); };
-	inline int getNextOperand1() const { return read(_pc + 2); };
+	inline int getNextOpcode() const { return mmu->read(_pc); };
+	inline int getNextOperand0() const { return mmu->read(_pc + 1); };
+	inline int getNextOperand1() const { return mmu->read(_pc + 2); };
 	
 	inline bool reachedBreakpoint() const { return _breakpoint;  };
 	inline void addBreakpoint(addr_t addr) { _breakpoints.insert(addr); };
@@ -131,9 +131,6 @@ private:
 	inline void set(Flag m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
 	inline void set(word_t m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
 	
-	inline word_t& rw(addr_t addr) { return mmu->rw(addr); }
-	inline word_t read(addr_t addr) const { return mmu->read(addr); }
-	
 	///////////////////////////////////////////////////////////////////////////
 	// Interrupts management
 	
@@ -151,8 +148,8 @@ private:
 		if(_ime == 0x00)
 			return;
 		
-		word_t IF = read(MMU::IF);
-		word_t IE = read(MMU::IE);
+		word_t IF = mmu->read(MMU::IF);
+		word_t IE = mmu->read(MMU::IE);
 		if(IF & IE) // An enabled interrupt is waiting
 		{
 			// Check each interrupt in order of priority.
@@ -189,8 +186,8 @@ private:
 	
 	inline void push(addr_t addr)
 	{
-		rw(--_sp) = (addr >> 8) & 0xFF;
-		rw(--_sp) = addr & 0xFF;
+		mmu->write(--_sp, word_t((addr >> 8) & 0xFF));
+		mmu->write(--_sp, word_t(addr & 0xFF));
 		assert(_sp <= 0xFFFF - 2);
 	}
 	
@@ -198,8 +195,8 @@ private:
 	{
 		assert(_sp <= 0xFFFF - 2);
 		addr_t addr = 0;
-		addr = read(_sp++);
-		addr |= static_cast<addr_t>(read(_sp++)) << 8;
+		addr = mmu->read(_sp++);
+		addr |= static_cast<addr_t>(mmu->read(_sp++)) << 8;
 		return addr;
 	}
 	

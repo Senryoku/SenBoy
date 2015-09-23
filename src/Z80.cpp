@@ -157,7 +157,7 @@ void Z80::execute()
 		}
 	}
 	
-	word_t opcode = read(_pc++);
+	word_t opcode = mmu->read(_pc++);
 	add_cycles(instr_cycles[opcode]);
 	
 	display_state();
@@ -166,7 +166,7 @@ void Z80::execute()
 	// Check prefixes
 	if(opcode == 0xCB) // Almost done @todo: Impl. S&R
 	{
-		opcode = read(_pc++);
+		opcode = mmu->read(_pc++);
 		add_cycles(instr_cycles_cb[opcode]);
 		word_t x = opcode >> 6; // bits 6 & 7
 		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
@@ -326,7 +326,7 @@ void Z80::execute()
 						case 0xC0: instr_ret(!check(Flag::Zero)); break;
 						case 0xD0: instr_ret(!check(Flag::Carry)); break;
 						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break; //	LDH (n), a	
-						case 0xF0: _a = read(0xFF00 + mmu->read(_pc++)); break;	//		LDH a, (n)
+						case 0xF0: _a = mmu->read(0xFF00 + mmu->read(_pc++)); break;	//		LDH a, (n)
 						// POP
 						case 0xC1: set_bc(instr_pop()); break;
 						case 0xD1: set_de(instr_pop()); break;
@@ -336,7 +336,7 @@ void Z80::execute()
 						case 0xC2: _pc += 2; instr_jp(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xD2: _pc += 2; instr_jp(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
 						case 0xE2: mmu->write(0xFF00 + _c, _a); break;			// LD ($FF00+C),A
-						case 0xF2: mmu->write(_a, read(0xFF00 + _c)); break;	// LD A,($FF00+C)
+						case 0xF2: mmu->write(_a, mmu->read(0xFF00 + _c)); break;	// LD A,($FF00+C)
 						
 						case 0xC3: instr_jp(mmu->read16(_pc)); break;
 						case 0xF3: instr_di(); break;
@@ -350,14 +350,14 @@ void Z80::execute()
 						case 0xE5: instr_push(getHL()); break;
 						case 0xF5: instr_push(getAF()); break;
 						
-						case 0xC6: instr_add(read(_pc++)); break;
-						case 0xD6: instr_sub(read(_pc++)); break;
-						case 0xE6: instr_and(read(_pc++)); break;
-						case 0xF6: instr_or(read(_pc++)); break;
+						case 0xC6: instr_add(mmu->read(_pc++)); break;
+						case 0xD6: instr_sub(mmu->read(_pc++)); break;
+						case 0xE6: instr_and(mmu->read(_pc++)); break;
+						case 0xF6: instr_or(mmu->read(_pc++)); break;
 						
 						case 0xC8: instr_ret(check(Flag::Zero)); break;
 						case 0xD8: instr_ret(check(Flag::Carry)); break;
-						case 0xE8: instr_add_sp(read(_pc++)); break;	// ADD SP, n
+						case 0xE8: instr_add_sp(mmu->read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
 							set_hl(instr_add16(_sp, mmu->read(_pc++)));
@@ -376,7 +376,7 @@ void Z80::execute()
 							_pc += 2;
 							break;	// 16bits LD
 						case 0xFA:
-							_a = read(mmu->read16(_pc));
+							_a = mmu->read(mmu->read16(_pc));
 							_pc += 2;
 							break;
 						

@@ -213,7 +213,7 @@ private:
 			word_t lineoffs = (getScrollX() >> 3);
 
 			word_t x = getScrollX() & 0b111;
-			word_t y = line & 0b111;
+			word_t y = (getScrollY() + line) & 0b111;
 			
 			// Tile Index
 			word_t tile;
