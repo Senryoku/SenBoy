@@ -248,7 +248,8 @@ private:
 		// Render Sprites
 		if(getLCDControl() & OBJDisplay)
 		{
-			word_t Y, X, Tile, Opt;
+			int Y, X;
+			word_t Tile, Opt;
 			word_t tile_l = 0;
 			word_t tile_h = 0;
 			word_t tile_data0 = 0, tile_data1 = 0;

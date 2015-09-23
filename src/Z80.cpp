@@ -331,8 +331,8 @@ void Z80::execute()
 						case 0xE1: set_hl(instr_pop()); break;
 						case 0xF1: set_af(instr_pop()); break;
 						
-						case 0xC2: _pc +=2; instr_jp(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
-						case 0xD2: _pc +=2; instr_jp(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						case 0xC2: _pc += 2; instr_jp(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
+						case 0xD2: _pc += 2; instr_jp(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
 						case 0xE2: mmu->write(0xFF00 + _c, _a); break;			// LD ($FF00+C),A
 						case 0xF2: mmu->write(_a, read(0xFF00 + _c)); break;	// LD A,($FF00+C)
 						
@@ -358,7 +358,7 @@ void Z80::execute()
 						case 0xE8: instr_add_sp(read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
-							set_hl(instr_add16(_sp, mmu->read(_pc++)) & 0xFFFF);
+							set_hl(instr_add16(_sp, mmu->read(_pc++)));
 							break;
 						}
 						
@@ -367,8 +367,8 @@ void Z80::execute()
 						case 0xE9: _pc = getHL(); break;	// JP (HL)
 						case 0xF9: _sp = getHL(); break;
 						
-						case 0xCA: _pc +=2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
-						case 0xDA: _pc +=2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						case 0xCA: _pc += 2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
+						case 0xDA: _pc += 2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;
 						case 0xEA: 
 							mmu->write(mmu->read16(_pc), _a);
 							_pc += 2;

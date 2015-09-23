@@ -125,7 +125,11 @@ inline void instr_dec(word_t& src)
 	set(Flag::Negative, true);
 }
 
-inline void instr_daa() ///< @todo check
+/**
+ * Convert A into BCD (Binary Coded Decimal)
+ . (Passes Blargg's test)
+**/
+inline void instr_daa()
 {
 	int tmp = _a;
 	word_t ln = _a & 0x0F;			// Low Nibble
@@ -247,7 +251,11 @@ inline void instr_jr(word_t offset)
 
 inline void instr_jr(bool b, word_t offset)
 {
-	if(b) rel_jump(offset);
+	if(b)
+	{
+		add_cycles(4);
+		rel_jump(offset);
+	}
 }
 
 inline void instr_ret()
