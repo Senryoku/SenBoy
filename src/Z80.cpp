@@ -139,6 +139,7 @@ bool Z80::loadBIOS(const std::string& path)
 	file.read((char *) mmu->getPtr(), 256);
 	
 	_pc = 0x0000;
+	mmu->write(0xFF50, word_t(0x00)); // Enable BIOS ROM
 	
 	return true;
 }
