@@ -189,8 +189,8 @@ private:
 	
 	inline void push(addr_t addr)
 	{
-		rw(--_sp) = addr & 0xFF;
 		rw(--_sp) = (addr >> 8) & 0xFF;
+		rw(--_sp) = addr & 0xFF;
 		assert(_sp <= 0xFFFF - 2);
 	}
 	
@@ -198,8 +198,8 @@ private:
 	{
 		assert(_sp <= 0xFFFF - 2);
 		addr_t addr = 0;
-		addr = static_cast<addr_t>(read(_sp++)) << 8;
-		addr |= read(_sp++);
+		addr = read(_sp++);
+		addr |= static_cast<addr_t>(read(_sp++)) << 8;
 		return addr;
 	}
 	
