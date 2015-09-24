@@ -148,6 +148,9 @@ void Z80::execute()
 {
 	assert((_f & 0x0F) == 0);
 	_clock_instr_cycles = 0;
+	
+	// Handles STOP instruction (Halts until a key is pressed)
+	// @todo I think this should check a Joypad interrupt instead.
 	if(_stop)
 	{
 		if(mmu->any_key())
@@ -158,33 +161,32 @@ void Z80::execute()
 		}
 	}
 	
-	/*
+	/* Handles HALT instruction (Halts until a interrupt is fired).
+	 *
 	 * "If interrupts are disabled (DI) then
 	 * halt doesn't suspend operation but it does cause
 	 * the program counter to stop counting for one
 	 * instruction on the GB,GBP, and SGB." 
+	 */
 	static bool repeat = false;
-	static word_t repeat_pc = 0;
-	
+	static addr_t repeat_pc = 0;
 	if(repeat)
 	{
 		repeat = false;
 		_pc = repeat_pc;
 	}
-	*/
 	
 	if(_halt)
 	{
 		if(mmu->read(MMU::IF))
 		{
-			/*
 			// @todo Doesn't happen in GBC mode
 			if(!_ime)
 			{
 				repeat = true;
 				repeat_pc = _pc;
 			}
-			*/
+			
 			_halt = false;
 		} else { 
 			update_timing();
@@ -192,14 +194,14 @@ void Z80::execute()
 		}
 	}
 	
+	// Reads the next instruction opcode.
 	word_t opcode = mmu->read(_pc++);
 	add_cycles(instr_cycles[opcode]);
 	
 	display_state();
 	// Decode opcode (http://www.z80.info/decoding.htm)
 	// And I thought I was being smart... A simple jumptable would have be mush cleaner in the end >.<"
-	// Check prefixes
-	if(opcode == 0xCB) // Almost done @todo: Impl. S&R
+	if(opcode == 0xCB) // Prefixed instructions
 	{
 		opcode = mmu->read(_pc++);
 		add_cycles(instr_cycles_cb[opcode]);
@@ -209,7 +211,7 @@ void Z80::execute()
 		
 		switch(x)
 		{
-			case 0b00: // Shift & Rotate - @todo Implem.
+			case 0b00: // Shift & Rotate
 			{
 				word_t& value = fetch_reg(reg);
 				
@@ -237,18 +239,30 @@ void Z80::execute()
 		
 		switch(x)
 		{
-			case 0b00: // Done ?
+			case 0b00:
 			{
 				switch(opcode & 0x0F)
 				{
 					case 0x0C: // Same logic
-					case 0x04: 
-						instr_inc(fetch_reg(extract_dst_reg(opcode)));
+					case 0x04: // INC
+					{
+						word_t dst_reg = extract_dst_reg(opcode);
+						if(dst_reg > 6) // LD (HL), d8
+							mmu->write(getHL(), instr_inc_impl(mmu->read(getHL())));
+						else
+							instr_inc(_r[dst_reg]);
 						break;
+					}
 					case 0x0D: // Same logic
-					case 0x05:
-						instr_dec(fetch_reg(extract_dst_reg(opcode)));
+					case 0x05: // DEC
+					{
+						word_t dst_reg = extract_dst_reg(opcode);
+						if(dst_reg > 6) // LD (HL), d8
+							mmu->write(getHL(), instr_dec_impl(mmu->read(getHL())));
+						else
+							instr_dec(_r[dst_reg]);
 						break;
+					}
 					case 0x0E: // LD reg, d8
 					case 0x06:
 					{
@@ -319,7 +333,7 @@ void Z80::execute()
 				}
 				break;
 			}
-			case 0b01: // LD on registers - Done ?
+			case 0b01: // LD on registers
 			{
 				word_t reg_src = extract_src_reg(opcode);
 				word_t reg_dst = extract_dst_reg(opcode);
@@ -331,7 +345,7 @@ void Z80::execute()
 					_r[reg_dst] = fetch_val(reg_src);
 				break;
 			}
-			case 0b10: // ALU on registers - Done ?
+			case 0b10: // ALU on registers
 			{ 
 				word_t reg_src = extract_src_reg(opcode);
 				word_t value = fetch_val(reg_src);
@@ -349,7 +363,7 @@ void Z80::execute()
 				}
 				break;
 			}
-			case 0b11: // Done ?
+			case 0b11:
 			{
 				switch(opcode & 0x0F)
 				{

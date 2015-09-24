@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <functional>
 
 #include "Cartridge.hpp"
 
@@ -77,6 +78,16 @@ public:
 	
 	Cartridge*		cartridge = nullptr;
 	
+	using callback_joy = std::function<bool (void)>;
+	callback_joy	callback_joy_up;
+	callback_joy	callback_joy_down;
+	callback_joy	callback_joy_left;
+	callback_joy	callback_joy_right;
+	callback_joy	callback_joy_select;
+	callback_joy	callback_joy_start;
+	callback_joy	callback_joy_b;
+	callback_joy	callback_joy_a;
+	
 	MMU();
 	
 	~MMU();
@@ -106,6 +117,7 @@ public:
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
 			return _mem[0x0100]; // Dummy value.
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
+			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ExternalRAM! Use write instead." << std::endl;
 			return reinterpret_cast<word_t&>(cartridge->rw(addr));
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 			return _mem[addr - 0x2000];
@@ -135,10 +147,14 @@ public:
 			rw(addr) = value;
 		else if(addr < 0x8000) // Memory Banks management
 			cartridge->write(addr, value);
+		else if(addr >= 0xA000 && addr < 0xC000) // External RAM
+			cartridge->write(addr, value);
 		else if(addr == DIV) // DIV reset when written to
 			_mem[DIV] = 0;
 		else if(addr == DMA) // Initialize DMA transfer
 			init_dma(value);
+		else if(addr == P1) // Joypad Register
+			update_joypad(value);
 		else
 			rw(addr) = value;
 	}
@@ -151,13 +167,11 @@ public:
 	
 	inline void key_down(word_t type, word_t key)
 	{
-		rw(MMU::P1) = ~(type | key);
 		rw(IF) |= Transition; // Interrupt
 	}
 	
 	inline void key_up(word_t type, word_t key)
 	{
-		rw(MMU::P1) |= key;
 	}
 	
 	inline bool check_key(word_t type, word_t key) const
@@ -168,6 +182,24 @@ public:
 	inline bool any_key() const
 	{
 		return (read(MMU::P1) & 0x3F) != 0x3F;
+	}
+	
+	inline void update_joypad(word_t value)
+	{
+		//assert(value == Direction || value == Button);
+		_mem[P1] = ~value; //(~value & 0x3F) | 0x0F;// value | 0x0F;
+		if(_mem[P1] & Direction)
+		{
+			if(callback_joy_up()) _mem[P1] &= ~UpSelect;
+			if(callback_joy_down()) _mem[P1] &= ~DownStart;
+			if(callback_joy_left()) _mem[P1] &= ~LeftB;
+			if(callback_joy_right()) _mem[P1] &= ~RightA;
+		} else if(_mem[P1] & Button) {
+			if(callback_joy_select()) _mem[P1] &= ~UpSelect;
+			if(callback_joy_start()) _mem[P1] &= ~DownStart;
+			if(callback_joy_b()) _mem[P1] &= ~LeftB;
+			if(callback_joy_a()) _mem[P1] &= ~RightA;
+		}
 	}
 	
 	inline word_t* getPtr() { return _mem; }

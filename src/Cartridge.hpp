@@ -40,11 +40,15 @@ public:
 		
 		_data.assign(std::istreambuf_iterator<byte_t>(file), 
 					std::istreambuf_iterator<byte_t>());
-					
-		_ram = new byte_t[getRAMSize()];
+		
+		if(getRAMSize() > 0)
+			_ram = new byte_t[getRAMSize()];
 		
 		std::cout << "Loaded '" << path << "' : " << getName() << std::endl;
-		std::cout << " (Size: " << _data.size() << ", Type: " << std::hex << getType() << ")" << std::endl;
+		std::cout << " (Size: " << std::dec << _data.size() << 
+					", RAM Size: " << getRAMSize() << 
+					", Type: " << std::hex << getType() << 
+					")" << std::endl;
 		
 		if(getType() > 0x01)
 		{
@@ -60,25 +64,38 @@ public:
 		if(addr < 0x4000) // ROM Bank 0
 			return _data[addr];
 		else if(addr < 0x8000) // Switchable ROM Bank
-			return _data[addr + (_rom_bank - 1) * 0x4000];
+			return _data[addr + ((_rom_bank & 0x1F) - 1) * 0x4000];
 		else if(addr >= 0xA000 && addr < 0xC000) // Switchable RAM Bank
-			return _ram[_rom_bank * 0x4000 + (addr & 0x1FFF)];
+			return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
 		
 		std::cerr << "Error: Wrong address queried to the Cartridge: 0x" << std::hex << addr << std::endl;
-		return _data[0x0100]; // Dummy
+		return _data[0x0000]; // Dummy
 	}
 	
 	byte_t& rw(addr_t addr)
 	{
-		if(addr < 0x4000) // ROM Bank 0
-			return _data[addr];
-		else if(addr < 0x8000) // Switchable ROM Bank
-			return _data[addr + (_rom_bank - 1) * 0x4000];
-		else if(addr >= 0xA000 && addr < 0xC000) // Switchable RAM Bank
-			return _ram[_rom_bank * 0x4000 + (addr & 0x1FFF)];
+		//if(!_enable_ram)
+		//	return _data[0xA000];
+		
+		if(addr >= 0xA000 && addr < 0xC000) // Switchable RAM Bank
+		{
+			assert(_ram != nullptr);
+			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < getRAMSize());
+			return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
+		}
 		
 		std::cerr << "Error: Wrong address queried to the Cartridge: 0x" << std::hex << addr << std::endl;
-		return _data[0x0100]; // Dummy
+		return _data[0x0000]; // Dummy
+	}
+	
+	void write_ram(addr_t addr, byte_t value)
+	{
+		if(_enable_ram)
+		{
+			assert(_ram != nullptr);
+			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < getRAMSize());
+			_ram[_ram_bank * 0x2000 + (addr & 0x1FFF)] = value;
+		}
 	}
 	
 	void write(addr_t addr, byte_t value)
@@ -119,15 +136,37 @@ public:
 			// External RAM
 			case 0xA000:
 			case 0xB000:
-				_ram[_ram_bank * 0x4000 + (addr & 0x1FFF)] = value;
+				write_ram(addr, value);
+			break;
+			default:
+				std::cerr << "Error: Write on Cartridge on 0x" << std::hex << addr << std::endl;
 			break;
 		}
 	}
 	
 	inline std::string getName() { return std::string(_data.data() + 0x0134, 15); }
 	inline int getType() { return *(_data.data() + 0x0147); }
-	inline size_t getRAMSize() { return *(_data.data() + 0x0149); }
-
+	inline size_t getROMSize()
+	{ 
+		size_t s = *(_data.data() + 0x0148);
+		if(s < 0x08) return (32 * 1024) << s;
+		// @todo Handle more cases
+		return 32 * 1024;
+	}
+	inline size_t getRAMSize()
+	{ 
+		switch(*(_data.data() + 0x0149))
+		{
+			default:
+			case 0x00: return 0; break;
+			case 0x01: return 2 * 1024; break;
+			case 0x02: return 8 * 1024; break;
+			case 0x03: return 32 * 1024; break;
+			case 0x04: return 128 * 1024; break;
+			case 0x05: return 64 * 1024; break;
+		}
+	}
+	
 private:
 	std::vector<byte_t> _data;
 	byte_t*				_ram = nullptr;

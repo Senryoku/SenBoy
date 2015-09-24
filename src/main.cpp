@@ -37,6 +37,32 @@ int main(int argc, char* argv[])
 	GPU gpu;
 	
 	mmu.cartridge = &cartridge;
+		
+		///////////////////////////
+		// (Input Tests)
+		/*
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+		{
+			mmu.key_down(MMU::Button, MMU::DownStart);
+		}
+		
+		if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50) mmu.key_down(MMU::Direction, MMU::RightA);
+		else if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
+		else {
+			mmu.key_up(MMU::Direction, MMU::RightA);
+			mmu.key_up(MMU::Direction, MMU::LeftB);
+		}
+		*/
+		///////////////////////////
+	mmu.callback_joy_up = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::Y) < -50; };
+	mmu.callback_joy_down = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::Y) > 50; };
+	mmu.callback_joy_right = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50; };
+	mmu.callback_joy_left = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::X) < -50; };
+	mmu.callback_joy_a = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 0); };
+	mmu.callback_joy_b = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 1); };
+	mmu.callback_joy_select = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 6); };
+	mmu.callback_joy_start = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 7); };
+	
 	cpu.mmu = &mmu;
 	gpu.mmu = &mmu;
 	
@@ -136,11 +162,6 @@ int main(int argc, char* argv[])
 						log_text.setString("Cleared breakpoints.");
 						break;
 					}
-					case sf::Keyboard::A:
-					{
-						mmu.key_down(MMU::Button, MMU::RightA);
-						break;
-					}
 					case sf::Keyboard::T:
 					{
 						draw_tilemap = !draw_tilemap;
@@ -151,16 +172,6 @@ int main(int argc, char* argv[])
 					{
 						draw_debug_text = !draw_debug_text;
 						log_text.setString(draw_debug_text ? "Debug Tilemap Enabled" : "Debug Tilemap Disabled");
-						break;
-					}
-					default: break;
-				}
-			} else if (event.type == sf::Event::KeyReleased) {
-				switch(event.key.code)
-				{
-					case sf::Keyboard::A:
-					{
-						mmu.key_up(MMU::Button, MMU::RightA);
 						break;
 					}
 					default: break;
@@ -180,35 +191,12 @@ int main(int argc, char* argv[])
 				{
 					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::RightA);
 					else if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
-					else {
-						mmu.key_up(MMU::Direction, MMU::RightA);
-						mmu.key_up(MMU::Direction, MMU::LeftB);
-					}
 				} else if (event.joystickMove.axis == sf::Joystick::Y) {
 					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::UpSelect);
 					else if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::DownStart);
-					else {
-						mmu.key_up(MMU::Direction, MMU::UpSelect);
-						mmu.key_up(MMU::Direction, MMU::DownStart);
-					}
 				}
 			}
         }
-		
-		///////////////////////////
-		// (Input Tests)
-		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-		{
-			mmu.key_down(MMU::Button, MMU::DownStart);
-		}
-		
-		if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50) mmu.key_down(MMU::Direction, MMU::RightA);
-		else if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
-		else {
-			mmu.key_up(MMU::Direction, MMU::RightA);
-			mmu.key_up(MMU::Direction, MMU::LeftB);
-		}
-		///////////////////////////
 		
 		if(!debug || step)
 		{

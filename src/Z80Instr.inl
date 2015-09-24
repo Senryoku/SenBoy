@@ -108,20 +108,32 @@ inline void instr_sbc(word_t src)
 	set(Flag::Negative, true);
 }
 
-inline void instr_inc(word_t& src)
+inline word_t instr_inc_impl(word_t src)
 {
 	set(Flag::HalfCarry, (src & 0x0F) == 0x0F);
 	++src;
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, false);
+	return src;
 }
 
-inline void instr_dec(word_t& src)
+inline void instr_inc(word_t& src)
+{
+	src = instr_inc_impl(src);
+}
+
+inline word_t instr_dec_impl(word_t src)
 {
 	set(Flag::HalfCarry, (src & 0x0F) == 0x00);
 	--src;
 	set(Flag::Zero, src == 0);
 	set(Flag::Negative, true);
+	return src;
+}
+
+inline void instr_dec(word_t& src)
+{
+	src = instr_dec_impl(src);
 }
 
 /**
@@ -216,8 +228,7 @@ inline void instr_cp(word_t src)
 **/
 inline void instr_swap(word_t& v)
 {
-	word_t t = v & 0x0F;
-	v = ((v << 4) & 0xF0) | t;
+	v = ((v << 4) & 0xF0) | ((v >> 4) & 0x0F);
 	_f = (v == 0) ? Flag::Zero : 0;
 }
 
