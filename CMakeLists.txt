@@ -17,7 +17,7 @@ set(EXECUTABLE_NAME "SenBoy")
 set(SOURCES
 	src/MMU.cpp
 	src/GPU.cpp
-	src/Z80.cpp
+	src/LR35902.cpp
 	src/main.cpp
 )
 add_executable(${EXECUTABLE_NAME} ${SOURCES})

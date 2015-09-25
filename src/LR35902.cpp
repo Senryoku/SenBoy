@@ -1,8 +1,8 @@
-#include "Z80.hpp"
+#include "LR35902.hpp"
 
 #include <cstring> // Memset
 
-size_t	Z80::instr_length[0x100] = {
+size_t	LR35902::instr_length[0x100] = {
 	1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,
 	2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
 	2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
@@ -20,7 +20,7 @@ size_t	Z80::instr_length[0x100] = {
 	2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 3, 1, 0, 0, 2, 1
 };
 
-size_t	Z80::instr_cycles[0x100] = {
+size_t	LR35902::instr_cycles[0x100] = {
 	4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
 	4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
 	8, 12, 8, 8, 4, 4, 8, 4, 8, 8, 8, 8, 4, 4, 8, 4,
@@ -39,7 +39,7 @@ size_t	Z80::instr_cycles[0x100] = {
 	12, 12, 8, 4, 0, 16, 8, 16, 12, 8, 16, 4, 0, 0, 8, 16
 };
 
-size_t	Z80::instr_cycles_cb[0x100] = {
+size_t	LR35902::instr_cycles_cb[0x100] = {
 	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
 	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
 	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
@@ -58,7 +58,7 @@ size_t	Z80::instr_cycles_cb[0x100] = {
 	8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8
 };
 
-Z80::Z80()
+LR35902::LR35902()
 {
 	reset();
 	
@@ -72,7 +72,7 @@ Z80::Z80()
 	assert(&_l == &_r[6]);
 }
 
-void Z80::reset()
+void LR35902::reset()
 {
 	_pc = 0;
 	_sp = 0;
@@ -81,7 +81,7 @@ void Z80::reset()
 	_f = 0;
 }
 
-void Z80::reset_cart()
+void LR35902::reset_cart()
 {
 	_pc = 0x0100;
 	_sp = 0xFFFE;
@@ -126,7 +126,7 @@ void Z80::reset_cart()
 	mmu->write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
 
-bool Z80::loadBIOS(const std::string& path)
+bool LR35902::loadBIOS(const std::string& path)
 {
 	std::ifstream file(path, std::ios::binary);
 	
@@ -144,7 +144,7 @@ bool Z80::loadBIOS(const std::string& path)
 	return true;
 }
 
-void Z80::execute()
+void LR35902::execute()
 {
 	assert((_f & 0x0F) == 0);
 	_clock_instr_cycles = 0;

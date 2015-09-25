@@ -9,9 +9,7 @@ void GPU::reset()
 }
 
 void GPU::update_mode()
-{
-	/// @todo Check if LCD is enabled (and reset LY if it isn't)
-	
+{	
 	switch(getLCDStatus() & LCDMode)
 	{
 		case Mode::HBlank:
@@ -131,7 +129,9 @@ void GPU::render_line()
 		word_t tile_l = 0;
 		word_t tile_h = 0;
 		word_t tile_data0 = 0, tile_data1 = 0;
+		word_t sprite_limit = 10;
 		// For each Sprite (4 bytes)
+		// @todo Order Sprite by priority (x-coordinate then table ordering)
 		for(word_t s = 0; s < 40; s++)
 		{
 			Y = mmu->read(0xFE00 + s * 4) - 16;
@@ -141,23 +141,44 @@ void GPU::render_line()
 			// Visible on this scanline ?
 			if(Y <= line && (Y + 8) > line)
 			{
-				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP0 : MMU::OBP1);
+				word_t upper_tile = Tile;
+				if(getLCDControl() & OBJSize) upper_tile &= 0xFE;
+				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
 				// Only Tile Set #0 ?
 				Y = (Opt & YFlip) ? 7 - (line - Y) : line - Y;
-				tile_l = mmu->read(0x8000 + 16 * Tile + Y * 2);
-				tile_h = mmu->read(0x8000 + 16 * Tile + Y * 2 + 1);
+				tile_l = mmu->read(0x8000 + 16 * upper_tile + Y * 2);
+				tile_h = mmu->read(0x8000 + 16 * upper_tile + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 				for(word_t x = 0; x < 8; x++)
 				{
 					word_t shift = (Opt & XFlip) ? (x % 4) * 2 : ((7 - x) % 4) * 2;
 					GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
-					color = Colors[(palette >> (color * 2)) & 0b11];
 					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
-						((Opt | Priority) || screen[to1D(x, line)] == 0))
+						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
 					{
-						screen[to1D(X + x, line)] = color;
+						screen[to1D(X + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
 					}
 				}
+				if(--sprite_limit == 0) break;
+			} else if((getLCDControl() & OBJSize) && (Y + 8) <= line && (Y + 16) > line) { // 8 * 16 Sprites
+				word_t lower_tile = Tile | 0x01;
+				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
+				// Only Tile Set #0 ?
+				Y = (Opt & YFlip) ? 7 - (line - Y) : line - Y;
+				tile_l = mmu->read(0x8000 + 16 * lower_tile + Y * 2);
+				tile_h = mmu->read(0x8000 + 16 * lower_tile + Y * 2 + 1);
+				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+				for(word_t x = 0; x < 8; x++)
+				{
+					word_t shift = (Opt & XFlip) ? (x % 4) * 2 : ((7 - x) % 4) * 2;
+					GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
+						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
+					{
+						screen[to1D(X + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
+					}
+				}
+				if(--sprite_limit == 0) break;
 			}
 		}
 	}

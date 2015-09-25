@@ -55,7 +55,7 @@ public:
 		BGWindowsTileDataSelect = 0x10,
 		WindowDisplay = 0x2,
 		WindowsTileMapDisplaySelect = 0x40,
-		LCDControlOperation = 0x80
+		LCDDisplayEnable = 0x80
 	};
 	
 	enum LCDStatus : word_t
@@ -92,6 +92,14 @@ public:
 	inline void step(size_t cycles)
 	{
 		assert(mmu != nullptr && screen != nullptr);
+		/// @todo Check if LCD is enabled (and reset LY if it isn't)
+		/*
+		if(!(getLCDStatus() & LCDDisplayEnable))
+		{
+			getLine() = 0;
+			return;
+		}
+		*/
 		_completed_frame = false;
 		_cycles += cycles;
 		update_mode();
@@ -99,7 +107,11 @@ public:
 	
 	inline bool completed_frame() const { return _completed_frame; } 
 	
-	inline addr_t to1D(word_t x, word_t y) { return y * ScreenWidth + x; }
+	inline addr_t to1D(word_t x, word_t y)
+	{
+		assert(y < ScreenHeight && x < ScreenWidth);
+		return y * ScreenWidth + x;
+	}
 	
 	inline word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
 	inline word_t& getScrollY() const { return mmu->rw(MMU::SCY); }

@@ -7,7 +7,7 @@
 #include "MMU.hpp"
 #include "Cartridge.hpp"
 #include "GPU.hpp"
-#include "Z80.hpp"
+#include "LR35902.hpp"
 
 template<typename T>
 struct HexaGen
@@ -22,8 +22,8 @@ std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 	return os << "0x" << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << (int) t.v;
 }
 
-using Hexa = HexaGen<Z80::addr_t>;
-using Hexa8 = HexaGen<Z80::word_t>;
+using Hexa = HexaGen<LR35902::addr_t>;
+using Hexa8 = HexaGen<LR35902::word_t>;
 
 int main(int argc, char* argv[])
 {
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 	if(argc > 1)
 		path = argv[1];
 	
-	Z80 cpu;
+	LR35902 cpu;
 	Cartridge cartridge(path);
 	MMU mmu;
 	GPU gpu;
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 						break;
 					case sf::Keyboard::Add:
 					{
-						Z80::addr_t addr;
+						LR35902::addr_t addr;
 						std::cout << "Adding breakpoint. Enter an address: " << std::endl;
 						std::cin >> std::hex >> addr;
 						cpu.addBreakpoint(addr);
@@ -255,19 +255,19 @@ int main(int argc, char* argv[])
 			dt << "PC: " << Hexa(cpu.getPC());
 			dt << " SP: " << Hexa(cpu.getSP());
 			dt << " | OP: " << Hexa8(cpu.getNextOpcode()) << " ";
-			if(Z80::instr_length[cpu.getNextOpcode()] > 1)
+			if(LR35902::instr_length[cpu.getNextOpcode()] > 1)
 				dt << Hexa8(cpu.getNextOperand0()) << " ";
-			if(Z80::instr_length[cpu.getNextOpcode()] > 2)
+			if(LR35902::instr_length[cpu.getNextOpcode()] > 2)
 				dt << Hexa8(cpu.getNextOperand1());
 			dt << std::endl;
 			dt << "AF: " << Hexa(cpu.getAF());
 			dt << " BC: " << Hexa(cpu.getBC());
 			dt << " DE: " << Hexa(cpu.getDE());
 			dt << " HL: " << Hexa(cpu.getHL());
-			if(cpu.check(Z80::Flag::Zero)) dt << " Z";
-			if(cpu.check(Z80::Flag::Negative)) dt << " N";
-			if(cpu.check(Z80::Flag::HalfCarry)) dt << " HC";
-			if(cpu.check(Z80::Flag::Carry)) dt << " C";
+			if(cpu.check(LR35902::Flag::Zero)) dt << " Z";
+			if(cpu.check(LR35902::Flag::Negative)) dt << " N";
+			if(cpu.check(LR35902::Flag::HalfCarry)) dt << " HC";
+			if(cpu.check(LR35902::Flag::Carry)) dt << " C";
 			dt << std::endl;
 			dt << "LY: " << Hexa8(gpu.getLine());
 			dt << " LCDC: " << Hexa8(gpu.getLCDControl());

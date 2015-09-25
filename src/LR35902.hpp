@@ -5,11 +5,9 @@
 #include "MMU.hpp"
 
 /**
- * Zilog 80 CPU
- *
- * Gameboy CPU (Sharp LR35902 ?)
+ * Gameboy CPU (Sharp LR35902)
 **/
-class Z80
+class LR35902
 {
 public:
 	using word_t = uint8_t;
@@ -27,8 +25,8 @@ public:
 
 	MMU*	mmu = nullptr;
 	
-	Z80();
-	~Z80() =default;
+	LR35902();
+	~LR35902() =default;
 	
 	/// Reset the CPU, zero-ing all registers. (Power-up state)
 	void reset();
@@ -56,7 +54,7 @@ public:
 	inline void addBreakpoint(addr_t addr) { _breakpoints.insert(addr); };
 	inline void clearBreakpoints() { _breakpoints.clear(); };
 	
-	void display_state()
+	inline void display_state()
 	{
 		/*
 		std::cout << "PC: 0x" << std::hex << (int) (_pc - 1) << ", Excuting opcode: 0x" << std::hex << (int) read(_pc - 1) 
@@ -244,5 +242,5 @@ private:
 		return (src & 0x80) ? -((~src + 1) & 0xFF) : src;
 	}
 	
-	#include "Z80Instr.inl"
+	#include "LR35902Instr.inl"
 };
