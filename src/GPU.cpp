@@ -118,7 +118,7 @@ void GPU::render_line()
 			
 			if(x == 8 || i == 0) // Loading Tile Data (Next Tile)
 			{
-				x = x % 8;
+				x = x & 7;
 				tile = mmu->read(mapoffs + lineoffs);
 				int idx = tile;
 				// If the second Tile Set is used, the tile index is signed.
@@ -130,7 +130,7 @@ void GPU::render_line()
 				lineoffs = (lineoffs + 1) & 31;
 			}
 			
-			word_t shift = ((7 - x) % 4) * 2;
+			word_t shift = ((7 - x) & 3) * 2;
 			GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
 			screen[to1D(i, line)] = getPaletteColor(color);
 			
@@ -174,7 +174,7 @@ void GPU::render_line()
 				for(word_t x = 0; x < 8; x++)
 				{
 					word_t color_x = (Opt & XFlip) ? x : (7 - x);
-					word_t shift = (color_x % 4) * 2;
+					word_t shift = (color_x & 3) * 2;
 					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
 						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
@@ -194,7 +194,7 @@ void GPU::render_line()
 				for(word_t x = 0; x < 8; x++)
 				{
 					word_t color_x = (Opt & XFlip) ? x : (7 - x);
-					word_t shift = (color_x % 4) * 2;
+					word_t shift = (color_x & 3) * 2;
 					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
 						(!(Opt & Priority) || screen[to1D(x, line)] == 0))

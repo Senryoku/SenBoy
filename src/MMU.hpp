@@ -112,12 +112,12 @@ public:
 	
 	inline word_t read(Register reg)
 	{
-		return read(static_cast<addr_t>(reg));
+		return _mem[reg];
 	}
 	
 	inline word_t& rw(Register reg)
 	{
-		return rw(static_cast<addr_t>(reg));
+		return _mem[reg];
 	}
 	
 	inline addr_t read16(addr_t addr)

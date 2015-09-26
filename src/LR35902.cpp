@@ -479,6 +479,7 @@ void LR35902::execute()
 			}
 		}
 	}
+	assert(_clock_instr_cycles > 0);
 	_clock_cycles += _clock_instr_cycles;
 	
 	update_timing();
