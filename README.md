@@ -1,7 +1,7 @@
 # SenBoy
 
 Work in progress GameBoy emulator. It currently runs Tic Tac Toe by Norman Nithman, yay! (Public Domain rom)
-It is buggy, ugly and absolutely not optimised, but I'm working on it.
+It is buggy, ugly and absolutely not optimised, but I'm working on it. I am not aiming for performance (at least not for now) and it's therefore very slow.
 
 ## TODO
 	* CPU Debugging

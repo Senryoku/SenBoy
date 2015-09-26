@@ -115,10 +115,7 @@ private:
 	inline void set_de(addr_t val) { _d = (val >> 8) & 0xFF; _e = val & 0xFF; } 
 	inline void set_bc(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
 	inline void set_af(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xF0; } // Low nibble of F is always 0!
-	
-	inline word_t& fetch_hl() { return mmu->rw(getHL()); }
-	inline word_t& fetch_reg(word_t n) { return (n > 6) ? fetch_hl() : _r[n]; }
-	
+		
 	inline word_t fetch_hl_val() { return mmu->read(getHL()); }
 	inline word_t fetch_val(word_t n) { return (n > 6) ? fetch_hl_val() : _r[n]; }
 	
@@ -145,10 +142,11 @@ private:
 	
 	inline void update_timing()
 	{
+		// Updates at 16384Hz, which is ClockRate / 256.
 		_divider_register += _clock_instr_cycles;
-		if(_divider_register > 256)
+		if(_divider_register > 256 * 256)
 		{
-			_divider_register -= 256;
+			_divider_register -= 256 * 256;
 			mmu->rw(MMU::DIV)++;
 		}
 			

@@ -153,7 +153,7 @@ void LR35902::execute()
 	// @todo I think this should check a Joypad interrupt instead.
 	if(_stop)
 	{
-		if(mmu->any_key())
+		if(mmu->read(MMU::IF) &= MMU::Transition)
 		{
 			_stop = false;
 		} else {
@@ -209,29 +209,58 @@ void LR35902::execute()
 		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
 		word_t reg = extract_src_reg(opcode);
 		
-		switch(x)
+		if(reg < 6)
 		{
-			case 0b00: // Shift & Rotate
+			word_t& r = _r[reg];
+			switch(x)
 			{
-				word_t& value = fetch_reg(reg);
-				
-				switch((opcode >> 3) & 0b111)
+				case 0b00: // Shift & Rotate
 				{
-					case 0: instr_rlc(value); break;
-					case 1: instr_rrc(value); break;
-					case 2: instr_rl(value); break;
-					case 3: instr_rr(value); break;
-					case 4: instr_sla(value); break;
-					case 5: instr_sra(value); break;
-					case 6: instr_swap(value); break;
-					case 7: instr_srl(value); break;
+					
+					switch((opcode >> 3) & 0b111)
+					{
+						case 0: r = instr_rlc(r); break;
+						case 1: r = instr_rrc(r); break;
+						case 2: r = instr_rl(r); break;
+						case 3: r = instr_rr(r); break;
+						case 4: r = instr_sla(r); break;
+						case 5: r = instr_sra(r); break;
+						case 6: r = instr_swap(r); break;
+						case 7: r = instr_srl(r); break;
+					}
 				}
 				break;
+				case 0b01: instr_bit(y, r); break;
+				case 0b10: r = instr_res(y, r); break;
+				case 0b11: r = instr_set(y, r); break;
+				default: instr_nop(); break;
 			}
-			case 0b01: instr_bit(y, fetch_reg(reg)); break;
-			case 0b10: instr_res(y, fetch_reg(reg)); break;
-			case 0b11: instr_set(y, fetch_reg(reg)); break;
-			default: instr_nop(); break;
+		} else { // (HL)
+			addr_t addr = getHL();
+			word_t value = mmu->read(getHL());
+			switch(x)
+			{
+				case 0b00: // Shift & Rotate
+				{
+					switch((opcode >> 3) & 0b111)
+					{
+						case 0: mmu->write(addr, instr_rlc(value)); break;
+						case 1: mmu->write(addr, instr_rrc(value)); break;
+						case 2: mmu->write(addr, instr_rl(value)); break;
+						case 3: mmu->write(addr, instr_rr(value)); break;
+						case 4: mmu->write(addr, instr_sla(value)); break;
+						case 5: mmu->write(addr, instr_sra(value)); break;
+						case 6: mmu->write(addr, instr_swap(value)); break;
+						case 7: mmu->write(addr, instr_srl(value)); break;
+					}
+				}
+				break;
+				case 0b01: instr_bit(y, value); break;
+				case 0b10: mmu->write(addr, instr_res(y, value)); break;
+				case 0b11: mmu->write(addr, instr_set(y, value)); break;
+				default: instr_nop(); break;
+			}
+						
 		}
 	} else {
 		word_t x = opcode >> 6; // bits 6 & 7

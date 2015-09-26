@@ -9,6 +9,11 @@ inline void instr_stop()
 	_stop = true;
 }
 
+inline void instr_halt()
+{
+	_halt = true;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Arithmetic
 
@@ -226,10 +231,11 @@ inline void instr_cp(word_t src)
  * H - Reset.
  * C - Reset.
 **/
-inline void instr_swap(word_t& v)
+inline word_t instr_swap(word_t v)
 {
 	v = ((v << 4) & 0xF0) | ((v >> 4) & 0x0F);
 	_f = (v == 0) ? Flag::Zero : 0;
+	return v;
 }
 
 inline void instr_push(addr_t addr)
@@ -327,7 +333,7 @@ inline void instr_rst(word_t addr)
 **/
 inline void instr_rlca()
 {
-	instr_rlc(_a);
+	_a = instr_rlc(_a);
 	set(Flag::Zero, false);
 }
 
@@ -337,7 +343,7 @@ inline void instr_rlca()
 **/
 inline void instr_rla()
 {
-	instr_rl(_a);
+	_a = instr_rl(_a);
 	set(Flag::Zero, false);
 }
 
@@ -347,7 +353,7 @@ inline void instr_rla()
 **/
 inline void instr_rrca()
 {
-	instr_rrc(_a);
+	_a = instr_rrc(_a);
 	set(Flag::Zero, false);
 }
 
@@ -357,7 +363,7 @@ inline void instr_rrca()
 */
 inline void instr_rra()
 {
-	instr_rr(_a);
+	_a = instr_rr(_a);
 	set(Flag::Zero, false);
 }
 
@@ -369,7 +375,7 @@ inline void instr_rra()
  * H - Reset.
  * C - Contains old bit 7 data.
 **/
-inline void instr_rl(word_t& v)
+inline word_t instr_rl(word_t v)
 {
 	word_t t = v << 1;
 	if(check(Flag::Carry)) t = t | 1;
@@ -377,6 +383,7 @@ inline void instr_rl(word_t& v)
 	set(Flag::Carry, v & 0x80);
 	v = t;
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 /**
@@ -387,7 +394,7 @@ inline void instr_rl(word_t& v)
  * H - Reset.
  * C - Contains old bit 7 data.
 **/
-inline void instr_rlc(word_t& v)
+inline word_t instr_rlc(word_t v)
 {
 	_f = 0;
 	set(Flag::Carry, v & 0x80);
@@ -395,6 +402,7 @@ inline void instr_rlc(word_t& v)
 	if(v & 0x80) t = t | 1;
 	v = t;
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 /**
@@ -405,7 +413,7 @@ inline void instr_rlc(word_t& v)
  * H - Reset.
  * C - Contains old bit 0 data.
 **/
-inline void instr_rrc(word_t& v)
+inline word_t instr_rrc(word_t v)
 {
 	_f = 0;
 	set(Flag::Carry, v & 1);
@@ -413,6 +421,7 @@ inline void instr_rrc(word_t& v)
 	if(v & 1) t = t | 0x80;
 	v = t;
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 /**
@@ -423,7 +432,7 @@ inline void instr_rrc(word_t& v)
  * H - Reset.
  * C - Contains old bit 0 data.
 */
-inline void instr_rr(word_t& v)
+inline word_t instr_rr(word_t v)
 {
 	word_t t = v >> 1;
 	if(check(Flag::Carry)) t = t | 0x80;
@@ -431,6 +440,7 @@ inline void instr_rr(word_t& v)
 	set(Flag::Carry, v & 1);
 	v = t;
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -440,31 +450,34 @@ inline void instr_rr(word_t& v)
 // Shifts
 
 /// Shift n left into Carry. LSB of n set to 0.
-inline void instr_sla(word_t& v)
+inline word_t instr_sla(word_t v)
 {
 	_f = 0;
 	set(Flag::Carry, v & 0x80);
 	v = v << 1;
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 /// Shift n right into Carry. MSB doesn't change.
-inline void instr_sra(word_t& v)
+inline word_t instr_sra(word_t v)
 {
 	_f = 0;
 	word_t t = v & 0x80;
 	set(Flag::Carry, v & 1);
 	v = (v >> 1) | t;
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 /// Shift n right into Carry. MSB set to 0.
-inline void instr_srl(word_t& v)
+inline word_t instr_srl(word_t v)
 {
 	_f = 0;
 	set(Flag::Carry, v & 1);
 	v = (v >> 1);
 	set(Flag::Zero, v == 0);
+	return v;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -542,22 +555,20 @@ inline void instr_bit(word_t bit, word_t r)
 }
 
 /// Set bit b in register r (No flags affected)
-inline void instr_set(word_t bit, word_t& r)
+inline word_t instr_set(word_t bit, word_t r)
 {
 	assert(bit < 8);
 	r |= (1 << bit);
+	return r;
 }
 
 /// Reset bit b in register r (No flags affected)
-inline void instr_res(word_t bit, word_t& r)
+inline word_t instr_res(word_t bit, word_t r)
 {
 	assert(bit < 8);
 	r &= ~(1 << bit);
+	return r;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-inline void instr_halt()
-{
-	_halt = true;
-}

@@ -179,11 +179,6 @@ public:
 		return (read(MMU::P1) & (type | key)) == 0;
 	}
 	
-	inline bool any_key() const
-	{
-		return (read(MMU::P1) & 0x3F) != 0x3F;
-	}
-	
 	inline void update_joypad(word_t value)
 	{
 		//assert(value == Direction || value == Button);

@@ -162,7 +162,7 @@ void GPU::render_line()
 				}
 				if(--sprite_limit == 0) break;
 			} else if((getLCDControl() & OBJSize) && (Y + 8) <= line && (Y + 16) > line) { // 8 * 16 Sprites
-				word_t lower_tile = Tile | 0x01;
+				word_t lower_tile = Tile;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
 				// Only Tile Set #0 ?
 				Y = (Opt & YFlip) ? 7 - (line - Y) : line - Y;
