@@ -26,7 +26,7 @@ Test					| Status
 08-misc instrs			| PASS
 09-op r,r				| FAIL (01)
 10-bit ops				| PASS
-11-op a,(hl)			| FAIL (01)
+11-op a,(hl)			| PASS
 
 ## Dependencies
 	* SFML (http://www.sfml-dev.org/) for graphical output and input handling.

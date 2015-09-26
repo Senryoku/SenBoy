@@ -288,7 +288,7 @@ int main(int argc, char* argv[])
 			dt << " STAT: " << Hexa8(gpu.getLCDStatus());
 			dt << " P1: " << Hexa8(mmu.read(MMU::P1));
 			dt << std::endl;
-			dt << std::dec << "GBTime:" << gameboy_time << " RealTime:" << clock.getElapsedTime().asSeconds();
+			dt << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << 100 * gameboy_time / clock.getElapsedTime().asSeconds() << "% GBTime: " << gameboy_time << " RealTime: " << clock.getElapsedTime().asSeconds();
 			debug_text.setString(dt.str());
 		}
 		

@@ -439,9 +439,9 @@ inline void instr_rr(word_t& v)
 inline void instr_sla(word_t& v)
 {
 	_f = 0;
-	set(Flag::Carry, _a & 0x80);
-	_a = _a << 1;
-	set(Flag::Zero, _a == 0);
+	set(Flag::Carry, v & 0x80);
+	v = v << 1;
+	set(Flag::Zero, v == 0);
 }
 
 /// Shift n right into Carry. MSB doesn't change.
