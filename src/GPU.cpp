@@ -151,8 +151,9 @@ void GPU::render_line()
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 				for(word_t x = 0; x < 8; x++)
 				{
-					word_t shift = (Opt & XFlip) ? (x % 4) * 2 : ((7 - x) % 4) * 2;
-					GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+					word_t color_x = (Opt & XFlip) ? x : (7 - x);
+					word_t shift = (color_x % 4) * 2;
+					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
 						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
 					{
@@ -170,8 +171,9 @@ void GPU::render_line()
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 				for(word_t x = 0; x < 8; x++)
 				{
-					word_t shift = (Opt & XFlip) ? (x % 4) * 2 : ((7 - x) % 4) * 2;
-					GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+					word_t color_x = (Opt & XFlip) ? x : (7 - x);
+					word_t shift = (color_x % 4) * 2;
+					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
 						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
 					{
