@@ -33,7 +33,7 @@ if(SFML_FOUND)
   target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES})
 endif()
 
-target_link_libraries(${EXECUTABLE_NAME} opengl32)
+target_link_libraries(${EXECUTABLE_NAME})
   
 # Install target
 install(TARGETS ${EXECUTABLE_NAME} DESTINATION bin)
