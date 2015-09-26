@@ -97,16 +97,19 @@ int main(int argc, char* argv[])
 	log_text.setPosition(5, 450);
 	log_text.setString("Log");
 	
-	bool first_loop = true;
 	bool debug = true;
-	bool draw_tilemap = true;
-	bool draw_debug_text = true;
 	bool step = true;
 	bool real_speed = true;
 	bool frame_by_frame = true;
 	
+	size_t frame_skip = 2;
+	
 	sf::Clock clock;
+	double frame_time = 0;
+	size_t speed_update = 60;
+	double speed = 100;
 	uint64_t elapsed_cycles = 0;
+	uint64_t elapsed_cycles_frame = 0;
 	while (window.isOpen())
     {
         sf::Event event;
@@ -162,18 +165,6 @@ int main(int argc, char* argv[])
 						log_text.setString(real_speed ? "Running at real speed" : "Running as fast as possible");
 						break;
 					}
-					case sf::Keyboard::T:
-					{
-						draw_tilemap = !draw_tilemap;
-						log_text.setString(draw_tilemap ? "Debug Text Enabled" : "Debug Text Disabled");
-						break;
-					}
-					case sf::Keyboard::Y:
-					{
-						draw_debug_text = !draw_debug_text;
-						log_text.setString(draw_debug_text ? "Debug Tilemap Enabled" : "Debug Tilemap Disabled");
-						break;
-					}
 					case sf::Keyboard::L:
 					{
 						frame_by_frame = true;
@@ -206,12 +197,22 @@ int main(int argc, char* argv[])
 			}
         }
 		
+		if(--speed_update == 0)
+		{
+			speed_update = 600;
+			double t = clock.getElapsedTime().asSeconds();
+			speed = 100.0 * (double(elapsed_cycles_frame) / cpu.ClockRate) / (t - frame_time);
+			frame_time = t;
+			elapsed_cycles_frame = 0;
+		}
+		
 		double gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
 		double diff = gameboy_time - clock.getElapsedTime().asSeconds();
 		if(real_speed && !debug && diff > 0)
 			sf::sleep(sf::seconds(diff));
 		if(!debug || step)
 		{
+			for(size_t i = 0; i < frame_skip + 1; ++i)
 			do
 			{
 				cpu.execute();
@@ -220,6 +221,7 @@ int main(int argc, char* argv[])
 				
 				gpu.step(cpu.getInstrCycles());
 				elapsed_cycles += cpu.getInstrCycles();
+				elapsed_cycles_frame += cpu.getInstrCycles();
 			
 				if(cpu.reached_breakpoint())
 				{
@@ -239,7 +241,7 @@ int main(int argc, char* argv[])
 		}
 			
 		// Debug display Tilemap
-		if(draw_tilemap || first_loop)
+		if(debug)
 		{
 			GPU::word_t tile_l;
 			GPU::word_t tile_h;
@@ -263,7 +265,7 @@ int main(int argc, char* argv[])
 			gameboy_tilemap.update(reinterpret_cast<uint8_t*>(tile_map));
 		}
 		
-		if(draw_debug_text || first_loop)
+		if(debug)
 		{
 			std::stringstream dt;
 			dt << "PC: " << Hexa(cpu.getPC());
@@ -290,6 +292,10 @@ int main(int argc, char* argv[])
 			dt << std::endl;
 			dt << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << 100 * gameboy_time / clock.getElapsedTime().asSeconds() << "% GBTime: " << gameboy_time << " RealTime: " << clock.getElapsedTime().asSeconds();
 			debug_text.setString(dt.str());
+		} else {
+			std::stringstream dt;
+			dt << "Speed " << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << speed << "%";
+			debug_text.setString(dt.str());
 		}
 		
         window.clear(sf::Color::Black);
@@ -298,8 +304,6 @@ int main(int argc, char* argv[])
 		window.draw(debug_text);
 		window.draw(log_text);
         window.display();
-		
-		first_loop = false;
     }
 	
 	delete[] tile_map;

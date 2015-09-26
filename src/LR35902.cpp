@@ -150,17 +150,18 @@ void LR35902::execute()
 	_clock_instr_cycles = 0;
 	
 	// Handles STOP instruction (Halts until a key is pressed)
-	// @todo I think this should check a Joypad interrupt instead.
+	// @todo Really buggy at the moment - Disabled
+	/*
 	if(_stop)
 	{
-		if(mmu->read(MMU::IF) &= MMU::Transition)
+		if(mmu->read(MMU::IF) & MMU::Transition)
 		{
 			_stop = false;
 		} else {
 			return;
 		}
 	}
-	
+	*/
 	/* Handles HALT instruction (Halts until a interrupt is fired).
 	 *
 	 * "If interrupts are disabled (DI) then
@@ -209,7 +210,7 @@ void LR35902::execute()
 		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
 		word_t reg = extract_src_reg(opcode);
 		
-		if(reg < 6)
+		if(reg < 7)
 		{
 			word_t& r = _r[reg];
 			switch(x)

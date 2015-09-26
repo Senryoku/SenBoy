@@ -76,18 +76,25 @@ void GPU::render_line()
 {
 	word_t line = getLine();
 	assert(line < ScreenHeight);
-	// Render Background
-	if(getLCDControl() & BGWindowDisplay)
+	// Render Background Or Window
+	if(getLCDControl() & BGWindowDisplay || getLCDControl() & WindowDisplay)
 	{
 		// Selects the Tile Map & Tile Data Set
 		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
 		addr_t base_tile_data = (getLCDControl() & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
 		
-		mapoffs += 0x20 * (((line + getScrollY()) & 0xFF) >> 3);
-		word_t lineoffs = (getScrollX() >> 3);
+		word_t scroll_x = getScrollX();
+		word_t scroll_y = getScrollY();
+		word_t wx = mmu->read(MMU::WX) - 7;
+		word_t wy = mmu->read(MMU::WY);
+		
+		bool draw_window = getLCDControl() & WindowDisplay && line >= wy;
+		
+		mapoffs += 0x20 * (((line + scroll_y) & 0xFF) >> 3);
+		word_t lineoffs = (scroll_x >> 3);
 
-		word_t x = getScrollX() & 0b111;
-		word_t y = (getScrollY() + line) & 0b111;
+		word_t x = scroll_x & 0b111;
+		word_t y = (scroll_y + line) & 0b111;
 		
 		// Tile Index
 		word_t tile;
@@ -97,6 +104,18 @@ void GPU::render_line()
 		
 		for(word_t i = 0; i < ScreenWidth; ++i)
 		{
+			// Switch to window rendering
+			if(draw_window && i >= wx)
+			{
+				mapoffs = (getLCDControl() & WindowsTileMapDisplaySelect) ? 0x9C00 : 0x9800;
+				mapoffs += 0x20 * (((line + wy) & 0xFF) >> 3);
+				lineoffs = (wx >> 3);
+
+				x = wx & 0b111;
+				y = (wy + line) & 0b111;
+				draw_window = false; // No need to do it again.
+			}
+			
 			if(x == 8 || i == 0) // Loading Tile Data (Next Tile)
 			{
 				x = x % 8;
@@ -138,14 +157,17 @@ void GPU::render_line()
 			X = mmu->read(0xFE00 + s * 4 + 1) - 8;
 			Tile = mmu->read(0xFE00 + s * 4 + 2);
 			Opt = mmu->read(0xFE00 + s * 4 + 3);
+			// 8*16 Sprites
+			word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
+			
 			// Visible on this scanline ?
 			if(Y <= line && (Y + 8) > line)
 			{
 				word_t upper_tile = Tile;
-				if(getLCDControl() & OBJSize) upper_tile &= 0xFE;
+				if(getLCDControl() & OBJSize && !(Opt & YFlip)) upper_tile &= 0xFE;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
 				// Only Tile Set #0 ?
-				Y = (Opt & YFlip) ? 7 - (line - Y) : line - Y;
+				Y = (Opt & YFlip) ? (size - 1) - (line - Y) : line - Y;
 				tile_l = mmu->read(0x8000 + 16 * upper_tile + Y * 2);
 				tile_h = mmu->read(0x8000 + 16 * upper_tile + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
@@ -162,10 +184,10 @@ void GPU::render_line()
 				}
 				if(--sprite_limit == 0) break;
 			} else if((getLCDControl() & OBJSize) && (Y + 8) <= line && (Y + 16) > line) { // 8 * 16 Sprites
-				word_t lower_tile = Tile;
+				word_t lower_tile = (Opt & YFlip) ? Tile & 0xFE : Tile;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
 				// Only Tile Set #0 ?
-				Y = (Opt & YFlip) ? 7 - (line - Y) : line - Y;
+				Y = (Opt & YFlip) ? (size - 1) - (line - Y) : line - Y;
 				tile_l = mmu->read(0x8000 + 16 * lower_tile + Y * 2);
 				tile_h = mmu->read(0x8000 + 16 * lower_tile + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);

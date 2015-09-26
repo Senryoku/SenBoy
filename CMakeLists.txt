@@ -11,6 +11,7 @@ include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++11 -Wall" )
+SET( CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Ofast -march=native" )
 
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
@@ -32,6 +33,8 @@ if(SFML_FOUND)
   target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES})
 endif()
 
+target_link_libraries(${EXECUTABLE_NAME} opengl32)
+  
 # Install target
 install(TARGETS ${EXECUTABLE_NAME} DESTINATION bin)
 

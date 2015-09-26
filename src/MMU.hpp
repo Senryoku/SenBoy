@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <functional>
 
@@ -103,32 +104,15 @@ public:
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
 			return cartridge->read(addr);
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
-			return _mem[addr - (0xE000 - 0xC000)];
-		} else { // Internal RAM (or unused)
-			return _mem[addr];
-		}
-	}
-	
-	inline word_t& rw(addr_t addr)
-	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
-			return _mem[addr];
-		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
-			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
-			return _mem[0x0100]; // Dummy value.
-		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
-			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ExternalRAM! Use write instead." << std::endl;
-			return reinterpret_cast<word_t&>(cartridge->rw(addr));
-		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 			return _mem[addr - 0x2000];
 		} else { // Internal RAM (or unused)
 			return _mem[addr];
 		}
 	}
 	
-	inline word_t& read(Register reg)
+	inline word_t read(Register reg)
 	{
-		return rw(static_cast<addr_t>(reg));
+		return read(static_cast<addr_t>(reg));
 	}
 	
 	inline word_t& rw(Register reg)
@@ -156,7 +140,7 @@ public:
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
 		else
-			rw(addr) = value;
+			_mem[addr] = value;
 	}
 	
 	inline void	write(addr_t addr, addr_t value)
@@ -207,9 +191,29 @@ private:
 		// Doing it here for now.
 		// It couldn't find the exact timing right now.
 		addr_t start = val * 0x100;
+		std::memcpy(_mem + 0xFE00, _mem + start, 40 * 4);
+		/*
 		for(addr_t i = 0; i < 40 * 4; ++i)
 		{
 			write(0xFE00 + i, read(start + i));
-		}			
+		}
+		*/
+	}
+	
+	inline word_t& rw(addr_t addr)
+	{
+		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
+			return _mem[addr];
+		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
+			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
+			return _mem[0x0100]; // Dummy value.
+		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
+			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ExternalRAM! Use write instead." << std::endl;
+			return reinterpret_cast<word_t&>(cartridge->rw(addr));
+		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
+			return _mem[addr - 0x2000];
+		} else { // Internal RAM (or unused)
+			return _mem[addr];
+		}
 	}
 };
