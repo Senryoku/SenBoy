@@ -1,14 +1,15 @@
 # SenBoy
 
-Work in progress GameBoy emulator. It currently runs Tic Tac Toe by Norman Nithman, yay! (Public Domain rom)
+Work in progress GameBoy emulator. It currently runs some games (Kirby, Tetris, some public domain roms...), but crash on most! (And only one cartridge mapper is implemented at this moment).
 It is buggy, ugly and absolutely not optimised, but I'm working on it. I am not aiming for performance (at least not for now) and it's therefore very slow.
 
+![alt tag](img/SenBoy_Kirby.png)
+
 ## TODO
-	* CPU Debugging
-	* Proper timing (instruction level), mainly add 'cost' of conditional jumps.
-	* Sprites Debugging
-	* (Sound)
-	* (Constant coding style...)
+* CPU Debugging
+* Proper timing (instruction level)
+* (Sound)
+* (Constant coding style...)
 
 ## Tests
 
@@ -29,4 +30,4 @@ Test					| Status
 11-op a,(hl)			| PASS
 
 ## Dependencies
-	* SFML (http://www.sfml-dev.org/) for graphical output and input handling.
+* SFML (http://www.sfml-dev.org/) for graphical output and input handling.
