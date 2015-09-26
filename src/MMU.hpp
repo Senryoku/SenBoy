@@ -209,7 +209,7 @@ private:
 			return _mem[0x0100]; // Dummy value.
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ExternalRAM! Use write instead." << std::endl;
-			return reinterpret_cast<word_t&>(cartridge->rw(addr));
+			return _mem[0x0100];
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 			return _mem[addr - 0x2000];
 		} else { // Internal RAM (or unused)

@@ -76,19 +76,21 @@ void GPU::render_line()
 {
 	word_t line = getLine();
 	assert(line < ScreenHeight);
+	word_t LCDC = getLCDControl();
 	// Render Background Or Window
-	if(getLCDControl() & BGWindowDisplay || getLCDControl() & WindowDisplay)
+	if((LCDC & BGWindowDisplay) || (LCDC & WindowDisplay))
 	{
 		// Selects the Tile Map & Tile Data Set
-		addr_t mapoffs = (getLCDControl() & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
-		addr_t base_tile_data = (getLCDControl() & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
+		addr_t mapoffs = (LCDC & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
+		addr_t base_tile_data = (LCDC & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
 		
 		word_t scroll_x = getScrollX();
 		word_t scroll_y = getScrollY();
-		word_t wx = mmu->read(MMU::WX) - 7;
+		word_t wx = mmu->read(MMU::WX);
 		word_t wy = mmu->read(MMU::WY);
 		
-		bool draw_window = getLCDControl() & WindowDisplay && line >= wy;
+		bool draw_window = (LCDC & WindowDisplay) && wx > 6 && line >= wy;
+		wx -= 7;
 		
 		mapoffs += 0x20 * (((line + scroll_y) & 0xFF) >> 3);
 		word_t lineoffs = (scroll_x >> 3);
@@ -107,7 +109,7 @@ void GPU::render_line()
 			// Switch to window rendering
 			if(draw_window && i >= wx)
 			{
-				mapoffs = (getLCDControl() & WindowsTileMapDisplaySelect) ? 0x9C00 : 0x9800;
+				mapoffs = (LCDC & WindowsTileMapDisplaySelect) ? 0x9C00 : 0x9800;
 				mapoffs += 0x20 * (((line + wy) & 0xFF) >> 3);
 				lineoffs = (wx >> 3);
 
@@ -122,7 +124,7 @@ void GPU::render_line()
 				tile = mmu->read(mapoffs + lineoffs);
 				int idx = tile;
 				// If the second Tile Set is used, the tile index is signed.
-				if(!(getLCDControl() & BGWindowsTileDataSelect) && (tile & 0x80))
+				if(!(LCDC & BGWindowsTileDataSelect) && (tile & 0x80))
 					idx = -((~tile + 1) & 0xFF);
 				tile_l = mmu->read(base_tile_data + 16 * idx + y * 2);
 				tile_h = mmu->read(base_tile_data + 16 * idx + y * 2 + 1);

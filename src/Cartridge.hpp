@@ -41,16 +41,17 @@ public:
 		_data.assign(std::istreambuf_iterator<byte_t>(file), 
 					std::istreambuf_iterator<byte_t>());
 		
-		if(getRAMSize() > 0)
-			_ram = new byte_t[getRAMSize()];
+		_ram_size = getRAMSize();
+		if(_ram_size > 0)
+			_ram = new byte_t[_ram_size];
 		
 		std::cout << "Loaded '" << path << "' : " << getName() << std::endl;
 		std::cout << " (Size: " << std::dec << _data.size() << 
-					", RAM Size: " << getRAMSize() << 
+					", RAM Size: " << _ram_size << 
 					", Type: " << std::hex << getType() << 
 					")" << std::endl;
 		
-		if(getType() > 0x01)
+		if(getType() > 0x03)
 		{
 			std::cerr << "Cartridge format not supported! Exiting..." << std::endl;
 			exit(1);
@@ -61,6 +62,7 @@ public:
 	
 	byte_t read(addr_t addr) const
 	{
+		assert(addr >= 0x4000 || _data.size() > addr);
 		if(addr < 0x4000) // ROM Bank 0
 			return _data[addr];
 		else if(addr < 0x8000) // Switchable ROM Bank
@@ -72,28 +74,12 @@ public:
 		return _data[0x0000]; // Dummy
 	}
 	
-	byte_t& rw(addr_t addr)
-	{
-		//if(!_enable_ram)
-		//	return _data[0xA000];
-		
-		if(addr >= 0xA000 && addr < 0xC000) // Switchable RAM Bank
-		{
-			assert(_ram != nullptr);
-			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < getRAMSize());
-			return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
-		}
-		
-		std::cerr << "Error: Wrong address queried to the Cartridge: 0x" << std::hex << addr << std::endl;
-		return _data[0x0000]; // Dummy
-	}
-	
 	void write_ram(addr_t addr, byte_t value)
 	{
 		if(_enable_ram)
 		{
 			assert(_ram != nullptr);
-			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < getRAMSize());
+			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < _ram_size);
 			_ram[_ram_bank * 0x2000 + (addr & 0x1FFF)] = value;
 		}
 	}
@@ -122,6 +108,8 @@ public:
 				if(_mode)
 				{
 					_ram_bank = value & 3; // Select RAM bank
+					if(_ram_bank * 0x2000 > _ram_size)
+						_ram_bank = _ram_size / 0x2000 - 1;
 				} else {
 					_rom_bank = (_rom_bank & 0x1F) + ((value & 3) << 5); // Select ROM bank (3 high bits)
 				}
@@ -146,6 +134,7 @@ public:
 	
 	inline std::string getName() { return std::string(_data.data() + 0x0134, 15); }
 	inline int getType() { return *(_data.data() + 0x0147); }
+	
 	inline size_t getROMSize()
 	{ 
 		size_t s = *(_data.data() + 0x0148);
@@ -153,6 +142,7 @@ public:
 		// @todo Handle more cases
 		return 32 * 1024;
 	}
+	
 	inline size_t getRAMSize()
 	{ 
 		switch(*(_data.data() + 0x0149))
@@ -172,7 +162,8 @@ private:
 	byte_t*				_ram = nullptr;
 	
 	size_t		_rom_bank = 1;
-	size_t		_ram_bank = 1;
+	size_t		_ram_bank = 0;
 	size_t		_enable_ram = false;
+	size_t		_ram_size = 0;
 	byte_t		_mode = 0;
 };
