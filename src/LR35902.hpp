@@ -37,8 +37,8 @@ public:
 	/// Loads a BIOS and sets the PC to its first instruction
 	bool loadBIOS(const std::string& path);
 	
-	inline unsigned int getClockCycles() const { return _clock_cycles; }
-	inline unsigned int getInstrCycles() const { return _clock_instr_cycles; }
+	inline uint64_t getClockCycles() const { return _clock_cycles; }
+	inline uint64_t getInstrCycles() const { return _clock_instr_cycles; }
 	inline addr_t getPC() const { return _pc; }
 	inline addr_t getSP() const { return _sp; }
 	inline addr_t getAF() const { return (static_cast<addr_t>(_a) << 8) + _f; }
@@ -50,9 +50,9 @@ public:
 	inline int getNextOperand0() const { return mmu->read(_pc + 1); };
 	inline int getNextOperand1() const { return mmu->read(_pc + 2); };
 	
-	inline bool reachedBreakpoint() const { return _breakpoint;  };
-	inline void addBreakpoint(addr_t addr) { _breakpoints.insert(addr); };
-	inline void clearBreakpoints() { _breakpoints.clear(); };
+	inline bool reached_breakpoint() const { return _breakpoint;  };
+	inline void add_breakpoint(addr_t addr) { _breakpoints.insert(addr); };
+	inline void clear_breakpoints() { _breakpoints.clear(); };
 	
 	inline void display_state()
 	{

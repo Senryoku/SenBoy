@@ -38,14 +38,14 @@ int main(int argc, char* argv[])
 	
 	mmu.cartridge = &cartridge;
 
-	mmu.callback_joy_up = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::Y) < -50; };
-	mmu.callback_joy_down = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::Y) > 50; };
-	mmu.callback_joy_right = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50; };
-	mmu.callback_joy_left = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::X) < -50; };
-	mmu.callback_joy_a = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 0); };
-	mmu.callback_joy_b = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 1); };
-	mmu.callback_joy_select = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 6); };
-	mmu.callback_joy_start = [&] () -> bool { return sf::Joystick::isButtonPressed(0, 7); };
+	mmu.callback_joy_up = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return false; };
+	mmu.callback_joy_down = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return false; };
+	mmu.callback_joy_right = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return false; };
+	mmu.callback_joy_left = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return false; };
+	mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return false; };
+	mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return false; };
+	mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return false; };
+	mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return false; };
 	
 	cpu.mmu = &mmu;
 	gpu.mmu = &mmu;
@@ -102,7 +102,11 @@ int main(int argc, char* argv[])
 	bool draw_tilemap = true;
 	bool draw_debug_text = true;
 	bool step = true;
+	bool real_speed = true;
+	bool frame_by_frame = true;
 	
+	sf::Clock clock;
+	uint64_t elapsed_cycles = 0;
 	while (window.isOpen())
     {
         sf::Event event;
@@ -119,6 +123,8 @@ int main(int argc, char* argv[])
 					case sf::Keyboard::Return: 
 					{
 						debug = !debug;
+						elapsed_cycles = 0;
+						clock.restart();
 						log_text.setString(debug ? "Debugging" : "Running");
 						break;
 					}
@@ -127,6 +133,8 @@ int main(int argc, char* argv[])
 						gpu.reset(); 
 						cpu.reset();
 						cpu.reset_cart();
+						elapsed_cycles = 0;
+						clock.restart();
 						debug_text.setString("Reset");
 						break;
 					case sf::Keyboard::Add:
@@ -134,7 +142,7 @@ int main(int argc, char* argv[])
 						LR35902::addr_t addr;
 						std::cout << "Adding breakpoint. Enter an address: " << std::endl;
 						std::cin >> std::hex >> addr;
-						cpu.addBreakpoint(addr);
+						cpu.add_breakpoint(addr);
 						std::stringstream ss;
 						ss << "Added a breakpoint at " << Hexa(addr) << ".";
 						log_text.setString(ss.str());
@@ -142,8 +150,16 @@ int main(int argc, char* argv[])
 					}
 					case sf::Keyboard::Subtract:
 					{
-						cpu.clearBreakpoints();
+						cpu.clear_breakpoints();
 						log_text.setString("Cleared breakpoints.");
+						break;
+					}
+					case sf::Keyboard::M:
+					{
+						real_speed = !real_speed;
+						elapsed_cycles = 0;
+						clock.restart();
+						log_text.setString(real_speed ? "Running at real speed" : "Running as fast as possible");
 						break;
 					}
 					case sf::Keyboard::T:
@@ -158,9 +174,17 @@ int main(int argc, char* argv[])
 						log_text.setString(draw_debug_text ? "Debug Tilemap Enabled" : "Debug Tilemap Disabled");
 						break;
 					}
+					case sf::Keyboard::L:
+					{
+						frame_by_frame = true;
+						step = true;
+						debug = true;
+						log_text.setString("Advancing one frame");
+						break;
+					}
 					default: break;
 				}
-			} else if (event.type == sf::Event::JoystickButtonPressed) {
+			} else if (event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
 				switch(event.joystickButton.button)
 				{
 					case 0: mmu.key_down(MMU::Button, MMU::RightA); break;
@@ -170,7 +194,7 @@ int main(int argc, char* argv[])
 					case 7: mmu.key_down(MMU::Button, MMU::DownStart); break;
 					default: break;
 				}
-			} else if (event.type == sf::Event::JoystickMoved) {
+			} else if (event.type == sf::Event::JoystickMoved) { // Joypad Interrupt
 				if (event.joystickMove.axis == sf::Joystick::X)
 				{
 					if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::RightA);
@@ -182,6 +206,10 @@ int main(int argc, char* argv[])
 			}
         }
 		
+		double gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
+		double diff = gameboy_time - clock.getElapsedTime().asSeconds();
+		if(real_speed && !debug && diff > 0)
+			sf::sleep(sf::seconds(diff));
 		if(!debug || step)
 		{
 			do
@@ -191,8 +219,9 @@ int main(int argc, char* argv[])
 					break;
 				
 				gpu.step(cpu.getInstrCycles());
+				elapsed_cycles += cpu.getInstrCycles();
 			
-				if(cpu.reachedBreakpoint())
+				if(cpu.reached_breakpoint())
 				{
 					std::stringstream ss;
 					ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
@@ -201,10 +230,11 @@ int main(int argc, char* argv[])
 					step = false;
 					break;
 				}
-			} while(!debug && !gpu.completed_frame());
+			} while((!debug || frame_by_frame) && !gpu.completed_frame());
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			
+			frame_by_frame = false;
 			step = false;
 		}
 			
@@ -257,6 +287,8 @@ int main(int argc, char* argv[])
 			dt << " LCDC: " << Hexa8(gpu.getLCDControl());
 			dt << " STAT: " << Hexa8(gpu.getLCDStatus());
 			dt << " P1: " << Hexa8(mmu.read(MMU::P1));
+			dt << std::endl;
+			dt << std::dec << "GBTime:" << gameboy_time << " RealTime:" << clock.getElapsedTime().asSeconds();
 			debug_text.setString(dt.str());
 		}
 		
