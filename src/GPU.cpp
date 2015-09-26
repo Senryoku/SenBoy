@@ -157,39 +157,19 @@ void GPU::render_line()
 			X = mmu->read(0xFE00 + s * 4 + 1) - 8;
 			Tile = mmu->read(0xFE00 + s * 4 + 2);
 			Opt = mmu->read(0xFE00 + s * 4 + 3);
-			// 8*16 Sprites
+			// 8*16 Sprites ?
 			word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
 			
 			// Visible on this scanline ?
-			if(Y <= line && (Y + 8) > line)
+			if(Y <= line && (Y + size) > line)
 			{
-				word_t upper_tile = Tile;
-				if(getLCDControl() & OBJSize && !(Opt & YFlip)) upper_tile &= 0xFE;
+				if(Y - line < 8 && getLCDControl() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
+				if(Y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
 				// Only Tile Set #0 ?
 				Y = (Opt & YFlip) ? (size - 1) - (line - Y) : line - Y;
-				tile_l = mmu->read(0x8000 + 16 * upper_tile + Y * 2);
-				tile_h = mmu->read(0x8000 + 16 * upper_tile + Y * 2 + 1);
-				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-				for(word_t x = 0; x < 8; x++)
-				{
-					word_t color_x = (Opt & XFlip) ? x : (7 - x);
-					word_t shift = (color_x & 3) * 2;
-					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
-					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
-						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
-					{
-						screen[to1D(X + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
-					}
-				}
-				if(--sprite_limit == 0) break;
-			} else if((getLCDControl() & OBJSize) && (Y + 8) <= line && (Y + 16) > line) { // 8 * 16 Sprites
-				word_t lower_tile = (Opt & YFlip) ? Tile & 0xFE : Tile;
-				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
-				// Only Tile Set #0 ?
-				Y = (Opt & YFlip) ? (size - 1) - (line - Y) : line - Y;
-				tile_l = mmu->read(0x8000 + 16 * lower_tile + Y * 2);
-				tile_h = mmu->read(0x8000 + 16 * lower_tile + Y * 2 + 1);
+				tile_l = mmu->read(0x8000 + 16 * Tile + Y * 2);
+				tile_h = mmu->read(0x8000 + 16 * Tile + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 				for(word_t x = 0; x < 8; x++)
 				{
