@@ -532,19 +532,19 @@ inline void instr_di()
 inline void instr_bit(word_t bit, word_t r)
 {
 	assert(bit < 8);
-	set(Flag::Zero, r & (1 << bit));
+	set(Flag::Zero, !(r & (1 << bit)));
 	set(Flag::Negative, false);
 	set(Flag::HalfCarry);
 }
 
-/// Set bit b in register r.
+/// Set bit b in register r (No flags affected)
 inline void instr_set(word_t bit, word_t& r)
 {
 	assert(bit < 8);
 	r |= (1 << bit);
 }
 
-/// Reset bit b in register r.
+/// Reset bit b in register r (No flags affected)
 inline void instr_res(word_t bit, word_t& r)
 {
 	assert(bit < 8);

@@ -25,7 +25,7 @@ Test					| Status
 07-jr,jp,call,ret,rst	| PASS
 08-misc instrs			| PASS
 09-op r,r				| FAIL (01)
-10-bit ops				| FAIL (01)
+10-bit ops				| PASS
 11-op a,(hl)			| FAIL (01)
 
 ## Dependencies

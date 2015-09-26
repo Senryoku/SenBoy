@@ -37,23 +37,7 @@ int main(int argc, char* argv[])
 	GPU gpu;
 	
 	mmu.cartridge = &cartridge;
-		
-		///////////////////////////
-		// (Input Tests)
-		/*
-		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-		{
-			mmu.key_down(MMU::Button, MMU::DownStart);
-		}
-		
-		if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50) mmu.key_down(MMU::Direction, MMU::RightA);
-		else if(sf::Joystick::getAxisPosition(0, sf::Joystick::X) < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
-		else {
-			mmu.key_up(MMU::Direction, MMU::RightA);
-			mmu.key_up(MMU::Direction, MMU::LeftB);
-		}
-		*/
-		///////////////////////////
+
 	mmu.callback_joy_up = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::Y) < -50; };
 	mmu.callback_joy_down = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::Y) > 50; };
 	mmu.callback_joy_right = [&] () -> bool { return sf::Joystick::getAxisPosition(0, sf::Joystick::X) > 50; };
