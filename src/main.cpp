@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 	bool real_speed = true;
 	bool frame_by_frame = true;
 	
-	size_t frame_skip = 2;
+	size_t frame_skip = 4;
 	
 	sf::Clock clock;
 	double frame_time = 0;
