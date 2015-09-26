@@ -24,7 +24,7 @@ Test					| Status
 06-ld r,r				| PASS
 07-jr,jp,call,ret,rst	| PASS
 08-misc instrs			| PASS
-09-op r,r				| FAIL (01)
+09-op r,r				| PASS
 10-bit ops				| PASS
 11-op a,(hl)			| PASS
 

@@ -328,6 +328,7 @@ inline void instr_rst(word_t addr)
 inline void instr_rlca()
 {
 	instr_rlc(_a);
+	set(Flag::Zero, false);
 }
 
 /**
@@ -337,6 +338,7 @@ inline void instr_rlca()
 inline void instr_rla()
 {
 	instr_rl(_a);
+	set(Flag::Zero, false);
 }
 
 /**
@@ -346,6 +348,7 @@ inline void instr_rla()
 inline void instr_rrca()
 {
 	instr_rrc(_a);
+	set(Flag::Zero, false);
 }
 
 /**
@@ -355,6 +358,7 @@ inline void instr_rrca()
 inline void instr_rra()
 {
 	instr_rr(_a);
+	set(Flag::Zero, false);
 }
 
 /**
