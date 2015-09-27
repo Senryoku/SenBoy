@@ -185,14 +185,10 @@ void LR35902::execute()
 	{
 		if(mmu->read(MMU::IF))
 		{
-			// @todo Doesn't happen in GBC mode
-			if(!_ime)
-			{
-				repeat = true;
-				repeat_pc = _pc;
-			}
-			
 			_halt = false;
+		} else if(!_ime) { // @todo Doesn't happen in GBC mode
+			repeat = true;
+			repeat_pc = _pc;
 		} else { 
 			update_timing();
 			return;
