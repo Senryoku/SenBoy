@@ -16,6 +16,7 @@ SET( CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Ofast" )
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
 set(SOURCES
+	src/Cartridge.cpp
 	src/MMU.cpp
 	src/GPU.cpp
 	src/LR35902.cpp
