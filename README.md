@@ -1,7 +1,7 @@
 # SenBoy
 
-Work in progress GameBoy emulator. It currently runs some games (Kirby, Tetris, Zelda, some public domain roms...). Only one cartridge mapper (MBC1) is implemented at this moment.
-It is buggy, ugly and absolutely not optimised, but I'm working on it. I am not aiming for performance (at least not for now) and it's therefore pretty slow.
+Work in progress GameBoy emulator. It currently runs some games (Kirby, Tetris, Zelda, some public domain roms...), only one cartridge mapper (MBC1) is implemented.
+It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow.
 
 # Screenshots
 
