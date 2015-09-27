@@ -30,23 +30,59 @@ int main(int argc, char* argv[])
 	std::string path("tests/cpu_instrs/cpu_instrs.gb");
 	if(argc > 1)
 		path = argv[1];
+
+	Cartridge cartridge;
+	if(!cartridge.load(path))
+		return 0;
+
+	// Movie Playback (.vbm)
+	// Not in sync. Doesn't work.
+	bool use_movie = false;
+	std::ifstream movie;
+	unsigned int movie_start = 0;
+	char playback[2];
+	if(argc > 2)
+	{
+		movie.open(argv[2], std::ios::binary);
+		if(!movie)
+			std::cerr << " Error: Unable to open " << argv[2] << std::endl;
+		else {
+			char tmp[4];
+			movie.seekg(0x03C); // Start of the inputs, 4bytes unisgned int little endian
+			movie.read(tmp, 4);
+			movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+			movie.seekg(movie_start);
+			use_movie = true;
+		}
+	}
 	
 	LR35902 cpu;
-	Cartridge cartridge(path);
 	MMU mmu;
 	GPU gpu;
 	
 	mmu.cartridge = &cartridge;
 
-	mmu.callback_joy_up = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return false; };
-	mmu.callback_joy_down = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return false; };
-	mmu.callback_joy_right = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return false; };
-	mmu.callback_joy_left = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return false; };
-	mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return false; };
-	mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return false; };
-	mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return false; };
-	mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return false; };
-	
+	if(!use_movie)
+	{
+		mmu.callback_joy_up = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return false; };
+		mmu.callback_joy_down = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return false; };
+		mmu.callback_joy_right = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return false; };
+		mmu.callback_joy_left = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return false; };
+		mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return false; };
+		mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return false; };
+		mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return false; };
+		mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return false; };
+	} else {
+		mmu.callback_joy_up = [&] () -> bool { return playback[0] & 0x0040; };
+		mmu.callback_joy_down = [&] () -> bool { return playback[0] & 0x0080; };
+		mmu.callback_joy_right = [&] () -> bool { return playback[0] & 0x0010; };
+		mmu.callback_joy_left = [&] () -> bool { return playback[0] & 0x0020; };
+		mmu.callback_joy_a = [&] () -> bool { return playback[0] & 0x0001; };
+		mmu.callback_joy_b = [&] () -> bool { return playback[0] & 0x0002; };
+		mmu.callback_joy_select = [&] () -> bool { return playback[0] & 0x0004; };
+		mmu.callback_joy_start = [&] () -> bool { return playback[0] & 0x0008; };
+	}
+
 	cpu.mmu = &mmu;
 	gpu.mmu = &mmu;
 	
@@ -146,6 +182,7 @@ int main(int argc, char* argv[])
 						elapsed_cycles = 0;
 						clock.restart();
 						debug_text.setString("Reset");
+						if(use_movie) movie.seekg(movie_start);
 						break;
 					case sf::Keyboard::Add:
 					{
@@ -221,6 +258,9 @@ int main(int argc, char* argv[])
 		{
 			for(size_t i = 0; i < frame_skip + 1; ++i)
 			{
+				// Get next input from the movie file.
+				if(use_movie) movie.read(playback, 2);
+
 				do
 				{
 					cpu.execute();

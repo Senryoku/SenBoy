@@ -24,7 +24,7 @@ size_t	LR35902::instr_length[0x100] = {
 
 size_t	LR35902::instr_cycles[0x100] = {
 	4, 12,  8,  8,  4,  4,  8,  4, 20,  8,  8,  8,  4,  4,  8,  4, // 0
-	0, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4, // 1
+	4, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4, // 1
 	8, 12,  8,  8,  4,  4,  8,  4,  8,  8,  8,  8,  4,  4,  8,  4, // 2
 	8, 12,  8,  8, 12, 12, 12,  4,  8,  8,  8,  8,  4,  4,  8,  4, // 3
 	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // 4
@@ -183,17 +183,20 @@ void LR35902::execute()
 	
 	if(_halt)
 	{
-		if(mmu->read(MMU::IF))
+		if(mmu->read(MMU::IF) & mmu->read(MMU::IE))
 		{
 			_halt = false;
 		} else if(!_ime) { // @todo Doesn't happen in GBC mode
 			repeat = true;
 			repeat_pc = _pc;
 		} else { 
+			add_cycles(instr_cycles[0x76]); // Add HALT cycles.
 			update_timing();
 			return;
 		}
 	}
+	
+	check_interrupts();
 	
 	// Reads the next instruction opcode.
 	word_t opcode = mmu->read(_pc++);
@@ -483,8 +486,6 @@ void LR35902::execute()
 	_clock_cycles += _clock_instr_cycles;
 	
 	update_timing();
-	
-	check_interrupts();
 	
 	_breakpoint = (_breakpoints.count(_pc) != 0);
 }
