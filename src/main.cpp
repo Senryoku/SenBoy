@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 	tilemap_text.setCharacterSize(16);
 	tilemap_text.setPosition(gameboy_tilemap_sprite.getGlobalBounds().left,
 		gameboy_tilemap_sprite.getGlobalBounds().top - 32);
-	tilemap_text.setString("TileMaps");
+	tilemap_text.setString("Tiles");
 	
 	bool debug = true;
 	bool step = true;
@@ -312,6 +312,7 @@ int main(int argc, char* argv[])
 		window.draw(gameboy_tilemap_sprite);
 		window.draw(debug_text);
 		window.draw(log_text);
+		window.draw(tilemap_text);
         window.display();
     }
 	
