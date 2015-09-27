@@ -89,7 +89,7 @@ public:
 	
 	void reset();
 	
-	inline void step(size_t cycles)
+	inline void step(size_t cycles, bool render = true)
 	{
 		assert(mmu != nullptr && screen != nullptr);
 		/// @todo Check if LCD is enabled (and reset LY if it isn't)
@@ -102,7 +102,7 @@ public:
 		*/
 		_completed_frame = false;
 		_cycles += cycles;
-		update_mode();
+		update_mode(render);
 	}
 	
 	inline bool completed_frame() const { return _completed_frame; } 
@@ -124,7 +124,7 @@ public:
 	/**
 	 * Treats bits in l as low bits and in h as high bits of 2bits values.
 	**/
-	static inline void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
+	static void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
 	{
 		r0 = r1 = 0;
 		for(int i = 0; i < 4; i++)
@@ -134,7 +134,7 @@ public:
 	}
 	
 	/// @param val 0 <= val < 4
-	inline word_t getPaletteColor(word_t val)
+	inline word_t getBGPaletteColor(word_t val)
 	{
 		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
 	}
@@ -150,7 +150,7 @@ private:
 			mmu->rw(MMU::IF) |= MMU::LCDSTAT;
 	}
 						
-	void update_mode();
+	void update_mode(bool render = true);
 		
 	void render_line();
 };

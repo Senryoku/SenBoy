@@ -58,8 +58,8 @@ int main(int argc, char* argv[])
 	
 	float screen_scale = 2.0f;
 	
-	size_t padding = 400;
-	sf::RenderWindow window(sf::VideoMode(gpu.ScreenWidth + padding + 600, gpu.ScreenHeight + padding), "SenBoy");
+	size_t padding = 200;
+	sf::RenderWindow window(sf::VideoMode(screen_scale * gpu.ScreenWidth + 1.25 * padding + screen_scale * 16 * 8, screen_scale * gpu.ScreenHeight + padding), "SenBoy");
 	window.setVerticalSyncEnabled(false);
 	
 	sf::Texture	gameboy_screen;
@@ -67,8 +67,8 @@ int main(int argc, char* argv[])
 		std::cerr << "Error creating the screen texture!" << std::endl;
 	sf::Sprite gameboy_screen_sprite;
 	gameboy_screen_sprite.setTexture(gameboy_screen);
-	gameboy_screen_sprite.setPosition(padding / 2 - (screen_scale - 1.0) * gpu.ScreenWidth * 0.5, 
-									padding / 2 - (screen_scale - 1.0) * gpu.ScreenHeight * 0.5);
+	gameboy_screen_sprite.setPosition(padding / 2, 
+									padding / 2);
 	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
 	
 	sf::Texture	gameboy_tilemap;
@@ -76,8 +76,8 @@ int main(int argc, char* argv[])
 		std::cerr << "Error creating the vram texture!" << std::endl;
 	sf::Sprite gameboy_tilemap_sprite;
 	gameboy_tilemap_sprite.setTexture(gameboy_tilemap);
-	gameboy_tilemap_sprite.setPosition(600, 
-									padding / 2 - (screen_scale - 1.0) * gpu.ScreenHeight * 0.5);
+	gameboy_tilemap_sprite.setPosition(padding + screen_scale * gpu.ScreenWidth, 
+									0.25 * padding);
 	gameboy_tilemap_sprite.setScale(screen_scale, screen_scale);
 	GPU::color_t* tile_map = new GPU::color_t[(16 * 8) * ((8 * 3) * 8)];
 	std::memset(tile_map, 128, 4 * (16 * 8) * ((8 * 3) * 8));
@@ -94,15 +94,22 @@ int main(int argc, char* argv[])
 	sf::Text log_text;
 	log_text.setFont(font);
 	log_text.setCharacterSize(16);
-	log_text.setPosition(5, 450);
+	log_text.setPosition(5, window.getSize().y - padding * 0.5 + 5);
 	log_text.setString("Log");
+
+	sf::Text tilemap_text;
+	tilemap_text.setFont(font);
+	tilemap_text.setCharacterSize(16);
+	tilemap_text.setPosition(gameboy_tilemap_sprite.getGlobalBounds().left,
+		gameboy_tilemap_sprite.getGlobalBounds().top - 32);
+	tilemap_text.setString("TileMaps");
 	
 	bool debug = true;
 	bool step = true;
 	bool real_speed = true;
 	bool frame_by_frame = true;
 	
-	size_t frame_skip = 4;
+	size_t frame_skip = 0;
 	
 	sf::Clock clock;
 	double frame_time = 0;
@@ -213,26 +220,28 @@ int main(int argc, char* argv[])
 		if(!debug || step)
 		{
 			for(size_t i = 0; i < frame_skip + 1; ++i)
-			do
 			{
-				cpu.execute();
-				if(cpu.getInstrCycles() == 0)
-					break;
-				
-				gpu.step(cpu.getInstrCycles());
-				elapsed_cycles += cpu.getInstrCycles();
-				elapsed_cycles_frame += cpu.getInstrCycles();
-			
-				if(cpu.reached_breakpoint())
+				do
 				{
-					std::stringstream ss;
-					ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
-					log_text.setString(ss.str());
-					debug = true;
-					step = false;
-					break;
-				}
-			} while((!debug || frame_by_frame) && !gpu.completed_frame());
+					cpu.execute();
+					if(cpu.getInstrCycles() == 0)
+						break;
+
+					gpu.step(cpu.getInstrCycles(), i == frame_skip);
+					elapsed_cycles += cpu.getInstrCycles();
+					elapsed_cycles_frame += cpu.getInstrCycles();
+			
+					if(cpu.reached_breakpoint())
+					{
+						std::stringstream ss;
+						ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
+						log_text.setString(ss.str());
+						debug = true;
+						step = false;
+						break;
+					}
+				} while((!debug || frame_by_frame) && !gpu.completed_frame());
+			}
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			
@@ -241,7 +250,7 @@ int main(int argc, char* argv[])
 		}
 			
 		// Debug display Tilemap
-		if(debug)
+		//if(debug)
 		{
 			GPU::word_t tile_l;
 			GPU::word_t tile_h;

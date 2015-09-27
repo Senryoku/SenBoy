@@ -8,7 +8,7 @@ void GPU::reset()
 	getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
 }
 
-void GPU::update_mode()
+void GPU::update_mode(bool render)
 {	
 	switch(getLCDStatus() & LCDMode)
 	{
@@ -54,7 +54,7 @@ void GPU::update_mode()
 			if(_cycles >= 172)
 			{
 				_cycles -= 172;
-				render_line();
+				if(render) render_line();
 				getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
 				exec_stat_interrupt(Mode00);
 			}
@@ -106,6 +106,9 @@ void GPU::render_line()
 		word_t tile_h;
 		word_t tile_data0 = 0, tile_data1 = 0;
 		
+		word_t colors_cache[4];
+		for(int i = 0; i < 4; ++i)
+			colors_cache[i] = getBGPaletteColor(i);
 		for(word_t i = 0; i < ScreenWidth; ++i)
 		{
 			// Switch to window rendering
@@ -137,7 +140,7 @@ void GPU::render_line()
 			
 			word_t shift = ((7 - x) & 3) * 2;
 			GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
-			screen[to1D(i, line)] = getPaletteColor(color);
+			screen[to1D(i, line)] = colors_cache[color];
 			
 			++x;
 		}
@@ -160,14 +163,14 @@ void GPU::render_line()
 		{
 			Y = mmu->read(0xFE00 + s * 4) - 16;
 			X = mmu->read(0xFE00 + s * 4 + 1) - 8;
-			Tile = mmu->read(0xFE00 + s * 4 + 2);
-			Opt = mmu->read(0xFE00 + s * 4 + 3);
 			// 8*16 Sprites ?
 			word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
 			
 			// Visible on this scanline ?
-			if(Y <= line && (Y + size) > line)
+			if(Y <= line && (Y + size) > line && (X > -8 && X < ScreenWidth))
 			{
+				Tile = mmu->read(0xFE00 + s * 4 + 2);
+				Opt = mmu->read(0xFE00 + s * 4 + 3);
 				if(Y - line < 8 && getLCDControl() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
 				if(Y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
