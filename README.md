@@ -1,6 +1,6 @@
 # SenBoy
 
-Work in progress GameBoy emulator. It currently runs some games (Kirby, Tetris, Zelda, some public domain roms...), only one cartridge mapper (MBC1) is implemented.
+Work in progress GameBoy emulator. It currently runs some games (Kirby's Dream Land, Tetris World, The Legend of Zelda : Link's Awakening, Pokemon Red, some public domain roms...), but only two cartridge mappers (MBC1 and MBC3) are implemented.
 It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow.
 
 # Screenshots
@@ -14,7 +14,8 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 * Gameboy Color Mode
 * Sprite debugging
   * Handle Priority
-  * Checks positions (over window?)
+  * Check positions (over window?)
+* (Other Mappers? What popular games uses other mappers than MBC1/3?)
 * (Sound? Probably not)
 * (Constant coding style...)
 
