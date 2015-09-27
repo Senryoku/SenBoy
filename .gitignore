@@ -51,3 +51,5 @@ Makefile
 data/bios.bin
 data/bios.gb
 Makefile
+*~
+saves/*

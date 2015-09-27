@@ -2,8 +2,11 @@
 
 #include <string>
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <vector>
+#include <sys/stat.h>
+#include <unistd.h>
 
 /**
  * GameBoy Cartridge
@@ -25,7 +28,7 @@ public:
 	
 	~Cartridge()
 	{
-		delete[] _ram;
+		save();
 	}
 	
 	bool load(const std::string& path)
@@ -41,20 +44,35 @@ public:
 		_data.assign(std::istreambuf_iterator<byte_t>(file), 
 					std::istreambuf_iterator<byte_t>());
 		
+		if(getType() > 0x03)
+		{
+			std::cerr << "Error: Cartridge format " << getType() 
+					<< " not supported! Exiting..." << std::endl;
+			exit(1);
+		}
+		
 		_ram_size = getRAMSize();
-		if(_ram_size > 0)
-			_ram = new byte_t[_ram_size];
 		
 		std::cout << "Loaded '" << path << "' : " << getName() << std::endl;
 		std::cout << " (Size: " << std::dec << _data.size() << 
 					", RAM Size: " << _ram_size << 
 					", Type: " << std::hex << getType() << 
+					", Battery: " << (hasBattery() ? "Yes" : "No") <<
 					")" << std::endl;
-		
-		if(getType() > 0x03)
+
+		if(_ram_size > 0)
 		{
-			std::cerr << "Cartridge format not supported! Exiting..." << std::endl;
-			exit(1);
+			// Search for a saved RAM
+			if(hasBattery() && file_exists(save_path()))
+			{
+				std::cout << "Found a save file, loading it... ";
+				std::ifstream save(save_path(), std::ios::binary);
+				_ram.assign(std::istreambuf_iterator<byte_t>(save), 
+							std::istreambuf_iterator<byte_t>());
+				std::cout << "Done." << std::endl;
+			} else {
+				_ram.resize(_ram_size);
+			}
 		}
 		
 		return true;
@@ -78,7 +96,7 @@ public:
 	{
 		if(_enable_ram)
 		{
-			assert(_ram != nullptr);
+			assert(!_ram.empty());
 			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < _ram_size);
 			_ram[_ram_bank * 0x2000 + (addr & 0x1FFF)] = value;
 		}
@@ -132,10 +150,17 @@ public:
 		}
 	}
 	
-	inline std::string getName() { return std::string(_data.data() + 0x0134, 15); }
-	inline int getType() { return *(_data.data() + 0x0147); }
+	inline std::string getName() const
+	{
+		return std::string(_data.data() + 0x0134, 15);
+	}
+
+	inline unsigned int getType() const 
+	{
+		return *(_data.data() + 0x0147);
+	}
 	
-	inline size_t getROMSize()
+	inline size_t getROMSize() const
 	{ 
 		size_t s = *(_data.data() + 0x0148);
 		if(s < 0x08) return (32 * 1024) << s;
@@ -143,7 +168,7 @@ public:
 		return 32 * 1024;
 	}
 	
-	inline size_t getRAMSize()
+	inline size_t getRAMSize() const
 	{ 
 		switch(*(_data.data() + 0x0149))
 		{
@@ -156,14 +181,50 @@ public:
 			case 0x05: return 64 * 1024; break;
 		}
 	}
+
+	inline bool hasBattery() const
+	{
+		/// @todo Support more types.
+		return getType() == 0x03;
+	}
+
+	/**
+	 * Saves RAM to a file if a battery is present
+	**/
+	void save() const
+	{
+		if(!hasBattery())
+			return;
+
+		std::cout << "Saving RAM... ";
+		std::ofstream save(save_path(), std::ios::binary | std::ios::trunc);
+		save.write(_ram.data(), _ram.size());
+		std::cout << "Done." << std::endl;
+	}
+
+	inline std::string save_path() const
+	{
+		std::string r, n = getName();
+		n.erase(remove_if(n.begin(), n.end(), [](char c) { return !(c >= 48 && c < 122); }), n.end()); 
+		r = "saves/";
+		r.append(n);
+		r.append(".sav");
+		return r;
+	}
 	
 private:
 	std::vector<byte_t> _data;
-	byte_t*				_ram = nullptr;
+	std::vector<byte_t> _ram;
 	
 	size_t		_rom_bank = 1;
 	size_t		_ram_bank = 0;
 	size_t		_enable_ram = false;
 	size_t		_ram_size = 0;
 	byte_t		_mode = 0;
+
+	inline bool file_exists(const std::string& path)
+	{
+		struct stat buffer;   
+		return (stat (path.c_str(), &buffer) == 0); 
+	}
 };
