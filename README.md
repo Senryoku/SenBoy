@@ -3,18 +3,19 @@
 Work in progress GameBoy emulator. It currently runs some games (Kirby, Tetris, Zelda, some public domain roms...). Only one cartridge mapper (MBC1) is implemented at this moment.
 It is buggy, ugly and absolutely not optimised, but I'm working on it. I am not aiming for performance (at least not for now) and it's therefore pretty slow.
 
+# Screenshots
+
 ![Kirby on SenBoy](img/SenBoy_Kirby.png)
-![Zelda on SenBoy](img/SenBoy_Zelda0.png)
-![Zelda on SenBoy](img/SenBoy_Zelda1.png)
-![Zelda on SenBoy](img/SenBoy_Zelda2.png)
+
+<img src="img/SenBoy_Zelda0.png" width=300 /> <img src="img/SenBoy_Zelda1.png" width=300 /> <img src="img/SenBoy_Zelda2.png" width=300 />
 
 ## TODO
 * Get Super Mario Land to work.
 * Gameboy Color Mode
 * Proper timing (instruction level)
 * Sprite debugging
-** Handle Priority
-** Checks positions (over window?)
+  * Handle Priority
+  * Checks positions (over window?)
 * (Sound? Probably not)
 * (Constant coding style...)
 
