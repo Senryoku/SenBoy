@@ -9,6 +9,7 @@ set(SenBoy 1)
 set(SenBoy 0)
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
+include_directories("${CMAKE_SOURCE_DIR}/ext/Gb_Snd_Emu-0.1.4")
 
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++11 -Wall" )
 SET( CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Ofast" )
@@ -16,6 +17,11 @@ SET( CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Ofast" )
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
 set(SOURCES
+	ext/Gb_Snd_Emu-0.1.4/gb_apu/Multi_Buffer.cpp
+	ext/Gb_Snd_Emu-0.1.4/gb_apu/Blip_Buffer.cpp
+	ext/Gb_Snd_Emu-0.1.4/gb_apu/Gb_Oscs.cpp
+	ext/Gb_Snd_Emu-0.1.4/gb_apu/Gb_Apu.cpp
+
 	src/Cartridge.cpp
 	src/MMU.cpp
 	src/GPU.cpp

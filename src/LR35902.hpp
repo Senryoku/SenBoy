@@ -2,6 +2,9 @@
 
 #include <unordered_set>
 
+#include "gb_apu/Gb_Apu.h"
+#include "gb_apu/Multi_Buffer.h"
+
 #include "MMU.hpp"
 
 /**
@@ -24,6 +27,7 @@ public:
 	};
 
 	MMU*	mmu = nullptr;
+	Gb_Apu*	apu = nullptr;
 	
 	LR35902();
 	~LR35902() =default;
@@ -105,7 +109,7 @@ private:
 		word_t _r[7];		///< Another way to access the 8 bits registers.
 	};
 	
-	word_t	_ime; // Interrupt Master Enable
+	word_t	_ime = 0x0; // Interrupt Master Enable
 	
 	bool	_stop = false;	// instr_stop
 	bool	_halt = false;	// instr_halt
