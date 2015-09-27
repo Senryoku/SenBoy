@@ -74,11 +74,14 @@ void GPU::update_mode()
 	
 void GPU::render_line()
 {
+	word_t LCDC = getLCDControl();
+	if(!(LCDC & LCDDisplayEnable))
+		return;
+
 	word_t line = getLine();
 	assert(line < ScreenHeight);
-	word_t LCDC = getLCDControl();
 	// Render Background Or Window
-	if((LCDC & BGWindowDisplay) || (LCDC & WindowDisplay))
+	if((LCDC & BGDisplay) || (LCDC & WindowDisplay))
 	{
 		// Selects the Tile Map & Tile Data Set
 		addr_t mapoffs = (LCDC & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
@@ -86,11 +89,10 @@ void GPU::render_line()
 		
 		word_t scroll_x = getScrollX();
 		word_t scroll_y = getScrollY();
-		word_t wx = mmu->read(MMU::WX);
+		int wx = mmu->read(MMU::WX) - 7; // Can be < 0
 		word_t wy = mmu->read(MMU::WY);
 		
-		bool draw_window = (LCDC & WindowDisplay) && wx > 6 && line >= wy;
-		wx -= 7;
+		bool draw_window = (LCDC & WindowDisplay) && line >= wy;
 		
 		mapoffs += 0x20 * (((line + scroll_y) & 0xFF) >> 3);
 		word_t lineoffs = (scroll_x >> 3);
@@ -113,7 +115,8 @@ void GPU::render_line()
 				mapoffs += 0x20 * (((line + wy) & 0xFF) >> 3);
 				lineoffs = (wx >> 3);
 
-				x = wx & 0b111;
+				// X & Y in window space.
+				x = 0; //wx & 0b111;
 				y = (wy + line) & 0b111;
 				draw_window = false; // No need to do it again.
 			}

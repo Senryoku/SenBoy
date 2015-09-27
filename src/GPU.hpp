@@ -48,12 +48,12 @@ public:
 	
 	enum LCDControl : word_t
 	{
-		BGWindowDisplay = 0x01,
+		BGDisplay = 0x01,
 		OBJDisplay = 0x02,
 		OBJSize = 0x04,
 		BGTileMapDisplaySelect = 0x08,
 		BGWindowsTileDataSelect = 0x10,
-		WindowDisplay = 0x2,
+		WindowDisplay = 0x20,
 		WindowsTileMapDisplaySelect = 0x40,
 		LCDDisplayEnable = 0x80
 	};
