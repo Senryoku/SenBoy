@@ -144,9 +144,9 @@ private:
 	{
 		// Updates at 16384Hz, which is ClockRate / 256.
 		_divider_register += _clock_instr_cycles;
-		if(_divider_register > 256 * 256)
+		if(_divider_register >= 256)
 		{
-			_divider_register -= 256 * 256;
+			_divider_register -= 256;
 			mmu->rw(MMU::DIV)++;
 		}
 			
@@ -156,7 +156,7 @@ private:
 		if((TAC & 0b11) == 0b01) tac_divisor = 16;
 		if((TAC & 0b11) == 0b10) tac_divisor = 64;
 		if((TAC & 0b11) == 0b11) tac_divisor = 256;
-		if((TAC & 0b100) && _timer_counter > tac_divisor)
+		while((TAC & 0b100) && _timer_counter >= tac_divisor)
 		{
 			_timer_counter -= tac_divisor;
 			if(mmu->read(MMU::TIMA) != 0xFF)

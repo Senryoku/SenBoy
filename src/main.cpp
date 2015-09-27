@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
 		
 		if(--speed_update == 0)
 		{
-			speed_update = 600;
+			speed_update = 60;
 			double t = clock.getElapsedTime().asSeconds();
 			speed = 100.0 * (double(elapsed_cycles_frame) / cpu.ClockRate) / (t - frame_time);
 			frame_time = t;

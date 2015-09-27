@@ -12,7 +12,6 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 ## TODO
 * Get Super Mario Land to work.
 * Gameboy Color Mode
-* Proper timing (instruction level)
 * Sprite debugging
   * Handle Priority
   * Checks positions (over window?)
@@ -36,10 +35,12 @@ Test					| Status
 09-op r,r				| :white_check_mark: PASS
 10-bit ops				| :white_check_mark: PASS
 11-op a,(hl)			| :white_check_mark: PASS
-instr_timing			| :x: FAIL
+instr_timing			| :white_check_mark: PASS
 01-read_timing			| :x: FAIL
 02-write_timing			| :x: FAIL
 03-modify_timing		| :x: FAIL
+
+SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
 * SFML (http://www.sfml-dev.org/) for graphical output and input handling.
