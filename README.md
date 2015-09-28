@@ -33,7 +33,7 @@ Test					| Status
 09-op r,r				| :white_check_mark: PASS
 10-bit ops				| :white_check_mark: PASS
 11-op a,(hl)			| :white_check_mark: PASS
-instr_timing			| :white_check_mark: PASS
+instr_timing			| Regression: FAIL since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36)
 01-read_timing			| :x: FAIL
 02-write_timing			| :x: FAIL
 03-modify_timing		| :x: FAIL
