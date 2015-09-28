@@ -103,6 +103,7 @@ void GPU::render_line()
 
 	word_t line = getLine();
 	assert(line < ScreenHeight);
+	word_t line_color_idx[ScreenWidth];
 	// Render Background Or Window
 	if((LCDC & BGDisplay) || (LCDC & WindowDisplay))
 	{
@@ -163,6 +164,7 @@ void GPU::render_line()
 			
 			word_t shift = ((7 - x) & 3) * 2;
 			GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+			line_color_idx[i] = color;
 			screen[to1D(i, line)] = colors_cache[color];
 			
 			++x;
@@ -210,7 +212,7 @@ void GPU::render_line()
 					word_t shift = (color_x & 3) * 2;
 					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					if(s.x + x >= 0 && s.x + x < ScreenWidth && color != 0 &&
-						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
+						(!(Opt & Priority) || line_color_idx[x] == 0))
 					{
 						screen[to1D(s.x + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
 					}
