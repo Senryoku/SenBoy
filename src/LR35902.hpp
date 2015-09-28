@@ -110,7 +110,7 @@ private:
 		word_t _r[7];		///< Another way to access the 8 bits registers.
 	};
 	
-	word_t	_ime; // Interrupt Master Enable
+	word_t	_ime = 0; // Interrupt Master Enable
 	
 	bool	_stop = false;	// instr_stop
 	bool	_halt = false;	// instr_halt
@@ -173,7 +173,7 @@ private:
 		}
 			
 		_timer_counter += _clock_instr_cycles;
-		word_t TAC = read(MMU::TAC);
+		word_t TAC = mmu->read(MMU::TAC);
 		unsigned int tac_divisor = 1026;
 		if((TAC & 0b11) == 0b01) tac_divisor = 16;
 		if((TAC & 0b11) == 0b10) tac_divisor = 64;
@@ -181,11 +181,11 @@ private:
 		while((TAC & 0b100) && _timer_counter >= tac_divisor)
 		{
 			_timer_counter -= tac_divisor;
-			if(read(MMU::TIMA) != 0xFF)
+			if(mmu->read(MMU::TIMA) != 0xFF)
 			{
 				mmu->rw(MMU::TIMA)++;
 			} else {
-				mmu->rw(MMU::TIMA) = read(MMU::TMA);
+				mmu->rw(MMU::TIMA) = mmu->read(MMU::TMA);
 				// Interrupt
 				mmu->rw(MMU::IF) |= MMU::TimerOverflow;
 			}
@@ -197,8 +197,8 @@ private:
 		if(_ime == 0x00)
 			return;
 		
-		word_t IF = read(MMU::IF);
-		word_t IE = read(MMU::IE);
+		word_t IF = mmu->read(MMU::IF);
+		word_t IE = mmu->read(MMU::IE);
 		if(IF & IE) // An enabled interrupt is waiting
 		{
 			// Check each interrupt in order of priority.

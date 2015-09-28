@@ -1,5 +1,7 @@
 #include "GPU.hpp"
 
+#include <set>
+
 void GPU::reset()
 {
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
@@ -71,6 +73,27 @@ void GPU::update_mode(bool render)
 	}
 }
 
+struct Sprite
+{
+	GPU::word_t	idx;
+	int			x;
+	int			y;
+	
+	Sprite(GPU::word_t _idx, int _x, int _y) :
+		idx(_idx), x(_x), y(_y)
+	{}
+	
+	bool operator<(const Sprite& s) const
+	{
+		/// @todo In GBC mode:
+		/// return idx > s.idx;
+		
+		if(x > s.x)
+			return true;
+		else
+			return idx > s.idx;
+	}
+};
 	
 void GPU::render_line()
 {
@@ -119,7 +142,7 @@ void GPU::render_line()
 				lineoffs = (wx >> 3);
 
 				// X & Y in window space.
-				x = 0; //wx & 0b111;
+				x = wx & 0b111;
 				y = (wy + line) & 0b111;
 				draw_window = false; // No need to do it again.
 			}
@@ -147,35 +170,37 @@ void GPU::render_line()
 	}
 	
 	// Render Sprites
-	// @todo Check OBJSize ? (How does that work ?)
-	// @todo Test
 	if(getLCDControl() & OBJDisplay)
 	{
-		int Y, X;
 		word_t Tile, Opt;
 		word_t tile_l = 0;
 		word_t tile_h = 0;
 		word_t tile_data0 = 0, tile_data1 = 0;
 		word_t sprite_limit = 10;
-		// For each Sprite (4 bytes)
-		// @todo Order Sprite by priority (x-coordinate then table ordering)
+		
+		// 8*16 Sprites ?
+		word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
+		
+		std::set<Sprite> sprites;
 		for(word_t s = 0; s < 40; s++)
 		{
-			Y = mmu->read(0xFE00 + s * 4) - 16;
-			X = mmu->read(0xFE00 + s * 4 + 1) - 8;
-			// 8*16 Sprites ?
-			word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
+			Sprite spr = {s, mmu->read(0xFE00 + s * 4 + 1) - 8, mmu->read(0xFE00 + s * 4) - 16};
+			if(spr.y <= line && (spr.y + size) > line)
+				sprites.insert(spr);
+		}
 			
+		for(auto& s : sprites)
+		{
 			// Visible on this scanline ?
-			if(Y <= line && (Y + size) > line && (X > -8 && X < ScreenWidth))
+			if(s.x > -8 && s.x < ScreenWidth)
 			{
-				Tile = mmu->read(0xFE00 + s * 4 + 2);
-				Opt = mmu->read(0xFE00 + s * 4 + 3);
-				if(Y - line < 8 && getLCDControl() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
-				if(Y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
+				Tile = mmu->read(0xFE00 + s.idx * 4 + 2);
+				Opt = mmu->read(0xFE00 + s.idx * 4 + 3);
+				if(s.y - line < 8 && getLCDControl() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
+				if(s.y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0);
 				// Only Tile Set #0 ?
-				Y = (Opt & YFlip) ? (size - 1) - (line - Y) : line - Y;
+				int Y = (Opt & YFlip) ? (size - 1) - (line - s.y) : line - s.y;
 				tile_l = mmu->read(0x8000 + 16 * Tile + Y * 2);
 				tile_h = mmu->read(0x8000 + 16 * Tile + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
@@ -184,14 +209,14 @@ void GPU::render_line()
 					word_t color_x = (Opt & XFlip) ? x : (7 - x);
 					word_t shift = (color_x & 3) * 2;
 					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
-					if(X + x >= 0 && X + x < ScreenWidth && color != 0 &&
+					if(s.x + x >= 0 && s.x + x < ScreenWidth && color != 0 &&
 						(!(Opt & Priority) || screen[to1D(x, line)] == 0))
 					{
-						screen[to1D(X + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
+						screen[to1D(s.x + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
 					}
 				}
-				if(--sprite_limit == 0) break;
 			}
+			if(--sprite_limit == 0) break;
 		}
 	}
 }

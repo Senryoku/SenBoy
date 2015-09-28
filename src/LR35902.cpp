@@ -183,7 +183,7 @@ void LR35902::execute()
 	
 	if(_halt)
 	{
-		if(read(MMU::IF) & read(MMU::IE))
+		if(mmu->read(MMU::IF) & mmu->read(MMU::IE))
 		{
 			_halt = false;
 		} else if(!_ime) { // @todo Doesn't happen in GBC mode
@@ -227,7 +227,7 @@ void LR35902::execute()
 						case 1: r = instr_rrc(r); break;
 						case 2: r = instr_rl(r); break;
 						case 3: r = instr_rr(r); break;
-						case  4: r = instr_sla(r); break;
+						case 4: r = instr_sla(r); break;
 						case 5: r = instr_sra(r); break;
 						case 6: r = instr_swap(r); break;
 						case 7: r = instr_srl(r); break;
@@ -252,7 +252,7 @@ void LR35902::execute()
 						case 1: write(addr, instr_rrc(value)); break;
 						case 2: write(addr, instr_rl(value)); break;
 						case 3: write(addr, instr_rr(value)); break;
-						case  4: write(addr, instr_sla(value)); break;
+						case 4: write(addr, instr_sla(value)); break;
 						case 5: write(addr, instr_sra(value)); break;
 						case 6: write(addr, instr_swap(value)); break;
 						case 7: write(addr, instr_srl(value)); break;
