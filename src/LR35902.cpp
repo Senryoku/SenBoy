@@ -335,7 +335,7 @@ void LR35902::execute()
 						case 0x27: instr_daa(); break;
 						case 0x37: instr_scf(); break;
 						//
-						case 0x08: write(mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
+						case 0x08: mmu->write(mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
 						case 0x18: instr_jr(read(_pc++)); break;
 						case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
 						case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;

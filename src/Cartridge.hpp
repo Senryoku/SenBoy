@@ -168,8 +168,8 @@ public:
 			case 0x3000:
 				if(isMBC1())
 				{
-					if(value == 0) value = 1;
 					value &= 0x1F; // MBC1
+					if(value == 0) value = 1;
 					_rom_bank = (_rom_bank & 0x60) + value;
 				} else if(isMBC2()) {
 					_rom_bank = (value & 0x0F);
@@ -195,7 +195,7 @@ public:
 						if(_ram_bank * 0x2000 > _ram_size)
 							_ram_bank = _ram_size / 0x2000 - 1;
 					} else {
-						_rom_bank = (_rom_bank & 0x1F) + ((value & 3) << 5); // Select ROM bank (3 high bits)
+						_rom_bank = (_rom_bank & 0x1F) + ((value & 3) << 5); // Select ROM bank (2 high bits)
 					}
 				} else if(isMBC3()) {
 					_ram_bank = value; // Select RAM bank OR RTC Register
@@ -208,9 +208,9 @@ public:
 			case 0x6000:
 			case 0x7000:
 				if(isMBC1())
-				{ // MBC1
+				{
 					_mode = value & 1;
-				} else {
+				} else if(isMBC3()) {
 					static bool zero_received = false;
 					if(value == 0)
 					{
@@ -295,9 +295,18 @@ public:
 
 	inline bool hasBattery() const
 	{
-		/// @todo Support more types.
-		return !_data.empty() && (getType() == 0x03 || getType() == 0xF ||
-                getType() == 0x10 || getType() == 0x13);
+		return !_data.empty() && (
+			getType() == MBC1_RAM_BATTERY ||
+			getType() == MBC2_BATTERY ||
+			getType() == ROM_RAM_BATTERY ||
+			getType() == MMM01_RAM_BATTERY ||
+			getType() == MBC3_TIMER_BATTERY ||
+			getType() == MBC3_TIMER_RAM_BATTERY ||
+			getType() == MBC3_RAM_BATTERY ||
+			getType() == MBC4_RAM_BATTERY ||
+			getType() == MBC5_RAM_BATTERY ||
+			getType() == MBC5_RUMBLE_RAM_BATTERY ||
+			getType() == HuC1_RAM_BATTERY);
     }
 
 	/**
