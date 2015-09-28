@@ -15,7 +15,40 @@ class Cartridge
 public:
 	using byte_t = char;
 	using addr_t = uint16_t;
-
+	
+	enum Type : unsigned char
+	{
+		ROM						 = 0x00,
+		MBC1					 = 0x01,
+		MBC1_RAM				 = 0x02,
+		MBC1_RAM_BATTERY		 = 0x03,
+		MBC2					 = 0x05,
+		MBC2_BATTERY			 = 0x06,
+		ROM_RAM					 = 0x08,
+		ROM_RAM_BATTERY			 = 0x09,
+		MMM01					 = 0x0B,
+		MMM01_RAM				 = 0x0C,
+		MMM01_RAM_BATTERY		 = 0x0D,
+		MBC3_TIMER_BATTERY		 = 0x0F,
+		MBC3_TIMER_RAM_BATTERY	 = 0x10,
+		MBC3					 = 0x11,
+		MBC3_RAM				 = 0x12,
+		MBC3_RAM_BATTERY		 = 0x13,
+		MBC4					 = 0x15,
+		MBC4_RAM				 = 0x16,
+		MBC4_RAM_BATTERY		 = 0x17,
+		MBC5					 = 0x19,
+		MBC5_RAM				 = 0x1A,
+		MBC5_RAM_BATTERY		 = 0x1B,
+		MBC5_RUMBLE				 = 0x1C,
+		MBC5_RUMBLE_RAM			 = 0x1D,
+		MBC5_RUMBLE_RAM_BATTERY	 = 0x1E,
+		POCKET_CAMERA			 = 0xFC,
+		BANDAI_TAMA5			 = 0xFD,
+		HuC3					 = 0xFE,
+		HuC1_RAM_BATTERY		 = 0xFF
+	};
+	
 	Cartridge()
 	{
 	}
@@ -43,7 +76,7 @@ public:
 		_data.assign(std::istreambuf_iterator<byte_t>(file),
 					std::istreambuf_iterator<byte_t>());
 
-		if(!(getType() <= 0x03) && !(getType() >= 0xF && getType() <= 0x13))
+		if(!(isMBC1() || isMBC3() || isMBC5()))
 		{
 			std::cerr << "Error: Cartridge format 0x" << std::hex << getType()
 					<< " not supported! Exiting..." << std::endl;
@@ -80,17 +113,29 @@ public:
 	byte_t read(addr_t addr) const
 	{
 		assert(addr >= 0x4000 || _data.size() > addr);
+				
 		if(addr < 0x4000) // ROM Bank 0
+		{
 			return _data[addr];
-		else if(addr < 0x8000) // Switchable ROM Bank
-			return _data[addr + ((_rom_bank & (getType() <= 0x3 ? 0x1F : 0x7F)) - 1) * 0x4000];
-		else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
-			if(getType() <= 0x3) // MBC1
+		} else if(addr < 0x8000) { // Switchable ROM Bank
+			if(isMBC1() || isMBC2())
+				return _data[addr + ((_rom_bank & 0x1F) - 1) * 0x4000];
+			else if(isMBC3())
+				return _data[addr + ((_rom_bank & 0x7F) - 1) * 0x4000];
+			else if(isMBC5())
+				return _data[addr + ((_rom_bank & 0x1FF) - 1) * 0x4000];
+		} else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
+			if(isMBC1() || isMBC5())
+			{
 				return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
-			else if(_ram_bank >= 0x8 && _ram_bank <= 0xC) // MBC3
-				return _rtc_registers[_ram_bank - 0x8];
-			else
-				return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
+			} else if(isMBC3()) {
+				if(_ram_bank >= 0x8 && _ram_bank <= 0xC)
+					return _rtc_registers[_ram_bank - 0x8];
+				else
+					return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
+			} else if(isMBC2()) {
+				return _ram[addr & 0x1FF];
+			}
 		}
 
 		std::cerr << "Error: Wrong address queried to the Cartridge: 0x" << std::hex << addr << std::endl;
@@ -121,23 +166,29 @@ public:
 			// Select ROM bank (5 low bits)
 			case 0x2000:
 			case 0x3000:
-				if(value == 0) value = 1;
-				if(getType() <= 0x3)
+				if(isMBC1())
 				{
+					if(value == 0) value = 1;
 					value &= 0x1F; // MBC1
 					_rom_bank = (_rom_bank & 0x60) + value;
-				} else if(getType() >= 0xF && getType() <= 0x13) {
+				} else if(isMBC2()) {
+					_rom_bank = (value & 0x0F);
+				} else if(isMBC3()) {
+					if(value == 0) value = 1;
 					value &= 0x7F; // MBC3
 					_rom_bank = value;
+				} else if(isMBC5()) {
+					if(addr < 0x3000)
+						_rom_bank |= value & 0x0FF;
+					else 
+						_rom_bank |= (value & 0x001) << 8;
 				}
 			break;
 
 			case 0x4000:
 			case 0x5000:
-				if(getType() >= 0xF && getType() <= 0x13) // MBC3
+				if(isMBC1())
 				{
-					_ram_bank = value; // Select RAM bank OR RTC Register
-				} else { // MBC1
 					if(_mode)
 					{
 						_ram_bank = value & 3; // Select RAM bank
@@ -146,13 +197,17 @@ public:
 					} else {
 						_rom_bank = (_rom_bank & 0x1F) + ((value & 3) << 5); // Select ROM bank (3 high bits)
 					}
+				} else if(isMBC3()) {
+					_ram_bank = value; // Select RAM bank OR RTC Register
+				} else if(isMBC5()) {
+					_ram_bank = value & 0x0F;
 				}
 			break;
 
 			// Mode Switch
 			case 0x6000:
 			case 0x7000:
-				if(getType() <= 0x3)
+				if(isMBC1())
 				{ // MBC1
 					_mode = value & 1;
 				} else {
@@ -172,9 +227,9 @@ public:
 			// External RAM
 			case 0xA000:
 			case 0xB000:
-				if(getType() <= 0x03 || _ram_bank <= 0x3) // MBC1
+				if(isMBC1() || isMBC2() || _ram_bank <= 0x3 || isMBC5())
 					write_ram(addr, value);
-				else // MBC3
+				else if(isMBC3())
 					_rtc_registers[_ram_bank - 0x8] = value;
 			break;
 			default:
@@ -189,12 +244,32 @@ public:
 		return std::string(_data.data() + 0x0134, 15);
 	}
 
-	inline unsigned int getType() const
+	inline Type getType() const
 	{
-		if(_data.empty()) return 0;
-		return *(_data.data() + 0x0147);
+		if(_data.empty()) return ROM;
+		return Type(*(_data.data() + 0x0147));
 	}
 
+	inline bool isMBC1() const
+	{
+		return getType() <= MBC1_RAM_BATTERY;
+	}
+	
+	inline bool isMBC2() const
+	{
+		return getType() >= MBC2 && getType() <= MBC2_BATTERY;
+	}
+	
+	inline bool isMBC3() const
+	{
+		return getType() >= MBC3_TIMER_BATTERY && getType() <= MBC3_RAM_BATTERY;
+	}
+	
+	inline bool isMBC5() const
+	{
+		return getType() >= MBC5 && getType() <= MBC5_RUMBLE_RAM_BATTERY;
+	}
+	
 	inline size_t getROMSize() const
 	{
 		size_t s = *(_data.data() + 0x0148);
