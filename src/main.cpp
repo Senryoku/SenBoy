@@ -3,11 +3,13 @@
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 
 #include "MMU.hpp"
 #include "Cartridge.hpp"
 #include "GPU.hpp"
 #include "LR35902.hpp"
+#include "GBAudioStream.hpp"
 
 template<typename T>
 struct HexaGen
@@ -56,12 +58,18 @@ int main(int argc, char* argv[])
 		}
 	}
 	
+	Stereo_Buffer gb_snd_buffer;
+	//gb_snd_buffer.bass_freq(461);
+	gb_snd_buffer.clock_rate(LR35902::ClockRate);
+	gb_snd_buffer.set_sample_rate(44100);
+	Gb_Apu apu;
+	//apu.treble_eq(-20.0);
+	apu.output(gb_snd_buffer.center(), gb_snd_buffer.left(), gb_snd_buffer.right());
+	
+	GBAudioStream snd_buffer;
+	
 	LR35902 cpu;
 	MMU mmu;
-	GPU gpu;
-	
-	mmu.cartridge = &cartridge;
-
 	if(!use_movie)
 	{
 		mmu.callback_joy_up = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return false; };
@@ -82,14 +90,16 @@ int main(int argc, char* argv[])
 		mmu.callback_joy_select = [&] () -> bool { return playback[0] & 0x0004; };
 		mmu.callback_joy_start = [&] () -> bool { return playback[0] & 0x0008; };
 	}
-
+	GPU gpu;
+	
+	mmu.cartridge = &cartridge;
+	cpu.apu = &apu;
 	cpu.mmu = &mmu;
 	gpu.mmu = &mmu;
 	
 	gpu.reset();
 	cpu.reset();
 	cpu.reset_cart();
-	
 	cpu.loadBIOS("data/bios.bin");
 	
 	float screen_scale = 2.0f;
@@ -186,6 +196,22 @@ int main(int argc, char* argv[])
 						break;
 					case sf::Keyboard::Add:
 					{
+						float vol = snd_buffer.getVolume();
+						vol = std::min(vol + 10.0f, 100.0f);
+						snd_buffer.setVolume(vol);
+						log_text.setString(std::string("Volume at ").append(std::to_string(vol)));
+						break;
+					}
+					case sf::Keyboard::Subtract:
+					{
+						float vol = snd_buffer.getVolume();
+						vol = std::max(vol - 10.0f, 0.0f);
+						snd_buffer.setVolume(vol);
+						log_text.setString(std::string("Volume at ").append(std::to_string(vol)));
+						break;
+					}
+					case sf::Keyboard::B:
+					{
 						LR35902::addr_t addr;
 						std::cout << "Adding breakpoint. Enter an address: " << std::endl;
 						std::cin >> std::hex >> addr;
@@ -195,7 +221,7 @@ int main(int argc, char* argv[])
 						log_text.setString(ss.str());
 						break;
 					}
-					case sf::Keyboard::Subtract:
+					case sf::Keyboard::N:
 					{
 						cpu.clear_breakpoints();
 						log_text.setString("Cleared breakpoints.");
@@ -282,6 +308,16 @@ int main(int argc, char* argv[])
 					}
 				} while((!debug || frame_by_frame) && !gpu.completed_frame());
 			}
+				
+			bool stereo = apu.end_frame(cpu.frame_cycles);
+			gb_snd_buffer.end_frame(cpu.frame_cycles, stereo);
+			auto samples_count = gb_snd_buffer.samples_avail();
+			if(samples_count > 0)
+			{
+				samples_count = gb_snd_buffer.read_samples(snd_buffer.add_samples(samples_count), samples_count);
+				if(!(snd_buffer.getStatus() == sf::SoundSource::Status::Playing)) snd_buffer.play();
+			}
+			cpu.frame_cycles = 0;
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
 			

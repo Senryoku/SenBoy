@@ -28,6 +28,7 @@ public:
 
 	MMU*	mmu = nullptr;
 	Gb_Apu*	apu = nullptr;
+	size_t  frame_cycles = 0;
 	
 	LR35902();
 	~LR35902() =default;
@@ -50,9 +51,9 @@ public:
 	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
 	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
 	
-	inline int getNextOpcode() const { return mmu->read(_pc); };
-	inline int getNextOperand0() const { return mmu->read(_pc + 1); };
-	inline int getNextOperand1() const { return mmu->read(_pc + 2); };
+	inline int getNextOpcode() const { return read(_pc); };
+	inline int getNextOperand0() const { return read(_pc + 1); };
+	inline int getNextOperand1() const { return read(_pc + 2); };
 	
 	inline bool reached_breakpoint() const { return _breakpoint;  };
 	inline void add_breakpoint(addr_t addr) { _breakpoints.insert(addr); };
@@ -109,7 +110,7 @@ private:
 		word_t _r[7];		///< Another way to access the 8 bits registers.
 	};
 	
-	word_t	_ime = 0x0; // Interrupt Master Enable
+	word_t	_ime; // Interrupt Master Enable
 	
 	bool	_stop = false;	// instr_stop
 	bool	_halt = false;	// instr_halt
@@ -120,7 +121,7 @@ private:
 	inline void set_bc(addr_t val) { _b = (val >> 8) & 0xFF; _c = val & 0xFF; } 
 	inline void set_af(addr_t val) { _a = (val >> 8) & 0xFF; _f = val & 0xF0; } // Low nibble of F is always 0!
 		
-	inline word_t fetch_hl_val() { return mmu->read(getHL()); }
+	inline word_t fetch_hl_val() { return read(getHL()); }
 	inline word_t fetch_val(word_t n) { return (n > 6) ? fetch_hl_val() : _r[n]; }
 	
 	inline void incr_hl() { _l++; if(_l == 0) _h++; }
@@ -130,6 +131,23 @@ private:
 	/// Sets (or clears if false is passed as second argument) the specified flag.
 	inline void set(Flag m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
 	inline void set(word_t m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
+	
+	// APU Intercept
+	inline word_t read(addr_t addr) const
+	{
+		if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+			return apu->read_register(frame_cycles, addr);
+		else
+			return mmu->read(addr);
+	}
+	
+	inline void write(addr_t addr, word_t value)
+	{
+		if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+			apu->write_register(frame_cycles, addr, value);
+		else
+			mmu->write(addr, value);
+	}
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Interrupts management
@@ -155,7 +173,7 @@ private:
 		}
 			
 		_timer_counter += _clock_instr_cycles;
-		word_t TAC = mmu->read(MMU::TAC);
+		word_t TAC = read(MMU::TAC);
 		unsigned int tac_divisor = 1026;
 		if((TAC & 0b11) == 0b01) tac_divisor = 16;
 		if((TAC & 0b11) == 0b10) tac_divisor = 64;
@@ -163,11 +181,11 @@ private:
 		while((TAC & 0b100) && _timer_counter >= tac_divisor)
 		{
 			_timer_counter -= tac_divisor;
-			if(mmu->read(MMU::TIMA) != 0xFF)
+			if(read(MMU::TIMA) != 0xFF)
 			{
 				mmu->rw(MMU::TIMA)++;
 			} else {
-				mmu->rw(MMU::TIMA) = mmu->read(MMU::TMA);
+				mmu->rw(MMU::TIMA) = read(MMU::TMA);
 				// Interrupt
 				mmu->rw(MMU::IF) |= MMU::TimerOverflow;
 			}
@@ -179,8 +197,8 @@ private:
 		if(_ime == 0x00)
 			return;
 		
-		word_t IF = mmu->read(MMU::IF);
-		word_t IE = mmu->read(MMU::IE);
+		word_t IF = read(MMU::IF);
+		word_t IE = read(MMU::IE);
 		if(IF & IE) // An enabled interrupt is waiting
 		{
 			// Check each interrupt in order of priority.
@@ -210,6 +228,7 @@ private:
 	inline void add_cycles(unsigned int c)
 	{
 		_clock_instr_cycles += c;
+		frame_cycles += c;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
@@ -217,8 +236,8 @@ private:
 	
 	inline void push(addr_t addr)
 	{
-		mmu->write(--_sp, word_t((addr >> 8) & 0xFF));
-		mmu->write(--_sp, word_t(addr & 0xFF));
+		write(--_sp, word_t((addr >> 8) & 0xFF));
+		write(--_sp, word_t(addr & 0xFF));
 		assert(_sp <= 0xFFFF - 2);
 	}
 	
@@ -226,8 +245,8 @@ private:
 	{
 		assert(_sp <= 0xFFFF - 2);
 		addr_t addr = 0;
-		addr = mmu->read(_sp++);
-		addr |= static_cast<addr_t>(mmu->read(_sp++)) << 8;
+		addr = read(_sp++);
+		addr |= static_cast<addr_t>(read(_sp++)) << 8;
 		return addr;
 	}
 	

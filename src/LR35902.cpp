@@ -94,40 +94,40 @@ void LR35902::reset_cart()
 	set_de(0x00D8);
 	set_hl(0x014D);
 	
-	mmu->write(0xFF05, word_t(0x00));
-	mmu->write(0xFF06, word_t(0x00));
-	mmu->write(0xFF07, word_t(0x00));
-	mmu->write(0xFF10, word_t(0x80));
-	mmu->write(0xFF11, word_t(0xBF));
-	mmu->write(0xFF12, word_t(0xF3));
-	mmu->write(0xFF14, word_t(0xBF));
-	mmu->write(0xFF16, word_t(0x3F));
-	mmu->write(0xFF17, word_t(0x00));
-	mmu->write(0xFF19, word_t(0xBF));
-	mmu->write(0xFF1A, word_t(0x7F));
-	mmu->write(0xFF1B, word_t(0xFF));
-	mmu->write(0xFF1C, word_t(0x9F));
-	mmu->write(0xFF1E, word_t(0xBF));
-	mmu->write(0xFF20, word_t(0xFF));
-	mmu->write(0xFF21, word_t(0x00));
-	mmu->write(0xFF22, word_t(0x00));
-	mmu->write(0xFF23, word_t(0xBF));
-	mmu->write(0xFF24, word_t(0x77));
-	mmu->write(0xFF25, word_t(0xF3));
-	mmu->write(0xFF26, word_t(0xF1));
-	mmu->write(0xFF40, word_t(0x91));
-	mmu->write(0xFF42, word_t(0x00));
-	mmu->write(0xFF43, word_t(0x00));
-	mmu->write(0xFF45, word_t(0x00));
-	mmu->write(0xFF47, word_t(0xFC));
-	mmu->write(0xFF48, word_t(0xFF));
-	mmu->write(0xFF49, word_t(0xFF));
-	mmu->write(0xFF4A, word_t(0x00));
-	mmu->write(0xFF4B, word_t(0x00));
-	mmu->write(0xFFFF, word_t(0x00));
+	write(0xFF05, word_t(0x00));
+	write(0xFF06, word_t(0x00));
+	write(0xFF07, word_t(0x00));
+	write(0xFF10, word_t(0x80));
+	write(0xFF11, word_t(0xBF));
+	write(0xFF12, word_t(0xF3));
+	write(0xFF14, word_t(0xBF));
+	write(0xFF16, word_t(0x3F));
+	write(0xFF17, word_t(0x00));
+	write(0xFF19, word_t(0xBF));
+	write(0xFF1A, word_t(0x7F));
+	write(0xFF1B, word_t(0xFF));
+	write(0xFF1C, word_t(0x9F));
+	write(0xFF1E, word_t(0xBF));
+	write(0xFF20, word_t(0xFF));
+	write(0xFF21, word_t(0x00));
+	write(0xFF22, word_t(0x00));
+	write(0xFF23, word_t(0xBF));
+	write(0xFF24, word_t(0x77));
+	write(0xFF25, word_t(0xF3));
+	write(0xFF26, word_t(0xF1));
+	write(0xFF40, word_t(0x91));
+	write(0xFF42, word_t(0x00));
+	write(0xFF43, word_t(0x00));
+	write(0xFF45, word_t(0x00));
+	write(0xFF47, word_t(0xFC));
+	write(0xFF48, word_t(0xFF));
+	write(0xFF49, word_t(0xFF));
+	write(0xFF4A, word_t(0x00));
+	write(0xFF4B, word_t(0x00));
+	write(0xFFFF, word_t(0x00));
 	
-	mmu->write(MMU::P1, word_t(0xCF)); // GB Only
-	mmu->write(0xFF50, word_t(0x01)); // Disable BIOS ROM
+	write(MMU::P1, word_t(0xCF)); // GB Only
+	write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
 
 bool LR35902::loadBIOS(const std::string& path)
@@ -143,7 +143,7 @@ bool LR35902::loadBIOS(const std::string& path)
 	file.read((char *) mmu->getPtr(), 256);
 	
 	_pc = 0x0000;
-	mmu->write(0xFF50, word_t(0x00)); // Enable BIOS ROM
+	write(0xFF50, word_t(0x00)); // Enable BIOS ROM
 	
 	return true;
 }
@@ -158,7 +158,7 @@ void LR35902::execute()
 	/*
 	if(_stop)
 	{
-		if(mmu->read(MMU::IF) & MMU::Transition)
+		if(read(MMU::IF) & MMU::Transition)
 		{
 			_stop = false;
 		} else {
@@ -183,7 +183,7 @@ void LR35902::execute()
 	
 	if(_halt)
 	{
-		if(mmu->read(MMU::IF) & mmu->read(MMU::IE))
+		if(read(MMU::IF) & read(MMU::IE))
 		{
 			_halt = false;
 		} else if(!_ime) { // @todo Doesn't happen in GBC mode
@@ -199,7 +199,7 @@ void LR35902::execute()
 	check_interrupts();
 	
 	// Reads the next instruction opcode.
-	word_t opcode = mmu->read(_pc++);
+	word_t opcode = read(_pc++);
 	add_cycles(instr_cycles[opcode]);
 	
 	display_state();
@@ -207,7 +207,7 @@ void LR35902::execute()
 	// And I thought I was being smart... A simple jumptable would have be mush cleaner in the end >.<"
 	if(opcode == 0xCB) // Prefixed instructions
 	{
-		opcode = mmu->read(_pc++);
+		opcode = read(_pc++);
 		add_cycles(instr_cycles_cb[opcode]);
 		word_t x = opcode >> 6; // bits 6 & 7
 		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
@@ -241,27 +241,27 @@ void LR35902::execute()
 			}
 		} else { // (HL)
 			addr_t addr = getHL();
-			word_t value = mmu->read(getHL());
+			word_t value = read(getHL());
 			switch(x)
 			{
 				case 0b00: // Shift & Rotate
 				{
 					switch((opcode >> 3) & 0b111)
 					{
-						case 0: mmu->write(addr, instr_rlc(value)); break;
-						case 1: mmu->write(addr, instr_rrc(value)); break;
-						case 2: mmu->write(addr, instr_rl(value)); break;
-						case 3: mmu->write(addr, instr_rr(value)); break;
-						case  4: mmu->write(addr, instr_sla(value)); break;
-						case 5: mmu->write(addr, instr_sra(value)); break;
-						case 6: mmu->write(addr, instr_swap(value)); break;
-						case 7: mmu->write(addr, instr_srl(value)); break;
+						case 0: write(addr, instr_rlc(value)); break;
+						case 1: write(addr, instr_rrc(value)); break;
+						case 2: write(addr, instr_rl(value)); break;
+						case 3: write(addr, instr_rr(value)); break;
+						case  4: write(addr, instr_sla(value)); break;
+						case 5: write(addr, instr_sra(value)); break;
+						case 6: write(addr, instr_swap(value)); break;
+						case 7: write(addr, instr_srl(value)); break;
 					}
 				}
 				break;
 				case 0b01: instr_bit(y, value); break;
-				case 0b10: mmu->write(addr, instr_res(y, value)); break;
-				case 0b11: mmu->write(addr, instr_set(y, value)); break;
+				case 0b10: write(addr, instr_res(y, value)); break;
+				case 0b11: write(addr, instr_set(y, value)); break;
 				default: instr_nop(); break;
 			}
 						
@@ -281,7 +281,7 @@ void LR35902::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6) // LD (HL), d8
-							mmu->write(getHL(), instr_inc_impl(mmu->read(getHL())));
+							write(getHL(), instr_inc_impl(read(getHL())));
 						else
 							instr_inc(_r[dst_reg]);
 						break;
@@ -291,7 +291,7 @@ void LR35902::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6) // LD (HL), d8
-							mmu->write(getHL(), instr_dec_impl(mmu->read(getHL())));
+							write(getHL(), instr_dec_impl(read(getHL())));
 						else
 							instr_dec(_r[dst_reg]);
 						break;
@@ -301,9 +301,9 @@ void LR35902::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6)	{ // LD (HL), d8
-							mmu->write(getHL(), mmu->read(_pc++));
+							write(getHL(), read(_pc++));
 						} else {
-							_r[dst_reg] = mmu->read(_pc++);
+							_r[dst_reg] = read(_pc++);
 						}
 						break;
 					}
@@ -312,18 +312,18 @@ void LR35902::execute()
 					{
 						case 0x00: instr_nop(); break;
 						case 0x10: instr_stop(); break;
-						case 0x20: instr_jr(!check(Flag::Zero), mmu->read(_pc++)); break;
-						case 0x30: instr_jr(!check(Flag::Carry), mmu->read(_pc++)); break;
+						case 0x20: instr_jr(!check(Flag::Zero), read(_pc++)); break;
+						case 0x30: instr_jr(!check(Flag::Carry), read(_pc++)); break;
 						
 						case 0x01: set_bc(mmu->read16(_pc)); _pc += 2; break;
 						case 0x11: set_de(mmu->read16(_pc)); _pc += 2; break;
 						case 0x21: set_hl(mmu->read16(_pc)); _pc += 2; break;
 						case 0x31: _sp = mmu->read16(_pc); _pc += 2; break;
 						
-						case 0x02: mmu->write(getBC(), _a); break;				// LD (BC), A
-						case 0x12: mmu->write(getDE(), _a); break;				// LD (DE), A
-						case 0x22: mmu->write(getHL(), _a); incr_hl(); break;	// LD (HL+), A
-						case 0x32: mmu->write(getHL(), _a); decr_hl(); break;	// LD (HL-), A
+						case 0x02: write(getBC(), _a); break;				// LD (BC), A
+						case 0x12: write(getDE(), _a); break;				// LD (DE), A
+						case 0x22: write(getHL(), _a); incr_hl(); break;	// LD (HL+), A
+						case 0x32: write(getHL(), _a); decr_hl(); break;	// LD (HL-), A
 						// INC 16bits Reg
 						case 0x03: set_bc(getBC() + 1); break;
 						case 0x13: set_de(getDE() + 1); break;
@@ -335,20 +335,20 @@ void LR35902::execute()
 						case 0x27: instr_daa(); break;
 						case 0x37: instr_scf(); break;
 						//
-						case 0x08: mmu->write(mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
-						case 0x18: instr_jr(mmu->read(_pc++)); break;
-						case 0x28: instr_jr(check(Flag::Zero), mmu->read(_pc++)); break;
-						case 0x38: instr_jr(check(Flag::Carry), mmu->read(_pc++)); break;
+						case 0x08: write(mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
+						case 0x18: instr_jr(read(_pc++)); break;
+						case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
+						case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;
 						// ADD HL, 16bits Reg
 						case 0x09: instr_add_hl(getBC()); break;
 						case 0x19: instr_add_hl(getDE()); break;
 						case 0x29: instr_add_hl(getHL()); break;
 						case 0x39: instr_add_hl(_sp); break;
 						
-						case 0x0A: _a = mmu->read(getBC()); break;
-						case 0x1A: _a = mmu->read(getDE()); break;
-						case 0x2A: _a = mmu->read(getHL()); incr_hl(); break;
-						case 0x3A: _a = mmu->read(getHL()); decr_hl(); break;
+						case 0x0A: _a = read(getBC()); break;
+						case 0x1A: _a = read(getDE()); break;
+						case 0x2A: _a = read(getHL()); incr_hl(); break;
+						case 0x3A: _a = read(getHL()); decr_hl(); break;
 						
 						case 0x0B: set_bc(getBC() - 1); break;
 						case 0x1B: set_de(getDE() - 1); break;
@@ -373,7 +373,7 @@ void LR35902::execute()
 				if(reg_src > 6 && reg_dst > 6) // (HL), (HL) => HALT !
 					instr_halt();
 				else if(reg_dst > 6)
-					mmu->write(getHL(), fetch_val(reg_src));
+					write(getHL(), fetch_val(reg_src));
 				else
 					_r[reg_dst] = fetch_val(reg_src);
 				break;
@@ -407,8 +407,8 @@ void LR35902::execute()
 					{
 						case 0xC0: instr_ret(!check(Flag::Zero)); break;
 						case 0xD0: instr_ret(!check(Flag::Carry)); break;
-						case 0xE0: mmu->write(0xFF00 + mmu->read(_pc++), _a); break;	//	LDH (n), a	
-						case 0xF0: _a = mmu->read(0xFF00 + mmu->read(_pc++)); break;	//	LDH a, (n)
+						case 0xE0: write(0xFF00 + read(_pc++), _a); break;	//	LDH (n), a	
+						case 0xF0: _a = read(0xFF00 + read(_pc++)); break;	//	LDH a, (n)
 						// POP
 						case 0xC1: set_bc(instr_pop()); break;
 						case 0xD1: set_de(instr_pop()); break;
@@ -417,8 +417,8 @@ void LR35902::execute()
 						
 						case 0xC2: _pc += 2; instr_jp(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xD2: _pc += 2; instr_jp(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
-						case 0xE2: mmu->write(0xFF00 + _c, _a); break;	// LD ($FF00+C),A
-						case 0xF2: _a = mmu->read(0xFF00 + _c); break;	// LD A,($FF00+C)
+						case 0xE2: write(0xFF00 + _c, _a); break;	// LD ($FF00+C),A
+						case 0xF2: _a = read(0xFF00 + _c); break;	// LD A,($FF00+C)
 						
 						case 0xC3: instr_jp(mmu->read16(_pc)); break;
 						case 0xF3: instr_di(); break;
@@ -432,17 +432,17 @@ void LR35902::execute()
 						case 0xE5: instr_push(getHL()); break;
 						case 0xF5: instr_push(getAF()); break;
 						
-						case 0xC6: instr_add(mmu->read(_pc++)); break;
-						case 0xD6: instr_sub(mmu->read(_pc++)); break;
-						case 0xE6: instr_and(mmu->read(_pc++)); break;
-						case 0xF6: instr_or(mmu->read(_pc++)); break;
+						case 0xC6: instr_add(read(_pc++)); break;
+						case 0xD6: instr_sub(read(_pc++)); break;
+						case 0xE6: instr_and(read(_pc++)); break;
+						case 0xF6: instr_or(read(_pc++)); break;
 						
 						case 0xC8: instr_ret(check(Flag::Zero)); break;
 						case 0xD8: instr_ret(check(Flag::Carry)); break;
-						case 0xE8: instr_add_sp(mmu->read(_pc++)); break;	// ADD SP, n
+						case 0xE8: instr_add_sp(read(_pc++)); break;	// ADD SP, n
 						case 0xF8:	//LD HL,SP+r8     (16bits LD)
 						{
-							set_hl(add16(_sp, mmu->read(_pc++)));
+							set_hl(add16(_sp, read(_pc++)));
 							break;
 						}
 						
@@ -454,11 +454,11 @@ void LR35902::execute()
 						case 0xCA: _pc += 2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xDA: _pc += 2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;
 						case 0xEA: 
-							mmu->write(mmu->read16(_pc), _a);
+							write(mmu->read16(_pc), _a);
 							_pc += 2;
 							break;	// 16bits LD
 						case 0xFA:
-							_a = mmu->read(mmu->read16(_pc));
+							_a = read(mmu->read16(_pc));
 							_pc += 2;
 							break;
 						
@@ -469,10 +469,10 @@ void LR35902::execute()
 						
 						case 0xCD: _pc += 2; instr_call(mmu->read16(_pc - 2)); break;
 						
-						case 0xCE: instr_adc(mmu->read(_pc++)); break;
-						case 0xDE: instr_sbc(mmu->read(_pc++)); break;
-						case 0xEE: instr_xor(mmu->read(_pc++)); break;
-						case 0xFE: instr_cp(mmu->read(_pc++)); break;
+						case 0xCE: instr_adc(read(_pc++)); break;
+						case 0xDE: instr_sbc(read(_pc++)); break;
+						case 0xEE: instr_xor(read(_pc++)); break;
+						case 0xFE: instr_cp(read(_pc++)); break;
 						default:
 							instr_nop();
 							std::cerr << "Unknown opcode: 0x" << std::hex << (int) opcode << std::endl;

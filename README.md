@@ -3,7 +3,7 @@
 Work in progress GameBoy emulator. It currently runs some games (Kirby's Dream Land, Tetris World, The Legend of Zelda : Link's Awakening, Pokemon Red, some public domain roms...), but only two cartridge mappers (MBC1 and MBC3) are implemented.
 It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow.
 
-# Screenshots
+## Screenshots
 
 ![Kirby on SenBoy](img/SenBoy_Kirby.png)
 
@@ -16,7 +16,6 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
   * Handle Priority
   * Check positions (over window?)
 * (Other Mappers? What popular games uses other mappers than MBC1/3?)
-* (Sound? Probably not)
 * (Constant coding style...)
 
 ## Tests
@@ -45,4 +44,8 @@ SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
 * SFML (http://www.sfml-dev.org/) for graphical output and input handling.
-* Gb_Snd_Emu-0.1.4 (http://www.slack.net/~ant/libs/audio.html#Gb_Snd_Emu) for sound emulation (Included).
+* Gb_Snd_Emu-0.1.4 (http://blargg.8bitalley.com/libs/audio.html#Game_Music_Emu) for sound emulation (Included).
+
+## Thanks
+* http://gbdev.gg8.se/ for their awesome wiki.
+* Shay 'Blargg' Green for his Gb_Snd_Emu library and all his contributions to the emulation scene!
