@@ -10,11 +10,9 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 <img src="img/SenBoy_Zelda0.png" width=300 /> <img src="img/SenBoy_Zelda1.png" width=300 /> <img src="img/SenBoy_Zelda2.png" width=300 />
 
 ## TODO
-* Get Super Mario Land to work.
 * Gameboy Color Mode
 * Sprite debugging
-  * Handle Priority
-  * Check positions (over window?)
+  * Check priority
 * (Other Mappers? What popular games uses other mappers than MBC1/3?)
 * (Constant coding style...)
 
