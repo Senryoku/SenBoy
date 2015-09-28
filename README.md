@@ -48,4 +48,4 @@ SenBoy is NOT sub-instruction accurate.
 
 ## Thanks
 * http://gbdev.gg8.se/ for their awesome wiki.
-* Shay 'Blargg' Green for his Gb_Snd_Emu library and all his contributions to the emulation scene!
+* Shay 'Blargg' Green for his tests roms, his Gb_Snd_Emu library and all his contributions to the emulation scene!
