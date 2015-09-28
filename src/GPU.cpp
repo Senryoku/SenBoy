@@ -97,6 +97,8 @@ struct Sprite
 	
 void GPU::render_line()
 {
+	/// @todo In CGB Mode, BG Map Attributes in VRAM Bank 1 (0x9800-0x9BFF and 0x9C00-0x9FFF)
+	
 	word_t LCDC = getLCDControl();
 	if(!(LCDC & LCDDisplayEnable))
 		return;

@@ -69,12 +69,21 @@ public:
 		InterruptSelection = 0b01001000
 	};
 	
-	enum OAMOption
+	enum OAMOption : word_t
 	{
 		Palette = 0x10,
 		XFlip = 0x20,
 		YFlip = 0x40,
 		Priority = 0x80
+	};
+	
+	enum BGMapAttribute : word_t
+	{
+		BackgroundPalette	= 0x05,
+		TileVRAMBank		= 0x08,
+		HorizontalFlip		= 0x20,
+		VerticalFlip		= 0x40,
+		BGtoOAMPriority		= 0x80
 	};
 	
 	GPU()

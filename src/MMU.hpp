@@ -50,7 +50,19 @@ public:
 		
 		DMA		= 0xFF46, ///< DMA Transfer and Start Address
 		
-		//
+		KEY1	= 0xFF4D, ///< CGB Mode Only - Prepare Speed Switch
+		HDMA1	= 0xFF51, ///< CGB Mode Only - New DMA Source, High
+		HDMA2	= 0xFF52, ///< CGB Mode Only - New DMA Source, Low
+		HDMA3	= 0xFF53, ///< CGB Mode Only - New DMA Destination, High
+		HDMA4	= 0xFF54, ///< CGB Mode Only - New DMA Destination, Low
+		HDMA5	= 0xFF55, ///< CGB Mode Only - New DMA Length/Mode/Start
+		RP 		= 0xFF56, ///< CGB Mode Only - Infrared Communications Port
+		BGPI	= 0xFF68, ///< CGB Mode Only - Background Palette Index
+		BGPD	= 0xFF69, ///< CGB Mode Only - Background Palette Data
+		OBPI	= 0xFF6A, ///< CGB Mode Only - Sprite Palette Index
+		OBPD	= 0xFF6B, ///< CGB Mode Only - Sprite Palette Data
+		SVBK	= 0xFF70, ///< CGB Mode Only - WRAM Bank
+		
 		IF		= 0xFF0F, ///< Interrupt Flag
 		IE		= 0xFFFF  ///< Interrupt Enable
 	};
@@ -137,10 +149,22 @@ public:
 			_mem[DIV] = 0;
 		else if(addr == DMA) // Initialize DMA transfer
 			init_dma(value);
+		else if(addr == HDMA5) // Initialize Vram DMA transfer
+			init_hdma(value);
+		else if(addr == BGPD) // Background Palette Data
+			acces_palette_data(value);
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
 		else
 			_mem[addr] = value;
+	}
+	
+	inline void acces_palette_data(word_t val)
+	{
+		word_t bgpi = read(BGPI);
+		/// @todo CGB Mode, write in BG Palette memory
+		if(bgpi & 0x80) // Auto Increment
+			write(BGPI, word_t(0x80 + ((bgpi + 1) & 0x7F)));
 	}
 	
 	inline void	write(addr_t addr, addr_t value)
@@ -198,6 +222,22 @@ private:
 			write(0xFE00 + i, read(start + i));
 		}
 		*/
+	}
+	
+	void init_hdma(word_t val)
+	{
+		if(!(val & 0x80)) // General Purpose DMA
+		{
+			addr_t src = read(HDMA2) + (read(HDMA1) << 8);
+			addr_t dest = read(HDMA4) + (read(HDMA3) << 8);
+			std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
+			write(HDMA5, word_t(0xFF));
+		} else { // H-Blank DMA
+			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
+			addr_t src = read(HDMA2) + (read(HDMA1) << 8);
+			addr_t dest = read(HDMA4) + (read(HDMA3) << 8);
+			std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
+		}
 	}
 	
 	inline word_t& rw(addr_t addr)
