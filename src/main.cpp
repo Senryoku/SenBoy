@@ -46,15 +46,16 @@ int main(int argc, char* argv[])
 	if(argc > 2)
 	{
 		movie.open(argv[2], std::ios::binary);
-		if(!movie)
-			std::cerr << " Error: Unable to open " << argv[2] << std::endl;
-		else {
+		if(!movie) {
+			std::cerr << "Error: Unable to open " << argv[2] << std::endl;
+		} else {
 			char tmp[4];
 			movie.seekg(0x03C); // Start of the inputs, 4bytes unisgned int little endian
 			movie.read(tmp, 4);
 			movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
 			movie.seekg(movie_start);
 			use_movie = true;
+			std::cout << "Loaded movie file '" << argv[2] << "'. Starting in playback mode..." << std::endl;
 		}
 	}
 	
