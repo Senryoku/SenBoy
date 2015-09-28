@@ -38,7 +38,8 @@ instr_timing			| Regression: FAIL since [this commit](https://github.com/Senryok
 02-write_timing			| :x: FAIL
 03-modify_timing		| :x: FAIL
 
-*: There are a regression since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36) (and before [this one](https://github.com/Senryoku/SenBoy/commit/124faa1eda687f691fb4098ff53931e5547dcc76)).
+*: These are a regression since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36) (and before [this one](https://github.com/Senryoku/SenBoy/commit/124faa1eda687f691fb4098ff53931e5547dcc76)).
+
 SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
