@@ -24,12 +24,12 @@ Test					| Status
 ------------------------|--------
 01-special				| :white_check_mark: PASS
 02-interrupts			| :white_check_mark: PASS
-03-op sp,hl				| Regression: FAIL since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36)
+03-op sp,hl				| :x: FAIL *
 04-op r,imm				| :white_check_mark: PASS
 05-op rp				| :white_check_mark: PASS
 06-ld r,r				| :white_check_mark: PASS
-07-jr,jp,call,ret,rst	| Regression: FAIL since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36)
-08-misc instrs			| Regression: FAIL since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36)
+07-jr,jp,call,ret,rst	| :x: FAIL *
+08-misc instrs			| :x: FAIL *
 09-op r,r				| :white_check_mark: PASS
 10-bit ops				| :white_check_mark: PASS
 11-op a,(hl)			| :white_check_mark: PASS
@@ -38,6 +38,7 @@ instr_timing			| Regression: FAIL since [this commit](https://github.com/Senryok
 02-write_timing			| :x: FAIL
 03-modify_timing		| :x: FAIL
 
+*: There are a regression since [this commit](https://github.com/Senryoku/SenBoy/commit/b50b373a70784d5c63ce9cdcdcebbaca88c7ae36) (and before [this one](https://github.com/Senryoku/SenBoy/commit/124faa1eda687f691fb4098ff53931e5547dcc76)).
 SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
