@@ -55,3 +55,5 @@ Makefile
 saves/*.sav
 movies/
 data/gbc_bios.bin
+gb/*
+gbc/*
