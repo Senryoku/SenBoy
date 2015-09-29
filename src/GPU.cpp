@@ -58,6 +58,7 @@ void GPU::update_mode(bool render)
 				_cycles -= 172;
 				if(render) render_line();
 				getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
+				mmu->check_hdma();
 				exec_stat_interrupt(Mode00);
 			}
 			break;

@@ -245,6 +245,25 @@ public:
 	
 	inline word_t* getPtr() { return _mem; }
 	
+	void check_hdma()
+	{
+		if(_pending_hdma)
+		{
+			for(addr_t i = 0; i < 0x10; ++i)
+				write(_hdma_dst + i, read(_hdma_src + i));
+			
+			_hdma_dst += 0x10;
+			_hdma_src += 0x10;
+			_hdma_length -= 0x10;
+			_mem[HDMA5] = (_hdma_length / 0x10 - 1) & 0xFF;
+			if(_hdma_length == 0)
+			{
+				_pending_hdma = false;
+				_mem[HDMA5] = _mem[HDMA5] | 0x80;
+			}
+		}
+	}
+	
 private:
 	word_t*		_mem = nullptr;
 	word_t*		_wram[7];		///< Switchable bank of working RAM (CGB Only)
@@ -280,27 +299,40 @@ private:
 	}
 	
 	// GCB Only
-	word_t			_bg_palette_data[8][8];
-	word_t			_sprite_palette_data[8][8];
+	word_t		_bg_palette_data[8][8];
+	word_t		_sprite_palette_data[8][8];
+	
+	bool		_pending_hdma = false;
+	addr_t		_hdma_src = 0;
+	addr_t 		_hdma_dst = 0;
+	addr_t 		_hdma_length = 0;
 	
 	void init_hdma(word_t val)
 	{
 		addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
-		addr_t dest = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
+		addr_t dst = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
 		addr_t length = ((val & 0x7F) + 1) * 0x10;
-		//if(dest + length >= 0x2000) length = 0x2000 - dest - 1;
-		assert(dest + length < VRAMSize);
+		//if(dest + length >= 0x2000) length = 0x2000 - dst - 1;
+		assert(dst + length < VRAMSize);
 		
-		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dest; 
+		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dst; 
 		if(!(val & 0x80)) // General Purpose DMA
 		{
+			if(_pending_hdma) // Stop HDMA
+			{
+				_pending_hdma = false;
+				_mem[HDMA5] = _mem[HDMA5] | 0x80;
+			}
+			
 			for(addr_t i = 0; i < length; ++i)
 				dest_ptr[i] = read(src + i);
 			_mem[HDMA5] = 0xFF;
 		} else { // H-Blank DMA
 			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
-			for(addr_t i = 0; i < length; ++i)
-				dest_ptr[i] = read(src + i);
+			_hdma_src = src;
+			_hdma_dst = dst + 0x8000;
+			_hdma_length = length;
+			_pending_hdma = true;
 		}
 	}
 	
