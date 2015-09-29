@@ -164,7 +164,8 @@ int main(int argc, char* argv[])
 	if(!gameboy_tilemap2.create(16 * 8, (8 * 3) * 8))
 		std::cerr << "Error creating the vram texture!" << std::endl;
 	gameboy_tilemap_sprite2.setTexture(gameboy_tilemap2);
-	gameboy_tilemap_sprite2.setPosition(padding + screen_scale * gpu.ScreenWidth + screen_scale * 16 * 8 + padding * 0.5, 
+	gameboy_tilemap_sprite2.setPosition(padding + screen_scale * gpu.ScreenWidth
+										+ screen_scale * 16 * 8 + padding * 0.25, 
 									0.25 * padding);
 	gameboy_tilemap_sprite2.setScale(screen_scale, screen_scale);
 	

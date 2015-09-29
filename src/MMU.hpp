@@ -164,6 +164,8 @@ public:
 			rw(addr) = value;
 		else if(addr < 0x8000) // Memory Banks management
 			cartridge->write(addr, value);
+		else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
+			_vram_bank1[addr - 0x8000] = value;
 		else if(addr >= 0xA000 && addr < 0xC000) // External RAM
 			cartridge->write(addr, value);
 		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Working RAM
@@ -180,8 +182,6 @@ public:
 			write_sprite_palette_data(value);
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
-		else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
-			_vram_bank1[addr - 0x8000] = value;
 		else
 			_mem[addr] = value;
 	}
@@ -260,18 +260,18 @@ private:
 	{
 		if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
 			return _mem[addr];
-		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
-			return _wram[get_wram_bank()][addr - 0xD000];
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
 			return _mem[0x0100]; // Dummy value.
+		} else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+			return _vram_bank1[addr - 0x8000];
+		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
+			return _wram[get_wram_bank()][addr - 0xD000];
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ExternalRAM! Use write instead." << std::endl;
 			return _mem[0x0100];
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 			return _mem[addr - 0x2000];
-		} else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
-			return _vram_bank1[addr - 0x8000];
 		} else { // Internal RAM (or unused)
 			return _mem[addr];
 		}
@@ -283,31 +283,29 @@ private:
 	
 	void init_hdma(word_t val)
 	{
-		addr_t src = (read(HDMA2) + (read(HDMA1) << 8)) & 0xFFF0;
-		addr_t dest = ((read(HDMA4) + (read(HDMA3) << 8)) & 0x1FF0) | 0x8000;
+		addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
+		addr_t dest = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
 		addr_t length = ((val & 0x7F) + 1) * 0x10;
-		if(dest + length >= 0xA000) length = 0xA000 - dest - 1;
-		assert(dest >= 0x8000 && dest + length < 0xA000);
+		assert(dest + length < 0x2000);
 		
+		std::cout << "HMDA " << Hexa(dest) << " " << Hexa(src) << " " << Hexa(length) << std::endl;
+		
+		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dest; 
 		if(!(val & 0x80)) // General Purpose DMA
 		{
-			if(_mem[VBK])
-				std::memcpy(_vram_bank1 + (dest - 0x8000), _mem + src, length);
-			else
-				std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
-			write(HDMA5, word_t(0xFF));
+			for(size_t i = 0; i < length; ++i)
+				*(dest_ptr + i) = read(src + i);
+			_mem[HDMA5] = 0xFF;
 		} else { // H-Blank DMA
 			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
-			if(_mem[VBK])
-				std::memcpy(_vram_bank1 + (dest - 0x8000), _mem + src, length);
-			else
-				std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
+			for(size_t i = 0; i < length; ++i)
+				*(dest_ptr + i) = read(src + i);
 		}
 	}
 	
 	inline size_t get_wram_bank() const
 	{
-		size_t s = read(SVBK);
+		size_t s = read(SVBK) & 7;
 		s = ((s > 0 ? s : 1) & 7) - 1;
 		assert(s >= 0 && s < 7);
 		return s;
