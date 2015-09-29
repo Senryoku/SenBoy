@@ -39,6 +39,7 @@ sf::Font font;
 sf::Text debug_text;
 sf::Text log_text;
 sf::Text tilemap_text;
+sf::Text tilemap_text2;
 
 // Timing
 sf::Clock timing_clock;
@@ -137,12 +138,12 @@ int main(int argc, char* argv[])
 	///////////////////////////////////////////////////////////////////////////
 	// Setting up GUI
 	
-	float screen_scale = 2.0f;
+	float screen_scale = 3.0f;
 	
-	size_t padding = 200;
+	size_t padding = 150;
 	window.create(sf::VideoMode(
 		screen_scale * gpu.ScreenWidth + 1.25 * padding
-			+ screen_scale * 16 * 8 * 2 + padding * 0.25, 
+			+ screen_scale * 16 * 8 * 2 * 0.75 + padding * 0.25, 
 		screen_scale * gpu.ScreenHeight + padding), 
 		"SenBoy");
 	window.setVerticalSyncEnabled(false);
@@ -158,16 +159,16 @@ int main(int argc, char* argv[])
 		std::cerr << "Error creating the vram texture!" << std::endl;
 	gameboy_tilemap_sprite.setTexture(gameboy_tilemap);
 	gameboy_tilemap_sprite.setPosition(padding + screen_scale * gpu.ScreenWidth, 
-									0.25 * padding);
-	gameboy_tilemap_sprite.setScale(screen_scale, screen_scale);
+									padding / 2);
+	gameboy_tilemap_sprite.setScale(0.75 * screen_scale, 0.75 * screen_scale);
 	
 	if(!gameboy_tilemap2.create(16 * 8, (8 * 3) * 8))
 		std::cerr << "Error creating the vram texture!" << std::endl;
 	gameboy_tilemap_sprite2.setTexture(gameboy_tilemap2);
 	gameboy_tilemap_sprite2.setPosition(padding + screen_scale * gpu.ScreenWidth
-										+ screen_scale * 16 * 8 + padding * 0.25, 
-									0.25 * padding);
-	gameboy_tilemap_sprite2.setScale(screen_scale, screen_scale);
+										+ 0.75 * screen_scale * 16 * 8 + padding * 0.25, 
+									padding / 2);
+	gameboy_tilemap_sprite2.setScale(0.75 * screen_scale, 0.75 * screen_scale);
 	
 	color_t* tile_map[2];
 	tile_map[0] = new color_t[(16 * 8) * ((8 * 3) * 8)];
@@ -191,7 +192,13 @@ int main(int argc, char* argv[])
 	tilemap_text.setCharacterSize(16);
 	tilemap_text.setPosition(gameboy_tilemap_sprite.getGlobalBounds().left,
 		gameboy_tilemap_sprite.getGlobalBounds().top - 32);
-	tilemap_text.setString("Tiles");
+	tilemap_text.setString("TileData (Bank 0)");
+	
+	tilemap_text2.setFont(font);
+	tilemap_text2.setCharacterSize(16);
+	tilemap_text2.setPosition(gameboy_tilemap_sprite2.getGlobalBounds().left,
+		gameboy_tilemap_sprite2.getGlobalBounds().top - 32);
+	tilemap_text2.setString("TileData (Bank 1)");
 	
 	///////////////////////////////////////////////////////////////////////////
 	
@@ -301,8 +308,10 @@ int main(int argc, char* argv[])
 		window.draw(gameboy_tilemap_sprite);
 		window.draw(gameboy_tilemap_sprite2);
 		window.draw(debug_text);
+		log_text.setPosition(5, window.getSize().y - log_text.getGlobalBounds().height - 8);
 		window.draw(log_text);
 		window.draw(tilemap_text);
+		window.draw(tilemap_text2);
         window.display();
     }
 	
@@ -427,6 +436,7 @@ void reset()
 	elapsed_cycles = 0;
 	timing_clock.restart();
 	debug_text.setString("Reset");
+	apu.end_frame(cpu.frame_cycles);
 	if(use_movie) movie.seekg(movie_start);
 }
 
@@ -467,14 +477,13 @@ std::string get_debug_text()
 	dt << " BC: " << Hexa(cpu.getBC());
 	dt << " DE: " << Hexa(cpu.getDE());
 	dt << " HL: " << Hexa(cpu.getHL());
-	if(cpu.check(LR35902::Flag::Zero)) dt << " Z";
-	if(cpu.check(LR35902::Flag::Negative)) dt << " N";
-	if(cpu.check(LR35902::Flag::HalfCarry)) dt << " HC";
-	if(cpu.check(LR35902::Flag::Carry)) dt << " C";
 	dt << std::endl;
 	dt << "LY: " << Hexa8(gpu.getLine());
 	dt << " LCDC: " << Hexa8(gpu.getLCDControl());
 	dt << " STAT: " << Hexa8(gpu.getLCDStatus());
-	dt << " P1: " << Hexa8(mmu.read(MMU::P1));
+	if(cpu.check(LR35902::Flag::Zero)) dt << " Z";
+	if(cpu.check(LR35902::Flag::Negative)) dt << " N";
+	if(cpu.check(LR35902::Flag::HalfCarry)) dt << " HC";
+	if(cpu.check(LR35902::Flag::Carry)) dt << " C";
 	return dt.str();
 }

@@ -286,20 +286,19 @@ private:
 		addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
 		addr_t dest = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
 		addr_t length = ((val & 0x7F) + 1) * 0x10;
-		assert(dest + length < 0x2000);
-		
-		std::cout << "HMDA " << Hexa(dest) << " " << Hexa(src) << " " << Hexa(length) << std::endl;
+		//if(dest + length >= 0x2000) length = 0x2000 - dest - 1;
+		assert(dest + length < VRAMSize);
 		
 		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dest; 
 		if(!(val & 0x80)) // General Purpose DMA
 		{
-			for(size_t i = 0; i < length; ++i)
-				*(dest_ptr + i) = read(src + i);
+			for(addr_t i = 0; i < length; ++i)
+				dest_ptr[i] = read(src + i);
 			_mem[HDMA5] = 0xFF;
 		} else { // H-Blank DMA
 			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
-			for(size_t i = 0; i < length; ++i)
-				*(dest_ptr + i) = read(src + i);
+			for(addr_t i = 0; i < length; ++i)
+				dest_ptr[i] = read(src + i);
 		}
 	}
 	

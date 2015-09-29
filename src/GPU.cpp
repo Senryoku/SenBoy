@@ -147,7 +147,7 @@ void GPU::render_line()
 				colors_cache[i] = getBGPaletteColor(i);
 		}
 		
-		word_t	map_attributes; /// CGB Only
+		word_t	map_attributes = 0; /// CGB Only
 		word_t	vram_bank = 0;
 		bool	xflip = false;
 		bool	yflip = false;
@@ -180,7 +180,7 @@ void GPU::render_line()
 				}
 				
 				x = x & 7;
-				tile = mmu->read(mapoffs + lineoffs);
+				tile = mmu->read_vram(0, mapoffs + lineoffs);
 				int idx = tile;
 				// If the second Tile Set is used, the tile index is signed.
 				if(!(LCDC & BGWindowsTileDataSelect) && (tile & 0x80))
@@ -252,8 +252,8 @@ void GPU::render_line()
 					word_t shift = (color_x & 3) * 2;
 					word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					
-					bool over_bg = !line_bg_priorities[s.x + x] && 					// (CGB Only - BG Attributes)
-									(!(Opt & Priority) || line_color_idx[s.x + x] == 0);	// Priority over background or transparency
+					bool over_bg = (!line_bg_priorities[s.x + x] && 							// (CGB Only - BG Attributes)
+									!(Opt & Priority)) || line_color_idx[s.x + x] == 0;	// Priority over background or transparency
 									
 					if(s.x + x >= 0 && s.x + x < ScreenWidth && 		// On screen
 						color != 0 && 									// Transparency

@@ -114,7 +114,7 @@ void Cartridge::write_ram(addr_t addr, byte_t value)
 
 void Cartridge::write(addr_t addr, byte_t value)
 {
-	// MBC1/MBC3 only for now
+	// MBC1/MBC3/MBC5 only for now
 	switch(addr & 0xF000)
 	{
 		// External RAM Switch
@@ -139,9 +139,10 @@ void Cartridge::write(addr_t addr, byte_t value)
 				_rom_bank = value;
 			} else if(isMBC5()) {
 				if(addr < 0x3000)
-					_rom_bank |= value & 0x0FF;
+					_rom_bank |= value & 0xFF;
 				else 
-					_rom_bank |= (value & 0x001) << 8;
+					_rom_bank |= ((size_t(value) & 0x01) << 8) & 0x100;
+				assert(_rom_bank < 0x1E0);
 			}
 		break;
 
