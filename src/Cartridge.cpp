@@ -44,6 +44,13 @@ bool Cartridge::load(const std::string& path)
 				", Type: " << std::hex << getType() <<
 				", Battery: " << (hasBattery() ? "Yes" : "No") <<
 				")" << std::endl;
+				
+	switch(getCGBFlag())
+	{
+		case No: std::cout << "No Color GameBoy support." << std::endl; break;
+		case Partial: std::cout << "Partial Color GameBoy support." << std::endl; break;
+		case Only: std::cout << "Color GameBoy only ROM." << std::endl; break;
+	}
 
 	if(_ram_size > 0)
 	{

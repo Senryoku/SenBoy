@@ -1,3 +1,7 @@
+/**
+ * @file Cartridge inlined function
+**/
+
 inline std::string Cartridge::getName() const
 {
 	if(_data.empty()) return "";

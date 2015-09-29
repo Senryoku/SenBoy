@@ -132,7 +132,9 @@ void LR35902::reset_cart()
 
 bool LR35902::loadBIOS(const std::string& path)
 {
-	std::ifstream file(path, std::ios::binary);
+	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	size_t size = file.tellg();
+	file.seekg(0);
 	
 	if(!file)
 	{
@@ -140,7 +142,7 @@ bool LR35902::loadBIOS(const std::string& path)
 		return false;
 	}
 	
-	file.read((char *) mmu->getPtr(), 256);
+	file.read((char *) mmu->getPtr(), size);
 	
 	_pc = 0x0000;
 	write(0xFF50, word_t(0x00)); // Enable BIOS ROM

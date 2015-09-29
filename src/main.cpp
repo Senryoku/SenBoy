@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 		} else {
 			// VBM
 			char tmp[4];
-			movie.seekg(0x03C); // Start of the inputs, 4bytes unisgned int little endian
+			movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
 			movie.read(tmp, 4);
 			movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
 			movie.seekg(movie_start);
@@ -101,6 +101,7 @@ int main(int argc, char* argv[])
 			
 			// BK2 (Not the archive, just the Input Log)
 			/*movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+			movie_start = movie.tellg();
 			use_movie = true;
 			use_bios = false;*/
 			
@@ -406,12 +407,7 @@ void reset()
 	elapsed_cycles = 0;
 	timing_clock.restart();
 	debug_text.setString("Reset");
-	if(use_movie)
-	{
-		//movie.seekg(movie_start);
-		movie.seekg(0);
-		movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-	}
+	if(use_movie) movie.seekg(movie_start);
 }
 
 // Get next input from the movie file.
