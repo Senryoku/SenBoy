@@ -11,8 +11,9 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 
 ## TODO
 * Gameboy Color Mode
-* Sprite debugging
-  * Check priority
+* GPU debugging
+  * Check sprite priority/transparency
+  * Check window position
 * (Other Mappers? What popular games uses other mappers than MBC1/3?)
 * (Constant coding style...)
 

@@ -7,8 +7,6 @@
 class GPU
 {
 public:
-	using word_t = uint8_t;
-	using addr_t = uint16_t;
 	struct color_t
 	{ 
 		word_t r, g, b, a;

@@ -12,9 +12,6 @@
 class LR35902
 {
 public:
-	using word_t = uint8_t;
-	using addr_t = uint16_t;
-	
 	static constexpr unsigned int	ClockRate = 4194304; // Hz
 	
 	enum Flag : word_t

@@ -109,7 +109,7 @@ public:
 	
 	inline word_t read(addr_t addr) const
 	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
+		if(addr < 0x0100 && read(0xFF50) == 0x00) { // Internal ROM (BIOS)
 			return _mem[addr];
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks
 			return static_cast<word_t>(cartridge->read(addr));
@@ -215,13 +215,7 @@ private:
 		// Doing it here for now.
 		// It couldn't find the exact timing right now.
 		addr_t start = val * 0x100;
-		std::memcpy(_mem + 0xFE00, _mem + start, 40 * 4);
-		/*
-		for(addr_t i = 0; i < 40 * 4; ++i)
-		{
-			write(0xFE00 + i, read(start + i));
-		}
-		*/
+		std::memcpy(_mem + 0xFE00, _mem + start, 0x9F);
 	}
 	
 	void init_hdma(word_t val)

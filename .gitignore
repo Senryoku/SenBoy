@@ -52,4 +52,6 @@ data/bios.bin
 data/bios.gb
 Makefile
 *~
-saves/*
+saves/*.sav
+movies/
+data/gbc_bios.bin

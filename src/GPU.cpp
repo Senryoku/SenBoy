@@ -25,7 +25,6 @@ void GPU::update_mode(bool render)
 					// VBlank Interrupt
 					mmu->rw(MMU::IF) |= MMU::VBlank;
 					exec_stat_interrupt(Mode01);
-					_completed_frame = true;
 				} else {
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
@@ -37,8 +36,9 @@ void GPU::update_mode(bool render)
 			{
 				_cycles -= 456;
 				getLine()++;
-				if(getLine() >= 153)
+				if(getLine() >= 154)
 				{
+					_completed_frame = true;
 					getLine() = 0; 
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
@@ -75,11 +75,11 @@ void GPU::update_mode(bool render)
 
 struct Sprite
 {
-	GPU::word_t	idx;
+	word_t	idx;
 	int			x;
 	int			y;
 	
-	Sprite(GPU::word_t _idx, int _x, int _y) :
+	Sprite(word_t _idx, int _x, int _y) :
 		idx(_idx), x(_x), y(_y)
 	{}
 	
@@ -145,7 +145,7 @@ void GPU::render_line()
 				lineoffs = (wx >> 3);
 
 				// X & Y in window space.
-				x = wx & 0b111;
+				x = wx & 0b111;	/// @todo Find the correct value (this is off in TLoZ:LA)
 				y = (wy + line) & 0b111;
 				draw_window = false; // No need to do it again.
 			}
@@ -165,7 +165,7 @@ void GPU::render_line()
 			}
 			
 			word_t shift = ((7 - x) & 3) * 2;
-			GPU::word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+			word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
 			line_color_idx[i] = color;
 			screen[to1D(i, line)] = colors_cache[color];
 			
@@ -212,9 +212,11 @@ void GPU::render_line()
 				{
 					word_t color_x = (Opt & XFlip) ? x : (7 - x);
 					word_t shift = (color_x & 3) * 2;
-					GPU::word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
-					if(s.x + x >= 0 && s.x + x < ScreenWidth && color != 0 &&
-						(!(Opt & Priority) || line_color_idx[x] == 0))
+					word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
+					if(s.x + x >= 0 && s.x + x < ScreenWidth && 		// On screen
+						color != 0 && 									// Transparency
+						(!(Opt & Priority) || line_color_idx[x] == 0)	// Priority over background
+						)
 					{
 						screen[to1D(s.x + x, line)] = Colors[(palette >> (color * 2)) & 0b11];
 					}
