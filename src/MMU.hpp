@@ -116,6 +116,8 @@ public:
 			return _mem[addr];
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks
 			return static_cast<word_t>(cartridge->read(addr));
+		} else if(cgb_mode() && _mem[VBK] != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+			return _vram_bank1[addr - 0x8000];
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
 			return cartridge->read(addr);
 		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
@@ -126,8 +128,6 @@ public:
 			return read_bg_palette_data();
 		} else if(addr == OBPD) { // Sprite Palette Data
 			return read_sprite_palette_data();
-		} else if(cgb_mode() && _mem[VBK] == 1 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
-			return _vram_bank1[addr - 0x8000];
 		} else { // Internal RAM (or unused)
 			return _mem[addr];
 		}
@@ -164,7 +164,7 @@ public:
 			rw(addr) = value;
 		else if(addr < 0x8000) // Memory Banks management
 			cartridge->write(addr, value);
-		else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
+		else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
 			_vram_bank1[addr - 0x8000] = value;
 		else if(addr >= 0xA000 && addr < 0xC000) // External RAM
 			cartridge->write(addr, value);
@@ -284,7 +284,7 @@ private:
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
 			return _mem[0x0100]; // Dummy value.
-		} else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+		} else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
 			return _vram_bank1[addr - 0x8000];
 		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
 			return _wram[get_wram_bank()][addr - 0xD000];
