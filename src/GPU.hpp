@@ -6,29 +6,7 @@
 
 class GPU
 {
-public:
-	struct color_t
-	{ 
-		word_t r, g, b, a;
-		
-		color_t& operator=(const color_t& v) =default;
-		bool operator==(const color_t& v)
-		{
-			return r == v.r && g == v.g && b == v.b && a == v.a;
-		}
-		
-		color_t& operator=(word_t val)
-		{
-			r = g = b = a = val;
-			return *this;
-		}
-		
-		bool operator==(word_t val)
-		{
-			return r == g && g == b && b == a && a == val;
-		}
-	};
-	
+public:	
 	MMU*		mmu = nullptr;
 	color_t*	screen = nullptr;
 	
@@ -69,15 +47,17 @@ public:
 	
 	enum OAMOption : word_t
 	{
-		Palette = 0x10,
+		PaletteNumber = 0x07,	///< CGB Only
+		OBJTileVRAMBank = 0x08,	///< CGB Only
+		Palette = 0x10,			///< Non CGB Only
 		XFlip = 0x20,
 		YFlip = 0x40,
-		Priority = 0x80
+		Priority = 0x80,
 	};
 	
 	enum BGMapAttribute : word_t
 	{
-		BackgroundPalette	= 0x05,
+		BackgroundPalette	= 0x07,
 		TileVRAMBank		= 0x08,
 		HorizontalFlip		= 0x20,
 		VerticalFlip		= 0x40,
@@ -145,6 +125,7 @@ public:
 	{
 		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
 	}
+
 	
 private:
 	// Timing

@@ -9,11 +9,10 @@
 
 class MMU
 {
-public:
-	using word_t = uint8_t;
-	using addr_t = uint16_t;
-	
-	static constexpr size_t			MemSize = 0x10000; // Bytes
+public:	
+	static constexpr size_t		MemSize = 0x10000; // Bytes
+	static constexpr size_t		WRAMSize = 0x1000; // Bytes
+	static constexpr size_t		VRAMSize = 0x2000; // Bytes
 	
 	enum Register : addr_t
 	{
@@ -47,6 +46,7 @@ public:
 		OBP1	= 0xFF49, ///< Object Palette 1
 		WY		= 0xFF4A,
 		WX		= 0xFF4B,
+		VBK		= 0xFF4F, ///< CGB Mode Only - VRAM Bank
 		
 		DMA		= 0xFF46, ///< DMA Transfer and Start Address
 		
@@ -91,6 +91,9 @@ public:
 	
 	Cartridge*		cartridge = nullptr;
 	
+	bool			force_dmg = false; ///< Force the execution as a simple GameBoy (DMG)
+	bool			force_cgb = false; ///< Force the execution as a Color GameBoy (Priority over force_dmg)
+	
 	using callback_joy = std::function<bool (void)>;
 	callback_joy	callback_joy_up;
 	callback_joy	callback_joy_down;
@@ -109,14 +112,22 @@ public:
 	
 	inline word_t read(addr_t addr) const
 	{
-		if(addr < 0x0100 && read(0xFF50) == 0x00) { // Internal ROM (BIOS)
+		if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
 			return _mem[addr];
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks
 			return static_cast<word_t>(cartridge->read(addr));
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
 			return cartridge->read(addr);
+		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
+			return _wram[get_wram_bank()][addr - 0xD000];
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 			return _mem[addr - 0x2000];
+		} else if(addr == BGPD) { // Background Palette Data
+			return read_bg_palette_data();
+		} else if(addr == OBPD) { // Sprite Palette Data
+			return read_sprite_palette_data();
+		} else if(cgb_mode() && _mem[VBK] == 1 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+			return _vram_bank1[addr - 0x8000];
 		} else { // Internal RAM (or unused)
 			return _mem[addr];
 		}
@@ -132,6 +143,16 @@ public:
 		return _mem[reg];
 	}
 	
+	inline word_t read_vram(word_t bank, addr_t addr)
+	{
+		if(bank == 0)
+			return _mem[addr];
+		else if(bank == 1);
+			return _vram_bank1[addr - 0x8000];
+			
+		return 0;
+	}
+	
 	inline addr_t read16(addr_t addr)
 	{
 		return ((static_cast<addr_t>(read(addr + 1)) << 8) & 0xFF00) | read(addr);
@@ -139,12 +160,14 @@ public:
 	
 	inline void	write(addr_t addr, word_t value)
 	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) // Internal ROM
+		if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) // Internal ROM (~BIOS)
 			rw(addr) = value;
 		else if(addr < 0x8000) // Memory Banks management
 			cartridge->write(addr, value);
 		else if(addr >= 0xA000 && addr < 0xC000) // External RAM
 			cartridge->write(addr, value);
+		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Working RAM
+			_wram[get_wram_bank()][addr - 0xD000] = value;
 		else if(addr == DIV) // DIV reset when written to
 			_mem[DIV] = 0;
 		else if(addr == DMA) // Initialize DMA transfer
@@ -152,20 +175,17 @@ public:
 		else if(addr == HDMA5) // Initialize Vram DMA transfer
 			init_hdma(value);
 		else if(addr == BGPD) // Background Palette Data
-			acces_palette_data(value);
+			write_bg_palette_data(value);
+		else if(addr == OBPD) // Sprite Palette Data
+			write_sprite_palette_data(value);
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
+		else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
+			_vram_bank1[addr - 0x8000] = value;
 		else
 			_mem[addr] = value;
 	}
 	
-	inline void acces_palette_data(word_t val)
-	{
-		word_t bgpi = read(BGPI);
-		/// @todo CGB Mode, write in BG Palette memory
-		if(bgpi & 0x80) // Auto Increment
-			write(BGPI, word_t(0x80 + ((bgpi + 1) & 0x7F)));
-	}
 	
 	inline void	write(addr_t addr, addr_t value)
 	{
@@ -205,10 +225,28 @@ public:
 		}
 	}
 	
+	inline bool cgb_mode() const 
+	{
+		/// @todo Better
+		return force_cgb || (!force_dmg && cartridge->getCGBFlag() != Cartridge::No);
+	}
+	
+	inline color_t get_bg_color(word_t p, word_t c)
+	{
+		return get_color(_bg_palette_data, p, c);
+	}
+	
+	inline color_t get_sprite_color(word_t p, word_t c)
+	{
+		return get_color(_sprite_palette_data, p, c);
+	}
+	
 	inline word_t* getPtr() { return _mem; }
 	
 private:
 	word_t*		_mem = nullptr;
+	word_t*		_wram[7];		///< Switchable bank of working RAM (CGB Only)
+	word_t*		_vram_bank1;	///< VRAM Bank 1 (Bank 0 is in _mem)
 	
 	void init_dma(word_t val)
 	{
@@ -218,26 +256,12 @@ private:
 		std::memcpy(_mem + 0xFE00, _mem + start, 0x9F);
 	}
 	
-	void init_hdma(word_t val)
-	{
-		if(!(val & 0x80)) // General Purpose DMA
-		{
-			addr_t src = read(HDMA2) + (read(HDMA1) << 8);
-			addr_t dest = read(HDMA4) + (read(HDMA3) << 8);
-			std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
-			write(HDMA5, word_t(0xFF));
-		} else { // H-Blank DMA
-			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
-			addr_t src = read(HDMA2) + (read(HDMA1) << 8);
-			addr_t dest = read(HDMA4) + (read(HDMA3) << 8);
-			std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
-		}
-	}
-	
 	inline word_t& rw(addr_t addr)
 	{
-		if(addr < 0x0100 && read(0xFF50) != 0x01) { // Internal ROM
+		if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
 			return _mem[addr];
+		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
+			return _wram[get_wram_bank()][addr - 0xD000];
 		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
 			return _mem[0x0100]; // Dummy value.
@@ -246,8 +270,96 @@ private:
 			return _mem[0x0100];
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 			return _mem[addr - 0x2000];
+		} else if(cgb_mode() && read(VBK) == 1 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+			return _vram_bank1[addr - 0x8000];
 		} else { // Internal RAM (or unused)
 			return _mem[addr];
 		}
+	}
+	
+	// GCB Only
+	word_t			_bg_palette_data[8][8];
+	word_t			_sprite_palette_data[8][8];
+	
+	void init_hdma(word_t val)
+	{
+		addr_t src = (read(HDMA2) + (read(HDMA1) << 8)) & 0xFFF0;
+		addr_t dest = ((read(HDMA4) + (read(HDMA3) << 8)) & 0x1FF0) | 0x8000;
+		addr_t length = ((val & 0x7F) + 1) * 0x10;
+		if(dest + length >= 0xA000) length = 0xA000 - dest - 1;
+		assert(dest >= 0x8000 && dest + length < 0xA000);
+		
+		if(!(val & 0x80)) // General Purpose DMA
+		{
+			if(_mem[VBK])
+				std::memcpy(_vram_bank1 + (dest - 0x8000), _mem + src, length);
+			else
+				std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
+			write(HDMA5, word_t(0xFF));
+		} else { // H-Blank DMA
+			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
+			if(_mem[VBK])
+				std::memcpy(_vram_bank1 + (dest - 0x8000), _mem + src, length);
+			else
+				std::memcpy(_mem + dest, _mem + src, (val & 0x7F) * 0x10 + 1);
+		}
+	}
+	
+	inline size_t get_wram_bank() const
+	{
+		size_t s = read(SVBK);
+		s = ((s > 0 ? s : 1) & 7) - 1;
+		assert(s >= 0 && s < 7);
+		return s;
+	}
+	
+	inline word_t read_bg_palette_data() const
+	{
+		word_t bgpi = read(BGPI);
+		word_t c = bgpi & 7;
+		word_t p = (bgpi >> 3) & 7;
+		return _bg_palette_data[p][c];
+	}
+	
+	inline void write_bg_palette_data(word_t val)
+	{
+		word_t bgpi = read(BGPI);
+		word_t c = bgpi & 7;
+		word_t p = (bgpi >> 3) & 7;
+		_bg_palette_data[p][c] = val;
+		if(bgpi & 0x80) // Auto Increment
+			write(BGPI, word_t(0x80 + ((bgpi + 1) & 0x7F)));
+	}
+	
+	inline word_t read_sprite_palette_data() const
+	{
+		word_t obpi = read(OBPI);
+		word_t c = obpi & 7;
+		word_t p = (obpi >> 3) & 7;
+		return _sprite_palette_data[p][c];
+	}
+	
+	inline void write_sprite_palette_data(word_t val)
+	{
+		word_t obpi = read(OBPI);
+		word_t c = obpi & 7;
+		word_t p = (obpi >> 3) & 7;
+		_sprite_palette_data[p][c] = val;
+		if(obpi & 0x80) // Auto Increment
+			write(OBPI, word_t(0x80 + ((obpi + 1) & 0x7F)));
+	}
+	
+	inline color_t get_color(const word_t (&pd)[8][8], word_t p, word_t c)
+	{
+		color_t r;
+		word_t l = pd[p][c * 2];
+		word_t h = pd[p][c * 2 + 1];
+		addr_t pal = (h << 8) + l;
+		r.r = pal & 0x001F;
+		r.g = (pal >> 5) & 0x001F;
+		r.b = (pal >> 10) & 0x001F;
+		r.a = 255;
+		/// @Todo Better response (not linear)
+		return r * (256.0 / 32.0);
 	}
 };
