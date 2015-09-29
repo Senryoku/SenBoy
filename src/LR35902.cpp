@@ -484,10 +484,17 @@ void LR35902::execute()
 			}
 		}
 	}
-	//assert(_clock_instr_cycles > 0);
+	//assert(_clock_instr_cycles > 0);	
 	_clock_cycles += _clock_instr_cycles;
 	
 	update_timing();
+	
+	// Other component are not affected by double speed
+	if(double_speed())
+	{
+		_clock_instr_cycles /= 2;
+		frame_cycles /= 2;
+	}
 	
 	_breakpoint = (_breakpoints.count(_pc) != 0);
 }

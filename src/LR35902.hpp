@@ -38,6 +38,7 @@ public:
 	/// Loads a BIOS and sets the PC to its first instruction
 	bool loadBIOS(const std::string& path);
 	
+	inline bool double_speed() const { return (mmu->read(MMU::KEY1) & 0x8); }
 	inline uint64_t getClockCycles() const { return _clock_cycles; }
 	inline uint64_t getInstrCycles() const { return _clock_instr_cycles; }
 	inline addr_t getPC() const { return _pc; }

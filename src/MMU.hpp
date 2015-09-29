@@ -182,6 +182,8 @@ public:
 			write_sprite_palette_data(value);
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
+		else if(addr == KEY1) // Double Speed
+			_mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
 		else
 			_mem[addr] = value;
 	}
