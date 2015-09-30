@@ -15,7 +15,7 @@ MMU::~MMU()
 {
 	delete[] _mem;
 	delete[] _vram_bank1;
-	for(int i = 0; i < 7; ++i)
+	for(int i = 0; i < 8; ++i)
 		delete[] _wram[i];
 }
 
@@ -25,8 +25,8 @@ void MMU::reset()
 	std::memset(_vram_bank1, 0x00, VRAMSize);
 	for(int i = 0; i < 7; ++i)
 		std::memset(_wram[i], 0x00, WRAMSize);
-	for(int i = 0; i < 7; ++i)
-		for(int j = 0; j < 7; ++j)
+	for(int i = 0; i < 8; ++i)
+		for(int j = 0; j < 8; ++j)
 		{
 			_bg_palette_data[i][j] = 0xFF;
 			_sprite_palette_data[i][j] = 0xFF;

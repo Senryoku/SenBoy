@@ -160,29 +160,27 @@ public:
 	
 	inline void	write(addr_t addr, word_t value)
 	{
-		if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) // Internal ROM (~BIOS)
-			rw(addr) = value;
-		else if(addr < 0x8000) // Memory Banks management
+		if(addr < 0x8000) // Memory Banks management
 			cartridge->write(addr, value);
 		else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
 			_vram_bank1[addr - 0x8000] = value;
 		else if(addr >= 0xA000 && addr < 0xC000) // External RAM
 			cartridge->write(addr, value);
-		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Working RAM
+		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Working RAM (Bank0 is in _mem)
 			_wram[get_wram_bank()][addr - 0xD000] = value;
 		else if(addr == DIV) // DIV reset when written to
 			_mem[DIV] = 0;
 		else if(addr == DMA) // Initialize DMA transfer
 			init_dma(value);
 		else if(addr == HDMA5) // Initialize Vram DMA transfer
-			init_hdma(value);
+			init_vram_dma(value);
 		else if(addr == BGPD) // Background Palette Data
 			write_bg_palette_data(value);
 		else if(addr == OBPD) // Sprite Palette Data
 			write_sprite_palette_data(value);
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
-		else if(addr == KEY1) // Double Speed
+		else if(addr == KEY1 && (value & 0x01)) // Double Speed - Switch
 			_mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
 		else
 			_mem[addr] = value;
@@ -245,6 +243,7 @@ public:
 	
 	inline word_t* getPtr() { return _mem; }
 	
+	/// CGB Only - Check if a HDMA transfer is pending (should be called once during each HBlank)
 	void check_hdma()
 	{
 		if(_pending_hdma)
@@ -279,9 +278,7 @@ private:
 	
 	inline word_t& rw(addr_t addr)
 	{
-		if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
-			return _mem[addr];
-		} else if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
+		if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
 			std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
 			return _mem[0x0100]; // Dummy value.
 		} else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
@@ -307,7 +304,7 @@ private:
 	addr_t 		_hdma_dst = 0;
 	addr_t 		_hdma_length = 0;
 	
-	void init_hdma(word_t val)
+	void init_vram_dma(word_t val)
 	{
 		addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
 		addr_t dst = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
@@ -338,8 +335,8 @@ private:
 	
 	inline size_t get_wram_bank() const
 	{
-		size_t s = read(SVBK) & 7;
-		s = ((s > 0 ? s : 1) & 7) - 1;
+		size_t s = read(SVBK) & 0x7;	// 1-7
+		s = (s > 0 ? s : 1) - 1;		// 0-6
 		assert(s >= 0 && s < 7);
 		return s;
 	}

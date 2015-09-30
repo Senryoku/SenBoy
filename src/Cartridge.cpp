@@ -138,10 +138,10 @@ void Cartridge::write(addr_t addr, byte_t value)
 				value &= 0x7F; // MBC3
 				_rom_bank = value;
 			} else if(isMBC5()) {
-				if(addr < 0x3000)
+				if(addr < 0x3000)	// Bits 0-7
 					_rom_bank = (_rom_bank & 0x100) | (value & 0xFF);
-				else 
-					_rom_bank = (_rom_bank & 0x0FF) | (((size_t(value) & 0x01) << 8) & 0x100);
+				else 				// Bit 8
+					_rom_bank = (_rom_bank & 0x0FF) | ((value & 0x01) ? 0x100 : 0);
 				assert(_rom_bank < 0x1E0);
 			}
 		break;

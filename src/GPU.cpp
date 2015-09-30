@@ -7,7 +7,7 @@ void GPU::reset()
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 	
 	getLine() = getScrollX() = getScrollY() = getBGPalette() = getLCDControl() = getLCDStatus() = _cycles = 0;
-	getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
+	getLCDStatus() = LCDDisplayEnable | Mode::OAM;
 }
 
 void GPU::update_mode(bool render)
@@ -101,13 +101,15 @@ struct Sprite
 	
 void GPU::render_line()
 {
-	/// @todo In CGB Mode, BG Map Attributes in VRAM Bank 1 (0x9800-0x9BFF and 0x9C00-0x9FFF)
-	
+	word_t line = getLine();
 	word_t LCDC = getLCDControl();
 	if(!(LCDC & LCDDisplayEnable))
+	{
+		for(word_t i = 0; i < ScreenWidth; ++i)
+			screen[to1D(i, line)] = 0xFF;
 		return;
-
-	word_t line = getLine();
+	}
+	
 	assert(line < ScreenHeight);
 	// BG Transparency
 	word_t line_color_idx[ScreenWidth];
