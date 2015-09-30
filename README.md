@@ -84,7 +84,7 @@ SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
 * SFML 2.X (http://www.sfml-dev.org/) for graphical output and input handling.
-* Gb_Snd_Emu-0.1.4 (http://blargg.8bitalley.com/libs/audio.html#Game_Music_Emu) for sound emulation (Included).
+* Gb_Snd_Emu-0.1.4 (http://blargg.8bitalley.com/libs/audio.html#Gb_Snd_Emu) for sound emulation (Included).
 
 ## Thanks
 * http://gbdev.gg8.se/ for their awesome wiki.
