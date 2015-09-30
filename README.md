@@ -25,7 +25,7 @@ make
 ````
 ## Usage
 
-Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (There is basic support for bios skipping, but no way to access it without modifying the source for now).
+Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (You can skip bios by adding option -b in command line, but some things might break (Notably palettes of GameBoy games in GameBoy Color mode)).
 
 **SenBoy still lacks a proper GUI**.
 
