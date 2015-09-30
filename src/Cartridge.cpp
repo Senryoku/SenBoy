@@ -32,8 +32,8 @@ bool Cartridge::load(const std::string& path)
 	if(!(isMBC1() || isMBC3() || isMBC5()))
 	{
 		std::cerr << "Error: Cartridge format 0x" << std::hex << getType()
-				<< " not supported! Exiting..." << std::endl;
-		exit(1);
+				<< " not supported!" << std::endl;
+		return false;
 	}
 
 	_ram_size = getRAMSize();

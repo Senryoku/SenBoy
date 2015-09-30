@@ -25,16 +25,24 @@ make
 ````
 ## Usage
 
-Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (There is basic support for bios skipping, but no way to access it without modifying the source for now).
+Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (You can skip bios by adding option -b in command line, but some things might break (Notably palettes of GameBoy games in GameBoy Color mode)).
 **SenBoy still lacks a proper GUI**.
 Pass a rom path via the command line to run it :
 ````
-./SenBoy path/to/the/rom
+./SenBoy path/to/the/rom [options]
 ````
+
+Option			| Effect
+----------------|--------
+-d				| Uses Debug Display (with tiles data)
+-b				| Skip Boot ROM (May cause problems)
+
 Controls uses any connected Joystick. There is no way to configure it ! (Values are hard coded to match a Xbox360/XboxOne controller)
 When SenBoy is running, the following shortcuts are available:
+
 Key						| Action
 ------------------------|--------
+Backspace				| Reset
 Enter					| Toggle Debugging (Halt Execution)
 Space					| Advance one instruction (in debug)
 L						| Advance one frame

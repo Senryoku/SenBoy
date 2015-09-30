@@ -8,7 +8,10 @@
 #include "LR35902.hpp"
 #include "GBAudioStream.hpp"
 
+#include "CommandLine.hpp"
+
 // Options
+bool debug_display = false;
 bool use_bios = true;
 bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
@@ -30,6 +33,10 @@ GBAudioStream snd_buffer;
 // GUI
 sf::RenderWindow window;
 sf::Texture	gameboy_screen;
+sf::Texture	gameboy_logo_tex;
+sf::Sprite gameboy_logo_sprite;
+
+// Debug GUI
 sf::Sprite gameboy_screen_sprite;
 sf::Texture	gameboy_tilemap;
 sf::Sprite gameboy_tilemap_sprite;
@@ -40,6 +47,7 @@ sf::Text debug_text;
 sf::Text log_text;
 sf::Text tilemap_text;
 sf::Text tilemap_text2;
+color_t* tile_map[2] = {nullptr, nullptr};
 
 // Timing
 sf::Clock timing_clock;
@@ -65,9 +73,24 @@ void get_input_from_movie();
 	
 int main(int argc, char* argv[])
 {
+	if(argc == 1 || has_option(argc, argv, "-h"))
+	{
+		std::cout << "SenBoy - Usage:" << std::endl
+				<< "./SenBoy \"path/to/rom\" [-d] [-b]" << std::endl
+				<< " -d : Enable debug display." << std::endl
+				<< " -b : Skip BIOS." << std::endl;
+		return 0;
+	}
+	
 	std::string path("tests/cpu_instrs/cpu_instrs.gb");
-	if(argc > 1)
-		path = argv[1];
+	char* rom_path = get_file(argc, argv);
+	if(rom_path)
+		path = rom_path;
+	
+	if(has_option(argc, argv, "-d"))
+		debug_display = true;
+	if(has_option(argc, argv, "-b"))
+		use_bios = false;
 	
 	// Linking them all together
 	mmu.cartridge = &cartridge;
@@ -85,14 +108,15 @@ int main(int argc, char* argv[])
 	apu.output(gb_snd_buffer.center(), gb_snd_buffer.left(), gb_snd_buffer.right());
 
 	// Movie loading
-	if(argc > 2)
+	char* movie_path = get_option(argc, argv, "$m");
+	if(movie_path)
 	{
 		// VBM
-		 movie.open(argv[2], std::ios::binary);
+		 movie.open(movie_path, std::ios::binary);
 		// BK2
 		//movie.open(argv[2]);
 		if(!movie) {
-			std::cerr << "Error: Unable to open " << argv[2] << std::endl;
+			std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
 		} else {
 			// VBM
 			char tmp[4];
@@ -109,7 +133,7 @@ int main(int argc, char* argv[])
 			use_movie = true;
 			use_bios = false;*/
 			
-			std::cout << "Loaded movie file '" << argv[2] << "'. Starting in playback mode..." << std::endl;
+			std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
 		}
 	}
 	
@@ -140,10 +164,11 @@ int main(int argc, char* argv[])
 	
 	float screen_scale = 3.0f;
 	
-	size_t padding = 150;
+	size_t padding = 25 * 2 * screen_scale;
 	window.create(sf::VideoMode(
-		screen_scale * gpu.ScreenWidth + 1.25 * padding
-			+ screen_scale * 16 * 8 * 2 * 0.75 + padding * 0.25, 
+		screen_scale * gpu.ScreenWidth +
+			(debug_display ? 1.25 * padding + screen_scale * 16 * 8 * 2 * 0.75 + padding * 0.25 :
+							padding), 
 		screen_scale * gpu.ScreenHeight + padding), 
 		"SenBoy");
 	window.setVerticalSyncEnabled(false);
@@ -154,52 +179,65 @@ int main(int argc, char* argv[])
 	gameboy_screen_sprite.setPosition(padding / 2, 
 									padding / 2);
 	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
+		
+	if(debug_display)
+	{
+		if(!gameboy_tilemap.create(16 * 8, (8 * 3) * 8))
+			std::cerr << "Error creating the vram texture!" << std::endl;
+		gameboy_tilemap_sprite.setTexture(gameboy_tilemap);
+		gameboy_tilemap_sprite.setPosition(padding + screen_scale * gpu.ScreenWidth, 
+										padding / 2);
+		gameboy_tilemap_sprite.setScale(0.75 * screen_scale, 0.75 * screen_scale);
+		
+		if(!gameboy_tilemap2.create(16 * 8, (8 * 3) * 8))
+			std::cerr << "Error creating the vram texture!" << std::endl;
+		gameboy_tilemap_sprite2.setTexture(gameboy_tilemap2);
+		gameboy_tilemap_sprite2.setPosition(padding + screen_scale * gpu.ScreenWidth
+											+ 0.75 * screen_scale * 16 * 8 + padding * 0.25, 
+										padding / 2);
+		gameboy_tilemap_sprite2.setScale(0.75 * screen_scale, 0.75 * screen_scale);
+		
+		tile_map[0] = new color_t[(16 * 8) * ((8 * 3) * 8)];
+		tile_map[1] = new color_t[(16 * 8) * ((8 * 3) * 8)];
+		std::memset(tile_map[0], 128, 4 * (16 * 8) * ((8 * 3) * 8));
+		std::memset(tile_map[1], 128, 4 * (16 * 8) * ((8 * 3) * 8));
+	}
 	
-	if(!gameboy_tilemap.create(16 * 8, (8 * 3) * 8))
-		std::cerr << "Error creating the vram texture!" << std::endl;
-	gameboy_tilemap_sprite.setTexture(gameboy_tilemap);
-	gameboy_tilemap_sprite.setPosition(padding + screen_scale * gpu.ScreenWidth, 
-									padding / 2);
-	gameboy_tilemap_sprite.setScale(0.75 * screen_scale, 0.75 * screen_scale);
-	
-	if(!gameboy_tilemap2.create(16 * 8, (8 * 3) * 8))
-		std::cerr << "Error creating the vram texture!" << std::endl;
-	gameboy_tilemap_sprite2.setTexture(gameboy_tilemap2);
-	gameboy_tilemap_sprite2.setPosition(padding + screen_scale * gpu.ScreenWidth
-										+ 0.75 * screen_scale * 16 * 8 + padding * 0.25, 
-									padding / 2);
-	gameboy_tilemap_sprite2.setScale(0.75 * screen_scale, 0.75 * screen_scale);
-	
-	color_t* tile_map[2];
-	tile_map[0] = new color_t[(16 * 8) * ((8 * 3) * 8)];
-	tile_map[1] = new color_t[(16 * 8) * ((8 * 3) * 8)];
-	std::memset(tile_map[0], 128, 4 * (16 * 8) * ((8 * 3) * 8));
-	std::memset(tile_map[1], 128, 4 * (16 * 8) * ((8 * 3) * 8));
+	if(mmu.cgb_mode())
+		gameboy_logo_tex.loadFromFile("data/gbc_logo.png");
+	else
+		gameboy_logo_tex.loadFromFile("data/gb_logo.png");
+	gameboy_logo_sprite.setTexture(gameboy_logo_tex);
+	gameboy_logo_sprite.setPosition(padding / 2, 
+									padding / 2 + screen_scale * gpu.ScreenHeight);
+	gameboy_logo_sprite.setScale(screen_scale / 4.0, screen_scale / 4.0);
 	
 	if(!font.loadFromFile("data/Hack-Regular.ttf"))
 		std::cerr << "Error loading the font!" << std::endl;
 	
-	debug_text.setFont(font);
-	debug_text.setCharacterSize(16);
-	debug_text.setPosition(5, 0);
-	
-	log_text.setFont(font);
-	log_text.setCharacterSize(16);
-	log_text.setPosition(5, window.getSize().y - padding * 0.5 + 5);
-	log_text.setString("Log");
+	if(debug_display)
+	{
+		debug_text.setFont(font);
+		debug_text.setCharacterSize(16);
+		debug_text.setPosition(5, 0);
+		
+		log_text.setFont(font);
+		log_text.setCharacterSize(16);
+		log_text.setPosition(5, window.getSize().y - padding * 0.5 + 5);
+		log_text.setString("Log");
 
-	tilemap_text.setFont(font);
-	tilemap_text.setCharacterSize(16);
-	tilemap_text.setPosition(gameboy_tilemap_sprite.getGlobalBounds().left,
-		gameboy_tilemap_sprite.getGlobalBounds().top - 32);
-	tilemap_text.setString("TileData (Bank 0)");
-	
-	tilemap_text2.setFont(font);
-	tilemap_text2.setCharacterSize(16);
-	tilemap_text2.setPosition(gameboy_tilemap_sprite2.getGlobalBounds().left,
-		gameboy_tilemap_sprite2.getGlobalBounds().top - 32);
-	tilemap_text2.setString("TileData (Bank 1)");
-	
+		tilemap_text.setFont(font);
+		tilemap_text.setCharacterSize(16);
+		tilemap_text.setPosition(gameboy_tilemap_sprite.getGlobalBounds().left,
+			gameboy_tilemap_sprite.getGlobalBounds().top - 32);
+		tilemap_text.setString("TileData (Bank 0)");
+		
+		tilemap_text2.setFont(font);
+		tilemap_text2.setCharacterSize(16);
+		tilemap_text2.setPosition(gameboy_tilemap_sprite2.getGlobalBounds().left,
+			gameboy_tilemap_sprite2.getGlobalBounds().top - 32);
+		tilemap_text2.setString("TileData (Bank 1)");
+	}
 	///////////////////////////////////////////////////////////////////////////
 	
 	reset();
@@ -260,7 +298,7 @@ int main(int argc, char* argv[])
 		}
 			
 		// Debug display Tilemap
-		//if(debug)
+		if(debug_display)
 		{
 			word_t tile_l;
 			word_t tile_h;
@@ -288,7 +326,10 @@ int main(int argc, char* argv[])
 		
 		if(debug)
 		{
-			debug_text.setString(get_debug_text());
+			if(debug_display)
+				debug_text.setString(get_debug_text());
+			else
+				window.setTitle("SenBoy - Paused");
 		} else {
 			if(--speed_update == 0)
 			{
@@ -300,18 +341,23 @@ int main(int argc, char* argv[])
 			}
 			std::stringstream dt;
 			dt << "Speed " << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << speed << "%";
+			window.setTitle(std::string("SenBoy - ").append(dt.str()));
 			debug_text.setString(dt.str());
 		}
 		
         window.clear(sf::Color::Black);
 		window.draw(gameboy_screen_sprite);
-		window.draw(gameboy_tilemap_sprite);
-		window.draw(gameboy_tilemap_sprite2);
-		window.draw(debug_text);
-		log_text.setPosition(5, window.getSize().y - log_text.getGlobalBounds().height - 8);
-		window.draw(log_text);
-		window.draw(tilemap_text);
-		window.draw(tilemap_text2);
+		window.draw(gameboy_logo_sprite);
+		if(debug_display)
+		{
+			window.draw(gameboy_tilemap_sprite);
+			window.draw(gameboy_tilemap_sprite2);
+			window.draw(debug_text);
+			log_text.setPosition(5, window.getSize().y - log_text.getGlobalBounds().height - 8);
+			window.draw(log_text);
+			window.draw(tilemap_text);
+			window.draw(tilemap_text2);
+		}
         window.display();
     }
 	

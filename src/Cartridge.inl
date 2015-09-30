@@ -75,7 +75,10 @@ inline size_t Cartridge::getRAMSize() const
 
 inline Cartridge::CGBFlag Cartridge::getCGBFlag() const
 {
-	return CGBFlag(*(_data.data() + 0x0143));
+	byte_t flag = *(_data.data() + 0x0143);
+	if(!(flag & 0x80))
+		flag = 0;
+	return CGBFlag(flag);
 }
 
 inline checksum_t Cartridge::getChecksum() const
