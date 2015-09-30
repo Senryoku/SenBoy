@@ -7,9 +7,9 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 ## Screenshots
 
 ### Gameboy Color
-<img src="img/SenBoy_ZeldaDX0.png" width=350 /> <img src="img/SenBoy_ZeldaDX0.png" width=350 />
+<img src="img/SenBoy_ZeldaDX0.png" width=350 /> <img src="img/SenBoy_ZeldaDX1.png" width=350 />
 
-<img src="img/SenBoy_PKM0.png" width=350 /> <img src="img/SenBoy_PKM0.png" width=350 />
+<img src="img/SenBoy_PKM0.png" width=350 /> <img src="img/SenBoy_PKM1.png" width=350 />
 
 ### GameBoy
 <img src="img/SenBoy_Kirby.png" width=350 />
@@ -25,8 +25,10 @@ make
 ````
 ## Usage
 
-Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (You can skip bios by adding option -b in command line, but some things might break (Notably palettes of GameBoy games in GameBoy Color mode)).
+Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (There is basic support for bios skipping, but no way to access it without modifying the source for now).
+
 **SenBoy still lacks a proper GUI**.
+
 Pass a rom path via the command line to run it :
 ````
 ./SenBoy path/to/the/rom [options]
@@ -89,7 +91,7 @@ SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
 * SFML 2.X (http://www.sfml-dev.org/) for graphical output and input handling.
-* Gb_Snd_Emu-0.1.4 (http://blargg.8bitalley.com/libs/audio.html#Game_Music_Emu) for sound emulation (Included).
+* Gb_Snd_Emu-0.1.4 (http://blargg.8bitalley.com/libs/audio.html#Gb_Snd_Emu) for sound emulation (Included).
 
 ## Thanks
 * http://gbdev.gg8.se/ for their awesome wiki.
