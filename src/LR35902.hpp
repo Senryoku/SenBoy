@@ -132,7 +132,7 @@ private:
 	// APU Intercept
 	inline word_t read(addr_t addr) const
 	{
-		if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+		if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
 			return apu->read_register(frame_cycles, addr);
 		else
 			return mmu->read(addr);
@@ -140,7 +140,7 @@ private:
 	
 	inline void write(addr_t addr, word_t value)
 	{
-		if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+		if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
 			apu->write_register(frame_cycles, addr, value);
 		else
 			mmu->write(addr, value);

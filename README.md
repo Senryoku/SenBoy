@@ -38,6 +38,7 @@ Option			| Effect
 ----------------|--------
 -d				| Uses Debug Display (with tiles data)
 -b				| Skip Boot ROM (May cause problems)
+-s				| Disable sound
 
 Controls uses any connected Joystick. There is no way to configure it ! (Values are hard coded to match a Xbox360/XboxOne controller)
 
@@ -56,9 +57,9 @@ NumPad +				| Volume Up
 NumPad -				| Volume Down
 
 ## TODO
+* Fix Stuttering
 * Gameboy Color Mode
   * Debugging (Crash in Pokemon Crystal?)
-  * Fix Shuttering in CGB Mode
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
 * GPU debugging
   * Check sprite priority/transparency

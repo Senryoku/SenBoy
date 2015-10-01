@@ -249,7 +249,7 @@ public:
 		if(_pending_hdma)
 		{
 			for(addr_t i = 0; i < 0x10; ++i)
-				write(_hdma_dst + i, read(_hdma_src + i));
+				_hdma_dst[i] = read(_hdma_src + i);
 			
 			_hdma_dst += 0x10;
 			_hdma_src += 0x10;
@@ -301,7 +301,7 @@ private:
 	
 	bool		_pending_hdma = false;
 	addr_t		_hdma_src = 0;
-	addr_t 		_hdma_dst = 0;
+	word_t* 	_hdma_dst = nullptr;
 	addr_t 		_hdma_length = 0;
 	
 	void init_vram_dma(word_t val)
@@ -311,6 +311,7 @@ private:
 		addr_t length = ((val & 0x7F) + 1) * 0x10;
 		//if(dest + length >= 0x2000) length = 0x2000 - dst - 1;
 		assert(dst + length < VRAMSize);
+		std::cout << "HDMA" << std::endl;
 		
 		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dst; 
 		if(!(val & 0x80)) // General Purpose DMA
@@ -327,7 +328,7 @@ private:
 		} else { // H-Blank DMA
 			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
 			_hdma_src = src;
-			_hdma_dst = dst + 0x8000;
+			_hdma_dst = dest_ptr;
 			_hdma_length = length;
 			_pending_hdma = true;
 		}

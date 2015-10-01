@@ -13,6 +13,7 @@
 // Options
 bool debug_display = false;
 bool use_bios = true;
+bool with_sound = true;
 bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
 bool frame_by_frame = true;
@@ -52,7 +53,7 @@ color_t* tile_map[2] = {nullptr, nullptr};
 // Timing
 sf::Clock timing_clock;
 double frame_time = 0;
-size_t speed_update = 60;
+size_t speed_update = 10;
 double speed = 100;
 uint64_t elapsed_cycles = 0;
 uint64_t speed_mesure_cycles = 0;
@@ -78,7 +79,8 @@ int main(int argc, char* argv[])
 		std::cout << "SenBoy - Usage:" << std::endl
 				<< "./SenBoy \"path/to/rom\" [-d] [-b]" << std::endl
 				<< " -d : Enable debug display." << std::endl
-				<< " -b : Skip BIOS." << std::endl;
+				<< " -b : Skip BIOS." << std::endl
+				<< " -s : Disable sound." << std::endl;
 		return 0;
 	}
 	
@@ -91,10 +93,12 @@ int main(int argc, char* argv[])
 		debug_display = true;
 	if(has_option(argc, argv, "-b"))
 		use_bios = false;
+	if(has_option(argc, argv, "-s"))
+		with_sound = false;
 	
 	// Linking them all together
 	mmu.cartridge = &cartridge;
-	cpu.apu = &apu;
+	if(with_sound) cpu.apu = &apu;
 	cpu.mmu = &mmu;
 	gpu.mmu = &mmu;
 	
@@ -252,6 +256,8 @@ int main(int argc, char* argv[])
 		double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
 		if(real_speed && !debug && diff > 0)
 			sf::sleep(sf::seconds(diff));
+		else
+			std::cout << "Slow! " << elapsed_cycles <<  " "  << diff << std::endl;
 		if(!debug || step)
 		{
 			cpu.frame_cycles = 0;
@@ -281,14 +287,17 @@ int main(int argc, char* argv[])
 				} while((!debug || frame_by_frame) && !gpu.completed_frame());
 				frame_count++;
 			}
-				
-			bool stereo = apu.end_frame(cpu.frame_cycles);
-			gb_snd_buffer.end_frame(cpu.frame_cycles, stereo);
-			auto samples_count = gb_snd_buffer.samples_avail();
-			if(samples_count > 0)
+			
+			if(with_sound)
 			{
-				samples_count = gb_snd_buffer.read_samples(snd_buffer.add_samples(samples_count), samples_count);
-				if(!(snd_buffer.getStatus() == sf::SoundSource::Status::Playing)) snd_buffer.play();
+				bool stereo = apu.end_frame(cpu.frame_cycles);
+				gb_snd_buffer.end_frame(cpu.frame_cycles, stereo);
+				auto samples_count = gb_snd_buffer.samples_avail();
+				if(samples_count > 0)
+				{
+					samples_count = gb_snd_buffer.read_samples(snd_buffer.add_samples(samples_count), samples_count);
+					if(!(snd_buffer.getStatus() == sf::SoundSource::Status::Playing)) snd_buffer.play();
+				}
 			}
 			
 			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
@@ -333,7 +342,7 @@ int main(int argc, char* argv[])
 		} else {
 			if(--speed_update == 0)
 			{
-				speed_update = 60;
+				speed_update = 10;
 				double t = timing_clock.getElapsedTime().asSeconds();
 				speed = 100.0 * (double(speed_mesure_cycles) / cpu.ClockRate) / (t - frame_time);
 				frame_time = t;
