@@ -149,12 +149,25 @@ void GPU::render_line()
 				colors_cache[i] = getBGPaletteColor(i);
 		}
 		
-		word_t	map_attributes = 0; /// CGB Only
+		// CGB Only
+		word_t	map_attributes = 0;
 		word_t	vram_bank = 0;
 		bool	xflip = false;
 		bool	yflip = false;
 		
-		for(word_t i = 0; i < ScreenWidth; ++i)
+		// BG Disabled, draw blank in non CGB mode
+		word_t start_col = 0;
+		if(!mmu->cgb_mode() && !(LCDC & BGDisplay))
+		{
+			for(word_t i = 0; i < (draw_window ? wx : ScreenWidth); ++i)
+			{
+				screen[to1D(i, line)] = 255;
+				line_color_idx[i] = 0;
+			}
+			start_col = wx; // Skip to window drawing
+		}
+		
+		for(word_t i = start_col; i < ScreenWidth; ++i)
 		{
 			// Switch to window rendering
 			if(draw_window && i >= wx)
