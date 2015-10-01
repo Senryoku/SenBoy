@@ -1,6 +1,6 @@
 #include "GPU.hpp"
 
-#include <set>
+#include <list>
 
 void GPU::reset()
 {
@@ -79,23 +79,22 @@ struct Sprite
 	word_t		idx;
 	int			x;
 	int			y;
-	bool		cgb;
 	
-	Sprite(word_t _idx, int _x, int _y, bool _cgb) :
-		idx(_idx), x(_x), y(_y), cgb(_cgb)
+	Sprite(word_t _idx, int _x, int _y) :
+		idx(_idx), x(_x), y(_y)
 	{}
 	
 	bool operator<(const Sprite& s) const
-	{	
-		if(cgb)
-		{
+	{
+		if(x > s.x)
+			return true;
+		else
 			return idx > s.idx;
-		} else {
-			if(x > s.x)
-				return true;
-			else
-				return idx > s.idx;
-		}
+	}
+	
+	bool cmp_cgb(const Sprite& s) const
+	{
+		return idx > s.idx;
 	}
 };
 	
@@ -218,18 +217,21 @@ void GPU::render_line()
 		// 8*16 Sprites ?
 		word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
 		
-		std::set<Sprite> sprites;
+		std::list<Sprite> sprites;
 		for(word_t s = 0; s < 40; s++)
 		{
 			Sprite spr = {
 				s, 
 				mmu->read(0xFE00 + s * 4 + 1) - 8, 
-				mmu->read(0xFE00 + s * 4) - 16, 
-				mmu->cgb_mode()
+				mmu->read(0xFE00 + s * 4) - 16,
 			};
 			if(spr.y <= line && (spr.y + size) > line) // Visible on this scanline?
-				sprites.insert(spr);
+				sprites.push_front(spr);
 		}
+		
+		// If CGB mode, prioriy is only idx, i.e. sprites are already sorted.
+		if(!mmu->cgb_mode())
+			sprites.sort();
 		
 		bool bg_window_no_priority = mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
 		
@@ -255,7 +257,7 @@ void GPU::render_line()
 					word_t shift = (color_x & 3) * 2;
 					word_t color = ((color_x > 3 ? tile_data0 : tile_data1) >> shift) & 0b11;
 					
-					bool over_bg = (!line_bg_priorities[s.x + x] && 							// (CGB Only - BG Attributes)
+					bool over_bg = (!line_bg_priorities[s.x + x] && 					// (CGB Only - BG Attributes)
 									!(Opt & Priority)) || line_color_idx[s.x + x] == 0;	// Priority over background or transparency
 									
 					if(s.x + x >= 0 && s.x + x < ScreenWidth && 		// On screen

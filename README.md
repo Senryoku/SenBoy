@@ -40,6 +40,7 @@ Option			| Effect
 -b				| Skip Boot ROM (May cause problems)
 
 Controls uses any connected Joystick. There is no way to configure it ! (Values are hard coded to match a Xbox360/XboxOne controller)
+
 When SenBoy is running, the following shortcuts are available:
 
 Key						| Action
