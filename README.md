@@ -57,7 +57,7 @@ NumPad +				| Volume Up
 NumPad -				| Volume Down
 
 ## TODO
-* Fix Stuttering
+* Fix Stuttering on Windows (lack of sleep() precision?)
 * Gameboy Color Mode
   * Debugging (Crash in Pokemon Crystal?)
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
