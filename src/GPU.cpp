@@ -111,8 +111,25 @@ void GPU::render_line()
 	// CGB Only
 	bool line_bg_priorities[ScreenWidth];
 	
+	int wx = mmu->read(MMU::WX) - 7; // Can be < 0
+	word_t wy = mmu->read(MMU::WY);
+	
+	bool draw_window = (LCDC & WindowDisplay) && line >= wy;
+		
+	// BG Disabled, draw blank in non CGB mode
+	word_t start_col = 0;
+	if(!mmu->cgb_mode() && !(LCDC & BGDisplay))
+	{
+		for(word_t i = 0; i < (draw_window ? wx : ScreenWidth); ++i)
+		{
+			screen[to1D(i, line)] = 255;
+			line_color_idx[i] = 0;
+		}
+		start_col = wx; // Skip to window drawing
+	}
+		
 	// Render Background Or Window
-	if((LCDC & BGDisplay) || (LCDC & WindowDisplay))
+	if((LCDC & BGDisplay) || draw_window)
 	{
 		// Selects the Tile Map & Tile Data Set
 		addr_t mapoffs = (LCDC & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
@@ -120,10 +137,6 @@ void GPU::render_line()
 		
 		word_t scroll_x = getScrollX();
 		word_t scroll_y = getScrollY();
-		int wx = mmu->read(MMU::WX) - 7; // Can be < 0
-		word_t wy = mmu->read(MMU::WY);
-		
-		bool draw_window = (LCDC & WindowDisplay) && line >= wy;
 		
 		mapoffs += 0x20 * (((line + scroll_y) & 0xFF) >> 3);
 		word_t lineoffs = (scroll_x >> 3);
@@ -149,18 +162,6 @@ void GPU::render_line()
 		word_t	vram_bank = 0;
 		bool	xflip = false;
 		bool	yflip = false;
-		
-		// BG Disabled, draw blank in non CGB mode
-		word_t start_col = 0;
-		if(!mmu->cgb_mode() && !(LCDC & BGDisplay))
-		{
-			for(word_t i = 0; i < (draw_window ? wx : ScreenWidth); ++i)
-			{
-				screen[to1D(i, line)] = 255;
-				line_color_idx[i] = 0;
-			}
-			start_col = wx; // Skip to window drawing
-		}
 		
 		for(word_t i = start_col; i < ScreenWidth; ++i)
 		{
