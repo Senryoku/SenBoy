@@ -240,7 +240,7 @@ void Cartridge::save() const
 	if(!hasBattery())
 		return;
 
-	std::cout << "Saving RAM to '" save_path() << "'... ";
+	std::cout << "Saving RAM to '" << save_path() << "'... ";
 	std::ofstream save(save_path(), std::ios::binary | std::ios::trunc);
 	save.write(_ram.data(), _ram.size());
 	std::cout << "Done." << std::endl;
