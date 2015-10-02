@@ -12,7 +12,7 @@ include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_SOURCE_DIR}/ext/Gb_Snd_Emu-0.1.4")
 
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++11 -Wall" )
-SET( CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_RELEASE} -gdwarf-2" )
+SET( CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2" )
 SET( CMAKE_CXX_FLAGS_RELEASE  "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Ofast" )
 
 # Define sources and executable

@@ -71,9 +71,27 @@ std::string get_debug_text();
 void toggle_speed();
 void reset();
 void get_input_from_movie();
+
+std::string abs_path;
+std::string to_abs(const std::string& path)
+{
+	std::string r = abs_path;
+	r += path;
+	return r;
+}
 	
 int main(int argc, char* argv[])
 {
+	// 'Parsing' executable location
+	abs_path = argv[0];
+	size_t last = abs_path.find_last_of('/');
+	if(last == std::string::npos)
+		last = abs_path.find_last_of('\\');
+	if(last == std::string::npos)
+		abs_path = "./";
+	else
+		abs_path.resize(last + 1);
+	
 	if(argc == 1 || has_option(argc, argv, "-h"))
 	{
 		std::cout << "SenBoy - Usage:" << std::endl
@@ -84,7 +102,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	
-	std::string path("tests/cpu_instrs/cpu_instrs.gb");
+	std::string path(to_abs("tests/cpu_instrs/cpu_instrs.gb"));
 	char* rom_path = get_file(argc, argv);
 	if(rom_path)
 		path = rom_path;
@@ -110,6 +128,7 @@ int main(int argc, char* argv[])
 	gb_snd_buffer.clock_rate(LR35902::ClockRate);
 	gb_snd_buffer.set_sample_rate(sample_rate);
 	apu.output(gb_snd_buffer.center(), gb_snd_buffer.left(), gb_snd_buffer.right());
+	snd_buffer.setVolume(50);
 
 	// Movie loading
 	char* movie_path = get_option(argc, argv, "$m");
@@ -208,15 +227,15 @@ int main(int argc, char* argv[])
 	}
 	
 	if(mmu.cgb_mode())
-		gameboy_logo_tex.loadFromFile("data/gbc_logo.png");
+		gameboy_logo_tex.loadFromFile(to_abs("data/gbc_logo.png"));
 	else
-		gameboy_logo_tex.loadFromFile("data/gb_logo.png");
+		gameboy_logo_tex.loadFromFile(to_abs("data/gb_logo.png"));
 	gameboy_logo_sprite.setTexture(gameboy_logo_tex);
 	gameboy_logo_sprite.setPosition(padding / 2, 
 									padding / 2 + screen_scale * gpu.ScreenHeight);
 	gameboy_logo_sprite.setScale(screen_scale / 4.0, screen_scale / 4.0);
 	
-	if(!font.loadFromFile("data/Hack-Regular.ttf"))
+	if(!font.loadFromFile(to_abs("data/Hack-Regular.ttf")))
 		std::cerr << "Error loading the font!" << std::endl;
 	
 	if(debug_display)
@@ -485,9 +504,9 @@ void reset()
 	if(use_bios)
 	{
 		if(mmu.cgb_mode())
-			cpu.loadBIOS("data/gbc_bios.bin");
+			cpu.loadBIOS(to_abs("data/gbc_bios.bin"));
 		else
-			cpu.loadBIOS("data/bios.bin");
+			cpu.loadBIOS(to_abs("data/bios.bin"));
 	}
 	elapsed_cycles = 0;
 	timing_clock.restart();

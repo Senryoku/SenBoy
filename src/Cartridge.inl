@@ -54,6 +54,12 @@ inline size_t Cartridge::getROMSize() const
 {
 	size_t s = *(_data.data() + 0x0148);
 	if(s < 0x08) return (32 * 1024) << s;
+	switch(s)
+	{
+		case 0x52: return 72 * 0x2000;
+		case 0x53: return 80 * 0x2000;
+		case 0x54: return 96 * 0x2000;
+	}
 	// @todo Handle more cases
 	return 32 * 1024;
 }

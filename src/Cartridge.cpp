@@ -38,18 +38,18 @@ bool Cartridge::load(const std::string& path)
 
 	_ram_size = getRAMSize();
 
-	std::cout << "Loaded '" << path << "' : " << getName() << std::endl;
-	std::cout << " (Size: " << std::dec << _data.size() <<
-				", RAM Size: " << _ram_size <<
-				", Type: " << std::hex << getType() <<
-				", Battery: " << (hasBattery() ? "Yes" : "No") <<
-				")" << std::endl;
+	std::cout << "Loaded '" << path << "' : " << std::endl << 
+				" Title: " << getName() << std::endl <<
+				" Size: " << std::dec << _data.size() <<
+				" B, RAM Size: " << _ram_size <<
+				" B, Type: " << Hexa8(getType()) <<
+				", Battery: " << (hasBattery() ? "Yes" : "No") << std::endl;
 				
 	switch(getCGBFlag())
 	{
-		case No: std::cout << "No Color GameBoy support." << std::endl; break;
-		case Partial: std::cout << "Partial Color GameBoy support." << std::endl; break;
-		case Only: std::cout << "Color GameBoy only ROM." << std::endl; break;
+		case No: std::cout << " No Color GameBoy support." << std::endl; break;
+		case Partial: std::cout << " Partial Color GameBoy support." << std::endl; break;
+		case Only: std::cout << " Color GameBoy only ROM." << std::endl; break;
 	}
 
 	if(_ram_size > 0)
@@ -87,6 +87,7 @@ byte_t Cartridge::read(addr_t addr) const
 	} else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
 		if(isMBC1() || isMBC5())
 		{
+			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < _ram_size);
 			return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
 		} else if(isMBC3()) {
 			if(_ram_bank >= 0x8 && _ram_bank <= 0xC)
@@ -128,21 +129,21 @@ void Cartridge::write(addr_t addr, byte_t value)
 		case 0x3000:
 			if(isMBC1())
 			{
-				value &= 0x1F; // MBC1
+				value &= 0x1F;
 				if(value == 0) value = 1;
 				_rom_bank = (_rom_bank & 0x60) + value;
 			} else if(isMBC2()) {
 				_rom_bank = (value & 0x0F);
 			} else if(isMBC3()) {
 				if(value == 0) value = 1;
-				value &= 0x7F; // MBC3
+				value &= 0x7F;
 				_rom_bank = value;
 			} else if(isMBC5()) {
 				if(addr < 0x3000)	// Bits 0-7
 					_rom_bank = (_rom_bank & 0x100) | (value & 0xFF);
 				else 				// Bit 8
 					_rom_bank = (_rom_bank & 0x0FF) | ((value & 0x01) ? 0x100 : 0);
-				assert(_rom_bank < 0x1E0);
+				assert(_rom_bank < 0x1E0 && _rom_bank < getROMSize() / 0x2000);
 			}
 		break;
 
