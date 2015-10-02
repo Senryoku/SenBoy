@@ -38,7 +38,7 @@ public:
 	/// Loads a BIOS and sets the PC to its first instruction
 	bool loadBIOS(const std::string& path);
 	
-	inline bool double_speed() const { return (mmu->read(MMU::KEY1) & 0x8); }
+	inline bool double_speed() const { return (mmu->read(MMU::KEY1) & 0x80); }
 	inline uint64_t getClockCycles() const { return _clock_cycles; }
 	inline uint64_t getInstrCycles() const { return _clock_instr_cycles; }
 	inline addr_t getPC() const { return _pc; }
@@ -133,7 +133,7 @@ private:
 	inline word_t read(addr_t addr) const
 	{
 		if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-			return apu->read_register(frame_cycles, addr);
+			return apu->read_register(double_speed() ? frame_cycles / 2 : frame_cycles, addr);
 		else
 			return mmu->read(addr);
 	}
@@ -141,7 +141,7 @@ private:
 	inline void write(addr_t addr, word_t value)
 	{
 		if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-			apu->write_register(frame_cycles, addr, value);
+			apu->write_register(double_speed() ? frame_cycles / 2 : frame_cycles, addr, value);
 		else
 			mmu->write(addr, value);
 	}

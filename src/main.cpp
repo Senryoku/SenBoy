@@ -269,9 +269,11 @@ int main(int argc, char* argv[])
 					if(cpu.getInstrCycles() == 0)
 						break;
 
-					gpu.step(cpu.getInstrCycles(), i == frame_skip);
-					elapsed_cycles += cpu.getInstrCycles();
-					speed_mesure_cycles += cpu.getInstrCycles();
+					size_t instr_cycles = (cpu.double_speed() ? cpu.getInstrCycles() / 2 :
+																cpu.getInstrCycles());
+					gpu.step(instr_cycles, i == frame_skip);
+					elapsed_cycles += instr_cycles;
+					speed_mesure_cycles += instr_cycles;
 			
 					if(cpu.reached_breakpoint())
 					{
@@ -288,8 +290,9 @@ int main(int argc, char* argv[])
 			
 			if(with_sound)
 			{
-				bool stereo = apu.end_frame(cpu.frame_cycles);
-				gb_snd_buffer.end_frame(cpu.frame_cycles, stereo);
+				size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
+				bool stereo = apu.end_frame(frame_cycles);
+				gb_snd_buffer.end_frame(frame_cycles, stereo);
 				auto samples_count = gb_snd_buffer.samples_avail();
 				if(samples_count > 0)
 				{
@@ -489,7 +492,8 @@ void reset()
 	elapsed_cycles = 0;
 	timing_clock.restart();
 	debug_text.setString("Reset");
-	apu.end_frame(cpu.frame_cycles);
+	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
+	apu.end_frame(frame_cycles);
 	if(use_movie) movie.seekg(movie_start);
 }
 
