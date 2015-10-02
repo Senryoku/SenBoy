@@ -80,21 +80,16 @@ struct Sprite
 	int			x;
 	int			y;
 	
-	Sprite(word_t _idx, int _x, int _y) :
+	Sprite(word_t _idx = 0, int _x = 0, int _y = 0) :
 		idx(_idx), x(_x), y(_y)
 	{}
 	
 	bool operator<(const Sprite& s) const
 	{
-		if(x > s.x)
+		if(x < s.x)
 			return true;
 		else
-			return idx > s.idx;
-	}
-	
-	bool cmp_cgb(const Sprite& s) const
-	{
-		return idx > s.idx;
+			return idx < s.idx;
 	}
 };
 	
@@ -246,6 +241,10 @@ void GPU::render_line()
 		if(!mmu->cgb_mode())
 			sprites.sort();
 		
+		if(sprites.size() > sprite_limit)
+			sprites.resize(sprite_limit);
+		sprites.reverse(); // Draw the sprites in reverse priority order.
+		
 		bool bg_window_no_priority = mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
 		
 		for(auto& s : sprites)
@@ -286,7 +285,6 @@ void GPU::render_line()
 					}
 				}
 			}
-			if(--sprite_limit == 0) break;
 		}
 	}
 }

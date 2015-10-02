@@ -306,12 +306,13 @@ private:
 	
 	void init_vram_dma(word_t val)
 	{
+		/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
+		/// @todo 8 cycles by 0x10 bytes transfered?
+		
 		addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
 		addr_t dst = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
 		addr_t length = ((val & 0x7F) + 1) * 0x10;
-		//if(dest + length >= 0x2000) length = 0x2000 - dst - 1;
 		assert(dst + length < VRAMSize);
-		std::cout << "HDMA" << std::endl;
 		
 		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dst; 
 		if(!(val & 0x80)) // General Purpose DMA
@@ -326,7 +327,6 @@ private:
 				dest_ptr[i] = read(src + i);
 			_mem[HDMA5] = 0xFF;
 		} else { // H-Blank DMA
-			/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
 			_hdma_src = src;
 			_hdma_dst = dest_ptr;
 			_hdma_length = length;
