@@ -13,7 +13,6 @@ Cartridge::Cartridge(const std::string& path)
 
 Cartridge::~Cartridge()
 {
-	save();
 }
 	
 bool Cartridge::load(const std::string& path)
@@ -233,7 +232,7 @@ std::string Cartridge::save_path() const
 	ss << '_';
 	ss << std::hex << getChecksum();
 	ss << ".sav";
-	return ss.str();
+	return config::to_abs(ss.str());
 }
 
 void Cartridge::save() const
@@ -241,7 +240,7 @@ void Cartridge::save() const
 	if(!hasBattery())
 		return;
 
-	std::cout << "Saving RAM... ";
+	std::cout << "Saving RAM to '" save_path() << "'... ";
 	std::ofstream save(save_path(), std::ios::binary | std::ios::trunc);
 	save.write(_ram.data(), _ram.size());
 	std::cout << "Done." << std::endl;

@@ -23,6 +23,7 @@ set(SOURCES
 	ext/Gb_Snd_Emu-0.1.4/gb_apu/Gb_Oscs.cpp
 	ext/Gb_Snd_Emu-0.1.4/gb_apu/Gb_Apu.cpp
 
+	src/Common.cpp
 	src/Cartridge.cpp
 	src/MMU.cpp
 	src/GPU.cpp

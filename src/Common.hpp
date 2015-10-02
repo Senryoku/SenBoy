@@ -56,3 +56,12 @@ std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 
 using Hexa = HexaGen<addr_t>;
 using Hexa8 = HexaGen<word_t>;
+
+namespace config
+{
+	extern std::string _executable_folder;
+
+	// 'Parsing' executable location
+	void set_folder(const char* exec_path);
+	std::string to_abs(const std::string& path);
+}
