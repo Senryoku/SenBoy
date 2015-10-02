@@ -6,7 +6,7 @@ MMU::MMU() :
 	_mem(new word_t[MemSize]),
 	_vram_bank1(new word_t[VRAMSize])
 {
-	for(int i = 0; i < 7; ++i)
+	for(int i = 0; i < 8; ++i)
 		_wram[i] = new word_t[WRAMSize];
 	reset();
 }
@@ -15,7 +15,7 @@ MMU::~MMU()
 {
 	delete[] _mem;
 	delete[] _vram_bank1;
-	for(int i = 0; i < 7; ++i)
+	for(int i = 0; i < 8; ++i)
 		delete[] _wram[i];
 }
 
@@ -23,7 +23,7 @@ void MMU::reset()
 {
 	std::memset(_mem, 0x00, MemSize);
 	std::memset(_vram_bank1, 0x00, VRAMSize);
-	for(int i = 0; i < 7; ++i)
+	for(int i = 0; i < 8; ++i)
 		std::memset(_wram[i], 0x00, WRAMSize);
 	for(int i = 0; i < 8; ++i)
 		for(int j = 0; j < 8; ++j)

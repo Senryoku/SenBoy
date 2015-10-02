@@ -120,6 +120,8 @@ public:
 			return _vram_bank1[addr - 0x8000];
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
 			return cartridge->read(addr);
+		} else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) { // CGB Mode - Working RAM Bank 0
+			return _wram[0][addr - 0xC000];
 		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
 			return _wram[get_wram_bank()][addr - 0xD000];
 		} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
@@ -166,7 +168,9 @@ public:
 			_vram_bank1[addr - 0x8000] = value;
 		else if(addr >= 0xA000 && addr < 0xC000) // External RAM
 			cartridge->write(addr, value);
-		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Working RAM (Bank0 is in _mem)
+		else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) // CGB Mode - Working RAM Bank 0
+			_wram[0][addr - 0xC000] = value;
+		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Switchable WRAM Banks
 			_wram[get_wram_bank()][addr - 0xD000] = value;
 		else if(addr == DIV) // DIV reset when written to
 			_mem[DIV] = 0;
@@ -178,11 +182,13 @@ public:
 			write_bg_palette_data(value);
 		else if(addr == OBPD) // Sprite Palette Data
 			write_sprite_palette_data(value);
+		else if(addr == VBK) // VRAM Memory Bank (This fixes Oracle of Season...)
+			_mem[VBK] = value & 1;
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
-		else if(addr == KEY1 && (value & 0x01)) // Double Speed - Switch
-			_mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
-		else
+		else if(addr == KEY1) { // Double Speed - Switch
+			if(value & 0x01) _mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
+		} else
 			_mem[addr] = value;
 	}
 	
@@ -264,8 +270,8 @@ public:
 	}
 	
 private:
-	word_t*		_mem = nullptr;
-	word_t*		_wram[7];		///< Switchable bank of working RAM (CGB Only)
+	word_t*		_mem = nullptr;	///< This represent the whole address space and contains all that doesn't fit elsewhere.
+	word_t*		_wram[8];		///< Switchable bank of working RAM (CGB Only)
 	word_t*		_vram_bank1;	///< VRAM Bank 1 (Bank 0 is in _mem)
 	
 	void init_dma(word_t val)
@@ -273,7 +279,8 @@ private:
 		// Doing it here for now.
 		// It couldn't find the exact timing right now.
 		addr_t start = val * 0x100;
-		std::memcpy(_mem + 0xFE00, _mem + start, 0x9F);
+		for(size_t i = 0; i < 0x100; ++i)
+			_mem[0xFE00 + i] = read(start + i);
 	}
 	
 	inline word_t& rw(addr_t addr)
@@ -283,6 +290,8 @@ private:
 			return _mem[0x0100]; // Dummy value.
 		} else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
 			return _vram_bank1[addr - 0x8000];
+		} else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) { // CGB Mode - Working RAM Bank 0
+			return _wram[0][addr - 0xC000];
 		} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
 			return _wram[get_wram_bank()][addr - 0xD000];
 		} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
@@ -336,9 +345,9 @@ private:
 	
 	inline size_t get_wram_bank() const
 	{
-		size_t s = read(SVBK) & 0x7;	// 1-7
-		s = (s > 0 ? s : 1) - 1;		// 0-6
-		assert(s >= 0 && s < 7);
+		size_t s = read(SVBK) & 0x7;	// 0 - 7
+		s = (s > 0 ? s : 1);			// 1 - 7
+		assert(s >= 1 && s < 8);
 		return s;
 	}
 	
