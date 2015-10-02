@@ -89,7 +89,10 @@ void LR35902::reset_cart()
 {
 	_pc = 0x0100;
 	_sp = 0xFFFE;
-	set_af(0x01B0);
+	if(mmu->cgb_mode())
+		set_af(0x11B0);
+	else
+		set_af(0x01B0);
 	set_bc(0x0013);
 	set_de(0x00D8);
 	set_hl(0x014D);
@@ -126,7 +129,8 @@ void LR35902::reset_cart()
 	write(0xFF4B, word_t(0x00));
 	write(0xFFFF, word_t(0x00));
 	
-	write(MMU::P1, word_t(0xCF)); // GB Only
+	if(!mmu->cgb_mode())
+		write(MMU::P1, word_t(0xCF)); // GB Only
 	write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
 

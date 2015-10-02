@@ -244,7 +244,8 @@ void GPU::render_line()
 		
 		if(sprites.size() > sprite_limit)
 			sprites.resize(sprite_limit);
-		sprites.reverse(); // Draw the sprites in reverse priority order.
+		if(!mmu->cgb_mode())
+			sprites.reverse(); // Draw the sprites in reverse priority order.
 		
 		bool bg_window_no_priority = mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
 		
