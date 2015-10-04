@@ -88,6 +88,7 @@ instr_timing			| :white_check_mark: PASS
 01-read_timing			| :x: FAIL
 02-write_timing			| :x: FAIL
 03-modify_timing		| :x: FAIL
+interrupt_time			| :white_check_mark: PASS
 
 SenBoy is NOT sub-instruction accurate.
 

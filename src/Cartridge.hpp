@@ -73,6 +73,7 @@ public:
 	inline bool isMBC5() const;
 	inline bool hasBattery() const;
 	inline size_t getROMSize() const;
+	inline bool hasRAM() const;
 	inline size_t getRAMSize() const;
 	inline CGBFlag getCGBFlag() const;
 	inline checksum_t getChecksum() const;

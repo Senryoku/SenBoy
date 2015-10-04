@@ -36,8 +36,9 @@ void GPU::update_mode(bool render)
 			{
 				_cycles -= 456;
 				getLine()++;
-				if(getLine() >= 154)
-				{
+				if(getLine() == 153) {
+					getLine() = 0; // 456 cycles at line 0 (instead of 154)
+				} else if(getLine() == 1) {
 					_completed_frame = true;
 					getLine() = 0; 
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;

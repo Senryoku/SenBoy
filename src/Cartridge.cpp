@@ -36,7 +36,7 @@ bool Cartridge::load(const std::string& path)
 	}
 
 	_ram_size = getRAMSize();
-
+	
 	std::cout << "Loaded '" << path << "' : " << std::endl << 
 				" Title: " << getName() << std::endl <<
 				" Size: " << std::dec << _data.size() <<
@@ -49,6 +49,12 @@ bool Cartridge::load(const std::string& path)
 		case No: std::cout << " No Color GameBoy support." << std::endl; break;
 		case Partial: std::cout << " Partial Color GameBoy support." << std::endl; break;
 		case Only: std::cout << " Color GameBoy only ROM. Warning: These games are very likely to be broken!..." << std::endl; break;
+	}
+
+	if(_ram_size == 0 && hasRAM())
+	{
+		std::cout << " Warning: ROM claim to have RAM without specifying size... Using 128kB." << std::endl;
+		_ram_size = 128 * 1024;
 	}
 
 	if(_ram_size > 0)
@@ -65,7 +71,7 @@ bool Cartridge::load(const std::string& path)
 			_ram.resize(_ram_size, 0);
 		}
 	}
-
+	
 	return true;
 }
 

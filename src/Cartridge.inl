@@ -50,6 +50,27 @@ inline bool Cartridge::hasBattery() const
 		getType() == HuC1_RAM_BATTERY);
 }
 
+inline bool Cartridge::hasRAM() const
+{
+	return !_data.empty() && (
+		getType() == MBC1_RAM || 
+		getType() == MBC1_RAM_BATTERY || 
+		getType() == ROM_RAM || 			
+		getType() == ROM_RAM_BATTERY || 
+		getType() == MMM01_RAM	 || 
+		getType() == MMM01_RAM_BATTERY	 || 
+		getType() == MBC3_TIMER_RAM_BATTERY	 || 
+		getType() == MBC3_RAM || 
+		getType() == MBC3_RAM_BATTERY || 
+		getType() == MBC4_RAM || 
+		getType() == MBC4_RAM_BATTERY || 
+		getType() == MBC5_RAM || 
+		getType() == MBC5_RAM_BATTERY || 
+		getType() == MBC5_RUMBLE_RAM || 
+		getType() == MBC5_RUMBLE_RAM_BATTERY || 
+		getType() == HuC1_RAM_BATTERY);
+}
+
 inline size_t Cartridge::getROMSize() const
 {
 	size_t s = *(_data.data() + 0x0148);
