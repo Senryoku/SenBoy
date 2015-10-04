@@ -82,7 +82,8 @@ int main(int argc, char* argv[])
 				<< "./SenBoy \"path/to/rom\" [-d] [-b]" << std::endl
 				<< " -d : Enable debug display." << std::endl
 				<< " -b : Skip BIOS." << std::endl
-				<< " -s : Disable sound." << std::endl;
+				<< " -s : Disable sound." << std::endl
+				<< " --dmg : Force DMG mode." << std::endl;
 		if(has_option(argc, argv, "-h")) return 0;
 	}
 	
@@ -97,6 +98,8 @@ int main(int argc, char* argv[])
 		use_bios = false;
 	if(has_option(argc, argv, "-s"))
 		with_sound = false;
+	if(has_option(argc, argv, "--dmg"))
+		mmu.force_dmg = true;
 	
 	// Linking them all together
 	mmu.cartridge = &cartridge;

@@ -24,7 +24,9 @@ public:
 
 	MMU*	mmu = nullptr;
 	Gb_Apu*	apu = nullptr;
+
 	size_t  frame_cycles = 0;
+	bool 	emulate_halt_bug = false; ///< @todo Debug
 	
 	LR35902();
 	~LR35902() =default;
@@ -107,7 +109,7 @@ private:
 		word_t _r[7];		///< Another way to access the 8 bits registers.
 	};
 	
-	word_t	_ime = 0; // Interrupt Master Enable
+	bool	_ime = true; // Interrupt Master Enable
 	
 	bool	_stop = false;	// instr_stop
 	bool	_halt = false;	// instr_halt
@@ -153,9 +155,10 @@ private:
 	{
 		push(_pc);
 		_pc = addr;
-		_ime = 0x00;
+		_ime = false;
 		add_cycles(20);
 		mmu->rw(MMU::IF) &= ~i;
+		_halt = false;
 	}
 	
 	
@@ -191,9 +194,6 @@ private:
 	
 	inline void check_interrupts()
 	{
-		if(_ime == 0x00)
-			return;
-		
 		word_t IF = mmu->read(MMU::IF);
 		word_t IE = mmu->read(MMU::IE);
 		if(IF & IE) // An enabled interrupt is waiting

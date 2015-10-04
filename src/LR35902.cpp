@@ -172,6 +172,7 @@ void LR35902::execute()
 		}
 	}
 	*/
+	
 	/* Handles HALT instruction (Halts until a interrupt is fired).
 	 *
 	 * "If interrupts are disabled (DI) then
@@ -179,22 +180,13 @@ void LR35902::execute()
 	 * the program counter to stop counting for one
 	 * instruction on the GB,GBP, and SGB." 
 	 */
-	static bool repeat = false;
-	static addr_t repeat_pc = 0;
-	if(repeat)
-	{
-		repeat = false;
-		_pc = repeat_pc;
-	}
-	
+	bool halt_bug = false;
 	if(_halt)
 	{
 		if(mmu->read(MMU::IF) & mmu->read(MMU::IE))
 		{
+			halt_bug = !_ime;
 			_halt = false;
-		} else if(!_ime) { // @todo Doesn't happen in GBC mode
-			repeat = true;
-			repeat_pc = _pc;
 		} else { 
 			add_cycles(instr_cycles[0x76]); // Add HALT cycles.
 			update_timing();
@@ -202,11 +194,17 @@ void LR35902::execute()
 		}
 	}
 	
-	check_interrupts();
+	if(_ime) check_interrupts();
 	
 	// Reads the next instruction opcode.
 	word_t opcode = read(_pc++);
 	add_cycles(instr_cycles[opcode]);
+	
+	if(halt_bug && emulate_halt_bug)
+	{
+		halt_bug = false;
+		_pc--;
+	}
 	
 	display_state();
 	// Decode opcode (http://www.z80.info/decoding.htm)

@@ -300,7 +300,7 @@ inline void instr_ret(bool b)
 inline void instr_reti()
 {
 	_pc = pop();
-	_ime = 0x01;
+	_ime = true;
 }
 
 inline void instr_call(addr_t addr)
@@ -531,12 +531,12 @@ inline void instr_scf()
 
 inline void instr_ei()
 {
-	_ime = 0x01;
+	_ime = true;
 }
 
 inline void instr_di()
 {
-	_ime = 0x00;
+	_ime = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
