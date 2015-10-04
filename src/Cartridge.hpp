@@ -94,12 +94,38 @@ private:
 	size_t		_ram_bank = 0;
 	bool		_enable_ram = false;
 	size_t		_ram_size = 0;
-	byte_t		_mode = 0;
+	byte_t		_mode = 0;				///< 0: ROM Banking Mode, 1: RAM Banking Mode
 
 	byte_t		_rtc_registers[5];
 
 	void latch_clock_data();
 	static bool file_exists(const std::string& path);
+	
+	byte_t rom_bank() const
+	{
+		if(isMBC1())
+		{
+			if(_mode == 0)
+				return _rom_bank | (_ram_bank << 5);
+			else
+				return _rom_bank;
+		} else {
+			return _rom_bank;
+		}
+	}
+	
+	byte_t ram_bank() const
+	{
+		if(isMBC1())
+		{
+			if(_mode == 1)
+				return _ram_bank;
+			else
+				return 0;
+		} else {
+			return _ram_bank;
+		}
+	}
 };
 
 #include "Cartridge.inl"

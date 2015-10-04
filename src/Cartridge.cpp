@@ -83,17 +83,15 @@ byte_t Cartridge::read(addr_t addr) const
 	{
 		return _data[addr];
 	} else if(addr < 0x8000) { // Switchable ROM Bank
-		if(isMBC1() || isMBC2())
-			return _data[addr + ((_rom_bank & 0x1F) - 1) * 0x4000];
-		else if(isMBC3())
-			return _data[addr + ((_rom_bank & 0x7F) - 1) * 0x4000];
+		if(isMBC1() || isMBC2() || isMBC3())
+			return _data[addr + ((rom_bank() & 0x7F) - 1) * 0x4000];
 		else if(isMBC5())
-			return _data[addr + ((_rom_bank & 0x1FF) - 1) * 0x4000];
+			return _data[addr + ((rom_bank() & 0x1FF) - 1) * 0x4000];
 	} else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
 		if(isMBC1() || isMBC5())
 		{
-			assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < _ram_size);
-			return _ram[_ram_bank * 0x2000 + (addr & 0x1FFF)];
+			assert(ram_bank() * 0x2000 + (addr & 0x1FFF) < _ram_size);
+			return _ram[ram_bank() * 0x2000 + (addr & 0x1FFF)];
 		} else if(isMBC3()) {
 			if(_ram_bank >= 0x8 && _ram_bank <= 0xC)
 				return _rtc_registers[_ram_bank - 0x8];
@@ -113,8 +111,8 @@ void Cartridge::write_ram(addr_t addr, byte_t value)
 	if(_enable_ram)
 	{
 		assert(!_ram.empty());
-		assert(_ram_bank * 0x2000 + (addr & 0x1FFF) < _ram_size);
-		_ram[_ram_bank * 0x2000 + (addr & 0x1FFF)] = value;
+		assert(ram_bank() * 0x2000 + (addr & 0x1FFF) < _ram_size);
+		_ram[ram_bank() * 0x2000 + (addr & 0x1FFF)] = value;
 	}
 }
 
@@ -132,11 +130,11 @@ void Cartridge::write(addr_t addr, byte_t value)
 		// Select ROM bank (5 low bits)
 		case 0x2000:
 		case 0x3000:
-			if(isMBC1())
+			if(isMBC1()) // lower 5 bits of the ROM Bank
 			{
 				value &= 0x1F;
 				if(value == 0) value = 1;
-				_rom_bank = (_rom_bank & 0x60) + value;
+				_rom_bank = (_rom_bank & 0x60) | value;
 			} else if(isMBC2()) {
 				_rom_bank = (value & 0x0F);
 			} else if(isMBC3()) {
@@ -156,14 +154,9 @@ void Cartridge::write(addr_t addr, byte_t value)
 		case 0x5000:
 			if(isMBC1())
 			{
-				if(_mode)
-				{
-					_ram_bank = value & 3; // Select RAM bank
-					if(_ram_bank * 0x2000 > _ram_size)
-						_ram_bank = _ram_size / 0x2000 - 1;
-				} else {
-					_rom_bank = (_rom_bank & 0x1F) + ((value & 3) << 5); // Select ROM bank (2 high bits)
-				}
+				_ram_bank = value & 3; // Select RAM bank or upper bits of ROM Bank
+				
+				_rom_bank = (_rom_bank & 0x1F) | ((value & 3) << 5); // Select ROM bank (2 high bits)
 			} else if(isMBC3()) {
 				_ram_bank = value; // Select RAM bank OR RTC Register
 			} else if(isMBC5()) {
