@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 				<< " -d : Enable debug display." << std::endl
 				<< " -b : Skip BIOS." << std::endl
 				<< " -s : Disable sound." << std::endl;
-		return 0;
+		if(has_option(argc, argv, "-h")) return 0;
 	}
 	
 	std::string path(config::to_abs("tests/cpu_instrs/cpu_instrs.gb"));

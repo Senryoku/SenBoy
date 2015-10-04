@@ -193,7 +193,7 @@ public:
 	}
 	
 	
-	inline void	write(addr_t addr, addr_t value)
+	inline void	write16(addr_t addr, addr_t value)
 	{
 		write(addr, static_cast<word_t>(value & 0xFF));
 		write(addr + 1, static_cast<word_t>(value >> 8));
@@ -254,17 +254,20 @@ public:
 	{
 		if(_pending_hdma)
 		{
+			word_t length = read(HDMA5) & 0x7F;
 			for(addr_t i = 0; i < 0x10; ++i)
 				_hdma_dst[i] = read(_hdma_src + i);
 			
 			_hdma_dst += 0x10;
 			_hdma_src += 0x10;
-			_hdma_length -= 0x10;
-			_mem[HDMA5] = (_hdma_length / 0x10 - 1) & 0xFF;
-			if(_hdma_length == 0)
+			
+			if(length == 0)
 			{
 				_pending_hdma = false;
 				_mem[HDMA5] = _mem[HDMA5] | 0x80;
+			} else {				
+				length--;
+				_mem[HDMA5] = length;
 			}
 		}
 	}
@@ -311,7 +314,6 @@ private:
 	bool		_pending_hdma = false;
 	addr_t		_hdma_src = 0;
 	word_t* 	_hdma_dst = nullptr;
-	addr_t 		_hdma_length = 0;
 	
 	void init_vram_dma(word_t val)
 	{
@@ -320,8 +322,6 @@ private:
 		
 		addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
 		addr_t dst = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
-		addr_t length = ((val & 0x7F) + 1) * 0x10;
-		assert(dst + length < VRAMSize);
 		
 		word_t* dest_ptr = ((_mem[VBK]) ? _vram_bank1 : _mem + 0x8000) + dst; 
 		if(!(val & 0x80)) // General Purpose DMA
@@ -330,16 +330,21 @@ private:
 			{
 				_pending_hdma = false;
 				_mem[HDMA5] = _mem[HDMA5] | 0x80;
+				return;
 			}
 			
-			for(addr_t i = 0; i < length; ++i)
+			word_t length = ((val & 0x7F) + 1);
+			for(addr_t i = 0; i < length * 0x10; ++i)
 				dest_ptr[i] = read(src + i);
 			_mem[HDMA5] = 0xFF;
 		} else { // H-Blank DMA
 			_hdma_src = src;
 			_hdma_dst = dest_ptr;
-			_hdma_length = length;
-			_pending_hdma = true;
+			_pending_hdma = true; // Perform better in Pokemon Crystal
+
+			// Perform better in pretty much all other games
+			//for(addr_t i = 0; i < length; ++i)
+			//	dest_ptr[i] = read(src + i);
 		}
 	}
 	

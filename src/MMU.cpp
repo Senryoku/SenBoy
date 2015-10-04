@@ -31,4 +31,5 @@ void MMU::reset()
 			_bg_palette_data[i][j] = 0xFF;
 			_sprite_palette_data[i][j] = 0xFF;
 		}
+	_pending_hdma = false;
 }
