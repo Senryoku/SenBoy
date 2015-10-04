@@ -282,7 +282,7 @@ private:
 		// Doing it here for now.
 		// It couldn't find the exact timing right now.
 		addr_t start = val * 0x100;
-		for(size_t i = 0; i < 0x100; ++i)
+		for(size_t i = 0; i < 0xA0; ++i)
 			_mem[0xFE00 + i] = read(start + i);
 	}
 	

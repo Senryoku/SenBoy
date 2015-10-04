@@ -48,7 +48,7 @@ bool Cartridge::load(const std::string& path)
 	{
 		case No: std::cout << " No Color GameBoy support." << std::endl; break;
 		case Partial: std::cout << " Partial Color GameBoy support." << std::endl; break;
-		case Only: std::cout << " Color GameBoy only ROM." << std::endl; break;
+		case Only: std::cout << " Color GameBoy only ROM. Warning: These games are very likely to be broken!..." << std::endl; break;
 	}
 
 	if(_ram_size > 0)
