@@ -236,7 +236,7 @@ void GPU::render_line()
 				mmu->read(0xFE00 + s * 4) - 16,
 			};
 			if(spr.y <= line && (spr.y + size) > line) // Visible on this scanline?
-				sprites.push_front(spr);
+				sprites.push_back(spr);
 		}
 		
 		// If CGB mode, prioriy is only idx, i.e. sprites are already sorted.
