@@ -170,12 +170,12 @@ void GPU::render_line()
 			if(draw_window && i >= wx)
 			{
 				mapoffs = (LCDC & WindowsTileMapDisplaySelect) ? 0x9C00 : 0x9800;
-				mapoffs += 0x20 * (((line + wy) & 0xFF) >> 3);
-				lineoffs = (wx >> 3);
+				mapoffs += 0x20 * (((line - wy)) >> 3);
+				lineoffs = 0;
 
 				// X & Y in window space.
-				x = wx & 0b111;	/// @todo Find the correct value (this is off in TLoZ:LA)
-				y = (wy + line) & 0b111;
+				x = 8; // Force Tile Fetch
+				y = (line - wy) & 7;
 				draw_window = false; // No need to do it again.
 			}
 			
