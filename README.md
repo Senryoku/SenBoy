@@ -17,7 +17,7 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 
 ## Compilation
 
-Compilation as only been tested on Ubuntu/Windows (MinGW) with g++.
+Compilation has only been tested on Ubuntu/Windows (MinGW) with g++.
 You will need CMake and a copy of SFML 2.X (see Dependencies). On Windows, or if you used a non standard install path, you may want to set the CMake variables `CMAKE_PREFIX_PATH` to where are stored the SFML libraries and `SFML_INCLUDE_DIR` to the folder containing the SFML headers (using cmake-gui or the command line). Once this done, this should be enough:
 ````
 cmake .
