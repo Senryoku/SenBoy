@@ -1,7 +1,6 @@
 # SenBoy
 
-Work in progress GameBoy (Color) emulator. All Original Gameboy games I tested were fully functional, expect maybe for some graphical glitches. 
-Gameboy Color support however is still in early stages, Link's Awakening DX for example runs decently, but there is a lot more to do. 
+Work in progress GameBoy (Color) emulator. Original Gameboy compatibility is pretty good, however Gameboy Color support is still in early stages, Link's Awakening DX for example runs decently (being a DMG game with Color functionnalities), but there is a lot of debugging to do (probably timing related). 
 It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow. Also, it still lacks a proper GUI (Debugging infos all over the place).
 
 ## Screenshots
@@ -39,6 +38,7 @@ Option			| Effect
 -d				| Uses Debug Display (with tiles data)
 -b				| Skip Boot ROM (May cause problems)
 -s				| Disable sound
+--dmg | Force execution in original GameBoy mode
 
 Controls uses any connected Joystick. There is no way to configure it ! (Values are hard coded to match a Xbox360/XboxOne controller)
 
@@ -51,19 +51,19 @@ Enter					| Toggle Debugging (Halt Execution)
 Space					| Advance one instruction (in debug)
 L						| Advance one frame
 M						| Toggle Real Speed
-B						| Add a breakpoint (peek at you console)
+B						| Add a breakpoint (peek at your console)
 N						| Clear all breakpoints
 NumPad +				| Volume Up
 NumPad -				| Volume Down
 
 ## TODO
-* Fix Stuttering on Windows (lack of sleep() precision?)
+* ~~Fix Stuttering on Windows (lack of sleep() precision?)~~
 * Gameboy Color Mode
   * Debugging (Crash in Pokemon Crystal?)
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
 * GPU debugging
   * Check sprite priority/transparency
-  * Check window position
+  * ~~Check window position~~
 * (Other Mappers? What popular games uses other mappers than MBC1/3/5?)
 * (Constant coding style...)
 
