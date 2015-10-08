@@ -115,7 +115,7 @@ void GPU::render_line()
 	int wx = mmu->read(MMU::WX) - 7; // Can be < 0
 	word_t wy = mmu->read(MMU::WY);
 	
-	bool draw_window = (LCDC & WindowDisplay) && line >= wy;
+	bool draw_window = (LCDC & WindowDisplay) && wx < 160 && line >= wy;
 		
 	// BG Disabled, draw blank in non CGB mode
 	word_t start_col = 0;
@@ -142,8 +142,8 @@ void GPU::render_line()
 		mapoffs += 0x20 * (((line + scroll_y) & 0xFF) >> 3);
 		word_t lineoffs = (scroll_x >> 3);
 
-		word_t x = scroll_x & 0b111;
-		word_t y = (scroll_y + line) & 0b111;
+		word_t x = scroll_x & 7;
+		word_t y = (scroll_y + line) & 7;
 		
 		// Tile Index
 		word_t tile;
@@ -179,7 +179,7 @@ void GPU::render_line()
 				draw_window = false; // No need to do it again.
 			}
 			
-			if(x == 8 || i == 0) // Loading Tile Data (Next Tile)
+			if(x == 8 || i == start_col) // Loading Tile Data (Next Tile)
 			{
 				if(mmu->cgb_mode())
 				{
@@ -245,8 +245,9 @@ void GPU::render_line()
 		
 		if(sprites.size() > sprite_limit)
 			sprites.resize(sprite_limit);
-		if(!mmu->cgb_mode()) // Draw the sprites in reverse priority order.
-			sprites.reverse();
+		
+		// Draw the sprites in reverse priority order.
+		sprites.reverse();
 		
 		bool bg_window_no_priority = mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
 		
