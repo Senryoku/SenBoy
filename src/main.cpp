@@ -83,7 +83,8 @@ int main(int argc, char* argv[])
 				<< " -d : Enable debug display." << std::endl
 				<< " -b : Skip BIOS." << std::endl
 				<< " -s : Disable sound." << std::endl
-				<< " --dmg : Force DMG mode." << std::endl;
+				<< " --dmg : Force DMG mode." << std::endl
+				<< " --cgb : Force CGB mode." << std::endl;
 		if(has_option(argc, argv, "-h")) return 0;
 	}
 	
@@ -93,13 +94,15 @@ int main(int argc, char* argv[])
 		path = rom_path;
 	
 	if(has_option(argc, argv, "-d"))
-		debug_display = true;
+		debug = debug_display = true;
 	if(has_option(argc, argv, "-b"))
 		use_bios = false;
 	if(has_option(argc, argv, "-s"))
 		with_sound = false;
 	if(has_option(argc, argv, "--dmg"))
 		mmu.force_dmg = true;
+	if(has_option(argc, argv, "--cgb"))
+		mmu.force_cgb = true;
 	
 	// Linking them all together
 	mmu.cartridge = &cartridge;

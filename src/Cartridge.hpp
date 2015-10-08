@@ -48,6 +48,23 @@ public:
 		HuC1_RAM_BATTERY		 = 0xFF
 	};
 	
+	enum HeaderField
+	{
+		Title			= 0x0134,
+		Manufacturer	= 0x013F,
+		HCGBFlag		= 0x0143,
+		NewLicensee		= 0x0144,
+		SGBFlag			= 0x0146,
+		CartType		= 0x0147,
+		ROMSize			= 0x0148,
+		RAMSize			= 0x0149,
+		Destination		= 0x014A,
+		OldLicensee		= 0x014B,
+		Version			= 0x014C,
+		HeaderChecksum	= 0x014D,
+		Checksum		= 0x014E
+	};
+	
 	enum CGBFlag : ubyte_t
 	{
 		No			= 0x00, // DMG Game
@@ -105,8 +122,8 @@ private:
 	{
 		if(isMBC1())
 		{
-			if(_mode == 0)
-				return _rom_bank | (_ram_bank << 5);
+			if(_mode == 0 && *(_data.data() + CartType) >= 0x05)
+				return _rom_bank | ((_ram_bank & 3) << 5);
 			else
 				return _rom_bank;
 		} else {

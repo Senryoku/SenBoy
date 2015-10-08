@@ -38,7 +38,8 @@ Option			| Effect
 -d				| Uses Debug Display (with tiles data)
 -b				| Skip Boot ROM (May cause problems)
 -s				| Disable sound
---dmg | Force execution in original GameBoy mode
+--dmg 			| Force execution in original GameBoy mode
+--cgb 			| Force execution in GameBoy Color mode
 
 Controls uses any connected Joystick. There is no way to configure it ! (Values are hard coded to match a Xbox360/XboxOne controller)
 

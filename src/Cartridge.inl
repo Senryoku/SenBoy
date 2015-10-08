@@ -5,13 +5,13 @@
 inline std::string Cartridge::getName() const
 {
 	if(_data.empty()) return "";
-	return std::string(_data.data() + 0x0134, 15);
+	return std::string(_data.data() + Title, 15);
 }
 
 inline Cartridge::Type Cartridge::getType() const
 {
 	if(_data.empty()) return ROM;
-	return Type(*(_data.data() + 0x0147));
+	return Type(*(_data.data() + CartType));
 }
 
 inline bool Cartridge::isMBC1() const
@@ -73,13 +73,13 @@ inline bool Cartridge::hasRAM() const
 
 inline size_t Cartridge::getROMSize() const
 {
-	size_t s = *(_data.data() + 0x0148);
+	size_t s = *(_data.data() + ROMSize);
 	if(s < 0x08) return (32 * 1024) << s;
 	switch(s)
 	{
-		case 0x52: return 72 * 0x2000;
-		case 0x53: return 80 * 0x2000;
-		case 0x54: return 96 * 0x2000;
+		case 0x52: return 72 * 0x4000;
+		case 0x53: return 80 * 0x4000;
+		case 0x54: return 96 * 0x4000;
 	}
 	// @todo Handle more cases
 	return 32 * 1024;
@@ -88,7 +88,7 @@ inline size_t Cartridge::getROMSize() const
 inline size_t Cartridge::getRAMSize() const
 {
 	if(_data.empty()) return 0;
-	switch(*(_data.data() + 0x0149))
+	switch(*(_data.data() + RAMSize))
 	{
 		default:
 		case 0x00: return 0; break;
@@ -102,7 +102,7 @@ inline size_t Cartridge::getRAMSize() const
 
 inline Cartridge::CGBFlag Cartridge::getCGBFlag() const
 {
-	byte_t flag = *(_data.data() + 0x0143);
+	byte_t flag = *(_data.data() + HCGBFlag);
 	if(!(flag & 0x80))
 		flag = 0;
 	return CGBFlag(flag);
@@ -110,12 +110,12 @@ inline Cartridge::CGBFlag Cartridge::getCGBFlag() const
 
 inline checksum_t Cartridge::getChecksum() const
 {
-	byte_t h = *(_data.data() + 0x014E);
-	byte_t l = *(_data.data() + 0x014F);
+	byte_t h = *(_data.data() + Checksum);
+	byte_t l = *(_data.data() + Checksum + 1);
 	return (h << 8) | l;
 }
 
 inline unsigned int Cartridge::getHeaderChecksum() const
 {
-	return static_cast<unsigned int>(*(_data.data() + 0x014D) & 0xFF);
+	return static_cast<unsigned int>(*(_data.data() + HeaderChecksum) & 0xFF);
 }

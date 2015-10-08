@@ -39,9 +39,9 @@ bool Cartridge::load(const std::string& path)
 	
 	std::cout << "Loaded '" << path << "' : " << std::endl << 
 				" Title: " << getName() << std::endl <<
-				" Size: " << std::dec << _data.size() <<
-				" B, RAM Size: " << _ram_size <<
-				" B, Type: " << Hexa8(getType()) <<
+				", Size: " << std::dec << _data.size() << "B (" << Hexa8(*(_data.data() + ROMSize)) <<
+				"), RAM Size: " << std::dec << _ram_size << "B (" << Hexa8(*(_data.data() + RAMSize)) <<
+				"), Type: " << Hexa8(getType()) <<
 				", Battery: " << (hasBattery() ? "Yes" : "No") << std::endl;
 				
 	switch(getCGBFlag())
@@ -84,9 +84,12 @@ byte_t Cartridge::read(addr_t addr) const
 		return _data[addr];
 	} else if(addr < 0x8000) { // Switchable ROM Bank
 		if(isMBC1() || isMBC2() || isMBC3())
+		{
+			assert(addr + ((rom_bank() & 0x7F) - 1) * 0x4000 < _data.size());
 			return _data[addr + ((rom_bank() & 0x7F) - 1) * 0x4000];
-		else if(isMBC5())
+		} else if(isMBC5()) {
 			return _data[addr + ((rom_bank() & 0x1FF) - 1) * 0x4000];
+		}
 	} else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
 		if(isMBC1() || isMBC5())
 		{
@@ -134,7 +137,7 @@ void Cartridge::write(addr_t addr, byte_t value)
 			{
 				value &= 0x1F;
 				if(value == 0) value = 1;
-				_rom_bank = (_rom_bank & 0x60) | value;
+				_rom_bank = value;
 			} else if(isMBC2()) {
 				_rom_bank = (value & 0x0F);
 			} else if(isMBC3()) {
@@ -155,8 +158,6 @@ void Cartridge::write(addr_t addr, byte_t value)
 			if(isMBC1())
 			{
 				_ram_bank = value & 3; // Select RAM bank or upper bits of ROM Bank
-				
-				_rom_bank = (_rom_bank & 0x1F) | ((value & 3) << 5); // Select ROM bank (2 high bits)
 			} else if(isMBC3()) {
 				_ram_bank = value; // Select RAM bank OR RTC Register
 			} else if(isMBC5()) {
