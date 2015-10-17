@@ -64,32 +64,51 @@ public:
 		BGtoOAMPriority		= 0x80
 	};
 	
-	GPU()
-	{
-		screen = new color_t[ScreenWidth * ScreenHeight];
-	}
-	
-	~GPU()
-	{
-		delete[] screen;
-	}
+	GPU();
+	~GPU();
 	
 	void reset();
+	
+	inline bool enabled() const
+	{
+		return getLCDControl() & LCDDisplayEnable;
+	}
 	
 	inline void step(size_t cycles, bool render = true)
 	{
 		assert(mmu != nullptr && screen != nullptr);
-		/// @todo Check if LCD is enabled (and reset LY if it isn't)
-		/*
-		if(!(getLCDStatus() & LCDDisplayEnable))
+		static bool s_cleared_screen = false;
+		
+		_completed_frame = false;
+		if(!enabled())
 		{
 			getLine() = 0;
+			getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
+			if(!s_cleared_screen)
+			{
+				std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
+				_completed_frame = true;
+				lyc();
+				s_cleared_screen = true;
+			}
 			return;
 		}
-		*/
-		_completed_frame = false;
+		
+		s_cleared_screen = false;
 		_cycles += cycles;
 		update_mode(render);
+	}
+	
+	inline void lyc()
+	{
+		// Coincidence Bit & Interrupt
+		if(getLine() == getLYC())
+		{
+			getLCDStatus() |= Coincidence;
+			exec_stat_interrupt(LYC);
+		} else {
+			getLCDStatus() = getLCDStatus() & (~Coincidence);
+		}
 	}
 	
 	inline bool completed_frame() const { return _completed_frame; } 
@@ -99,14 +118,6 @@ public:
 		assert(y < ScreenHeight && x < ScreenWidth);
 		return y * ScreenWidth + x;
 	}
-	
-	inline word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
-	inline word_t& getScrollY() const { return mmu->rw(MMU::SCY); }
-	inline word_t& getBGPalette() const { return mmu->rw(MMU::BGP); }
-	inline word_t& getLCDControl() const { return mmu->rw(MMU::LCDC); }
-	inline word_t& getLCDStatus() const { return mmu->rw(MMU::STAT); }
-	inline word_t& getLine() const { return mmu->rw(MMU::LY); }
-	inline word_t& getLYC() const { return mmu->rw(MMU::LYC); }
 		
 	/**
 	 * Treats bits in l as low bits and in h as high bits of 2bits values.
@@ -125,7 +136,14 @@ public:
 	{
 		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
 	}
-
+	
+	inline word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
+	inline word_t& getScrollY() const { return mmu->rw(MMU::SCY); }
+	inline word_t& getBGPalette() const { return mmu->rw(MMU::BGP); }
+	inline word_t& getLCDControl() const { return mmu->rw(MMU::LCDC); }
+	inline word_t& getLCDStatus() const { return mmu->rw(MMU::STAT); }
+	inline word_t& getLine() const { return mmu->rw(MMU::LY); }
+	inline word_t& getLYC() const { return mmu->rw(MMU::LYC); }
 	
 private:
 	// Timing
@@ -137,7 +155,7 @@ private:
 		if((getLCDStatus() & m))
 			mmu->rw(MMU::IF) |= MMU::LCDSTAT;
 	}
-						
+
 	void update_mode(bool render = true);
 		
 	void render_line();

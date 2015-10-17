@@ -11,7 +11,7 @@ class GBAudioStream : public sf::SoundStream
 {
 public:
 	const size_t chunk_size = 3000;
-	const size_t buffer_size = chunk_size * 10;
+	const size_t buffer_size = chunk_size * 20;
 	
 	GBAudioStream(unsigned int sampleRate = 44100)
 	{
@@ -22,18 +22,23 @@ public:
 	
 	~GBAudioStream()
 	{
-		delete _buffer;
+		delete[] _buffer;
 	}
 
 	/// Avoid a memcpy by exposing _buffer
 	/// Don't use both versions of add_samples at the same time!
 	blip_sample_t* add_samples(long int count)
 	{
+		assert(count < buffer_size);
 		blip_sample_t* r = _buffer + _buff_end;
 		_buff_end += count;
-		if(_buff_end > buffer_size - 1500)
+		
+		if(_buff_end >= buffer_size) // Too many samples at once...
+			r = _buffer + buffer_size - 1 - count;
+		
+		if(_buff_end > buffer_size - chunk_size * 2)
 		{
-			_buff_max = _buff_end;
+			_buff_max = std::min(_buff_end, buffer_size - 1);
 			_buff_end = 0;
 		}
 		return r;

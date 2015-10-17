@@ -205,6 +205,9 @@ void LR35902::execute()
 		halt_bug = false;
 		_pc--;
 	}
+
+	if(mmu->hdma_cycles())
+		add_cycles(double_speed() ? 16 : 8);
 	
 	display_state();
 	// Decode opcode (http://www.z80.info/decoding.htm)

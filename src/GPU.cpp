@@ -2,6 +2,16 @@
 
 #include <list>
 
+GPU::GPU()
+{
+	screen = new color_t[ScreenWidth * ScreenHeight];
+}
+
+GPU::~GPU()
+{
+	delete[] screen;
+}
+	
 void GPU::reset()
 {
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
@@ -19,15 +29,15 @@ void GPU::update_mode(bool render)
 			{
 				_cycles -= 204;
 				getLine()++;
-				if(getLine() >= ScreenHeight)
+				if(getLine() < ScreenHeight)
 				{
+					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
+					exec_stat_interrupt(Mode10);
+				} else {
 					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
 					// VBlank Interrupt
 					mmu->rw(MMU::IF) |= MMU::VBlank;
 					exec_stat_interrupt(Mode01);
-				} else {
-					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
-					exec_stat_interrupt(Mode10);
 				}
 			}
 			break;
@@ -36,8 +46,8 @@ void GPU::update_mode(bool render)
 			{
 				_cycles -= 456;
 				getLine()++;
-				if(getLine() == 153) {
-					getLine() = 0; // 456 cycles at line 0 (instead of 154)
+				if(getLine() == 152) {
+					getLine() = 0; // 456 cycles at line 0 (instead of 153)
 				} else if(getLine() == 1) {
 					_completed_frame = true;
 					getLine() = 0; 
@@ -65,14 +75,7 @@ void GPU::update_mode(bool render)
 			break;
 	}
 	
-	// Coincidence Bit & Interrupt
-	if(getLine() == getLYC())
-	{
-		getLCDStatus() |= Coincidence;
-		exec_stat_interrupt(LYC);
-	} else {
-		getLCDStatus() = getLCDStatus() & (~Coincidence);
-	}
+	lyc();
 }
 
 struct Sprite

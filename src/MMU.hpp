@@ -249,11 +249,14 @@ public:
 	
 	inline word_t* getPtr() { return _mem; }
 	
+	inline bool hdma_cycles() { bool r = _hdma_cycles; _hdma_cycles = false; return r; }
+	
 	/// CGB Only - Check if a HDMA transfer is pending (should be called once during each HBlank)
 	void check_hdma()
 	{
 		if(_pending_hdma)
 		{
+			_hdma_cycles = true;
 			word_t length = read(HDMA5) & 0x7F;
 			for(addr_t i = 0; i < 0x10; ++i)
 				_hdma_dst[i] = read(_hdma_src + i);
@@ -311,6 +314,7 @@ private:
 	word_t		_bg_palette_data[8][8];
 	word_t		_sprite_palette_data[8][8];
 	
+	bool		_hdma_cycles = false;	///< Signals the CPU 0x10 bytes has been transfered via HDMA.
 	bool		_pending_hdma = false;
 	addr_t		_hdma_src = 0;
 	word_t* 	_hdma_dst = nullptr;
