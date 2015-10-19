@@ -80,17 +80,18 @@ public:
 		static bool s_cleared_screen = false;
 		
 		_completed_frame = false;
+		
 		if(!enabled())
 		{
-			getLine() = 0;
 			getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
 			if(!s_cleared_screen)
 			{
 				std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
-				_completed_frame = true;
-				lyc();
 				s_cleared_screen = true;
+				_completed_frame = true;
 			}
+			lyc();
+			getLine() = 0;
 			return;
 		}
 		
