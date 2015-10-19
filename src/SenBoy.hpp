@@ -18,7 +18,7 @@
 
 class MainCanvas : public wxSFMLCanvas
 {
-public :
+public:
     MainCanvas(wxWindow*  	Parent,
 				 wxWindowID	Id,
 				 wxPoint	Position,
@@ -31,11 +31,11 @@ private:
     sf::Event		_event;
     wxFrame*		_parent;
 	
-    virtual void OnUpdate();
+    virtual void OnUpdate() override;
 	void handle_event(sf::Event event);
 };
 
-class MainFrame: public wxFrame
+class MainFrame : public wxFrame
 {
 public:
     MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
@@ -48,7 +48,7 @@ private:
     wxDECLARE_EVENT_TABLE();
 };
 
-class SenBoy: public wxApp
+class SenBoy : public wxApp
 {
 public:
     virtual bool OnInit();
