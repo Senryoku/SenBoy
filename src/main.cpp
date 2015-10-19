@@ -535,7 +535,7 @@ std::string get_debug_text()
 	std::stringstream dt;
 	dt << "PC: " << Hexa(cpu.get_pc());
 	dt << " SP: " << Hexa(cpu.get_sp());
-	dt << " | " << cpu.get_decompiled();
+	dt << " | " << cpu.get_disassembly();
 	dt << " | OP: " << Hexa8(cpu.get_next_opcode()) << " ";
 	if(LR35902::instr_length[cpu.get_next_opcode()] > 1)
 		dt << Hexa8(cpu.get_next_operand0()) << " ";

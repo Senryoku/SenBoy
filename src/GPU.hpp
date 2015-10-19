@@ -68,76 +68,19 @@ public:
 	~GPU();
 	
 	void reset();
-	
-	inline bool enabled() const
-	{
-		return get_lcdc() & LCDDisplayEnable;
-	}
-	
-	inline void step(size_t cycles, bool render = true)
-	{
-		assert(mmu != nullptr && screen != nullptr);
-		static bool s_cleared_screen = false;
-		
-		_completed_frame = false;
-		
-		if(!enabled())
-		{
-			get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::VBlank;
-			lyc();
-			if(!s_cleared_screen)
-			{
-				get_line() = 0;
-				std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
-				s_cleared_screen = true;
-				_completed_frame = true;
-			}
-			get_line() = (get_line() + 1) % 154; // Donkey Kong hangs without this.
-			return;
-		}
-		
-		s_cleared_screen = false;
-		_cycles += cycles;
-		update_mode(render);
-	}
-	
-	inline void lyc()
-	{
-		// Coincidence Bit & Interrupt
-		if(get_line() == get_lyc())
-		{
-			get_lcdstat() |= LCDStatus::Coincidence;
-			exec_stat_interrupt(LCDStatus::LYC);
-		} else {
-			get_lcdstat() &= (~LCDStatus::Coincidence);
-		}
-	}
-	
+	void step(size_t cycles, bool render = true);
+	inline bool enabled() const { return get_lcdc() & LCDDisplayEnable; }
 	inline bool completed_frame() const { return _completed_frame; } 
 	
-	inline addr_t to1D(word_t x, word_t y)
-	{
-		assert(y < ScreenHeight && x < ScreenWidth);
-		return y * ScreenWidth + x;
-	}
+	inline addr_t to1D(word_t x, word_t y);
 		
 	/**
 	 * Treats bits in l as low bits and in h as high bits of 2bits values.
 	**/
-	static void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
-	{
-		r0 = r1 = 0;
-		for(int i = 0; i < 4; i++)
-			r0 |= (((l & (1 << (i + 4))) >> (4 + i)) << (2 * i)) | (((h & (1 << (i + 4))) >> (4 + i))  << (2 * i + 1));
-		for(int i = 0; i < 4; i++)
-			r1 |= ((l & (1 << i)) << (2 * i - i)) | ((h & (1 << i)) << (2 * i + 1 - i));
-	}
+	static inline void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1);
 	
 	/// @param val 0 <= val < 4
-	inline word_t get_bg_color(word_t val)
-	{
-		return Colors[(get_bgp() >> (val * 2)) & 0b11];
-	}
+	inline word_t get_bg_color(word_t val) { return Colors[(get_bgp() >> (val * 2)) & 0b11]; }
 	
 	inline word_t& get_scroll_x() const { return mmu->rw(MMU::Register::SCX); }
 	inline word_t& get_scroll_y() const { return mmu->rw(MMU::Register::SCY); }
@@ -152,13 +95,43 @@ private:
 	unsigned int	_cycles = 0;
 	bool			_completed_frame = false;
 	
-	inline void exec_stat_interrupt(LCDStatus m)
-	{
-		if((get_lcdstat() & m))
-			mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
-	}
+	inline void lyc();
+	inline void exec_stat_interrupt(LCDStatus m);
 
 	void update_mode(bool render = true);
 		
 	void render_line();
 };
+
+inline void GPU::lyc()
+{
+	// Coincidence Bit & Interrupt
+	if(get_line() == get_lyc())
+	{
+		get_lcdstat() |= LCDStatus::Coincidence;
+		exec_stat_interrupt(LCDStatus::LYC);
+	} else {
+		get_lcdstat() &= (~LCDStatus::Coincidence);
+	}
+}
+
+inline addr_t GPU::to1D(word_t x, word_t y)
+{
+	assert(y < ScreenHeight && x < ScreenWidth);
+	return y * ScreenWidth + x;
+}
+
+inline void GPU::palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
+{
+	r0 = r1 = 0;
+	for(int i = 0; i < 4; i++)
+		r0 |= (((l & (1 << (i + 4))) >> (4 + i)) << (2 * i)) | (((h & (1 << (i + 4))) >> (4 + i))  << (2 * i + 1));
+	for(int i = 0; i < 4; i++)
+		r1 |= ((l & (1 << i)) << (2 * i - i)) | ((h & (1 << i)) << (2 * i + 1 - i));
+}
+
+inline void GPU::exec_stat_interrupt(LCDStatus m)
+{
+	if((get_lcdstat() & m))
+		mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
+}

@@ -50,7 +50,7 @@ public:
 	inline addr_t get_de() const { return (static_cast<addr_t>(_d) << 8) + _e; }
 	inline addr_t get_hl() const { return (static_cast<addr_t>(_h) << 8) + _l; }
 	
-	inline const std::string& get_decompiled() const;
+	inline std::string get_disassembly() const;
 	inline int get_next_opcode() const { return read(_pc); };
 	inline int get_next_operand0() const { return read(_pc + 1); };
 	inline int get_next_operand1() const { return read(_pc + 2); };
@@ -159,10 +159,31 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // Implementations of inlined functions
 
-inline const std::string& LR35902::get_decompiled() const
+inline std::string LR35902::get_disassembly() const
 {
 	word_t op = read(_pc);
-	return (op == 0xCB) ? instr_cb_str[read(_pc + 1)] : instr_str[op];
+	std::string r = (op == 0xCB) ? instr_cb_str[read(_pc + 1)] : instr_str[op];
+	size_t length = (op == 0xCB) ? 2 : instr_length[op];
+	addr_t operand = (op == 0xCB) ? _pc + 2 : _pc + 1;
+	size_t p = std::string::npos;
+	if(length > 2)
+	{
+		if((p = r.find(" a16")) != std::string::npos) r.insert(p + 4, " = " + Hexa(mmu->read16(operand)).str());
+		if((p = r.find(",a16")) != std::string::npos) r.insert(p + 4, " = " + Hexa(mmu->read16(operand)).str());
+		if((p = r.find("(a16)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(read(mmu->read16(operand))).str());
+		if((p = r.find("d16")) != std::string::npos) r.insert(p + 3, " = " + Hexa(mmu->read16(operand)).str());
+	} else if(length > 1 && op != 0xCB) {
+		if((p = r.find("a8")) != std::string::npos) r.insert(p + 2, " = " + Hexa(0xFF00 + mmu->read(operand)).str()
+							+ " => " + Hexa8(mmu->read(0xFF00 + mmu->read(operand))).str());
+		if((p = r.find("d8")) != std::string::npos) r.insert(p + 2, " = " + Hexa8(mmu->read(operand)).str());
+		if((p = r.find("r8")) != std::string::npos) r.insert(p + 2, " = " + Hexa8(from_2c_to_signed(mmu->read(operand))).str());
+	}
+	if((p = r.find("(BC)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(mmu->read(get_bc())).str());
+	if((p = r.find("(DE)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(mmu->read(get_de())).str());
+	if((p = r.find("(HL)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(mmu->read(get_hl())).str());
+	if((p = r.find("(HL+)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(mmu->read(get_hl())).str());
+	if((p = r.find("(HL-)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(mmu->read(get_hl())).str());
+	return r;
 };
 	
 inline word_t LR35902::read(addr_t addr) const
