@@ -172,6 +172,8 @@ public:
 			_wram[0][addr - 0xC000] = value;
 		else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Switchable WRAM Banks
 			_wram[get_wram_bank()][addr - 0xD000] = value;
+		else if(addr == LCDSTAT) // Bits 0, 1 & 2 are read only
+			_mem[addr] = value & 0xF8;
 		else if(addr == DIV) // DIV reset when written to
 			_mem[DIV] = 0;
 		else if(addr == DMA) // Initialize DMA transfer
@@ -186,9 +188,9 @@ public:
 			_mem[VBK] = value & 1;
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
-		else if(addr == KEY1) { // Double Speed - Switch
+		else if(addr == KEY1) // Double Speed - Switch
 			if(value & 0x01) _mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
-		} else
+		else
 			_mem[addr] = value;
 	}
 	
