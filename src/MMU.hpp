@@ -188,9 +188,9 @@ public:
 			_mem[VBK] = value & 1;
 		else if(addr == P1) // Joypad Register
 			update_joypad(value);
-		else if(addr == KEY1) // Double Speed - Switch
+		else if(addr == KEY1) { // Double Speed - Switch
 			if(value & 0x01) _mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
-		else
+		} else
 			_mem[addr] = value;
 	}
 	
