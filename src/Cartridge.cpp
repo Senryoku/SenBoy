@@ -38,8 +38,8 @@ bool Cartridge::load(const std::string& path)
 	_ram_size = getRAMSize();
 	
 	std::cout << "Loaded '" << path << "' : " << std::endl << 
-				" Title: " << getName() << std::endl <<
-				", Size: " << std::dec << _data.size() << "B (" << Hexa8(*(_data.data() + ROMSize)) <<
+				" Title: '" << getName() <<
+				"', Size: " << std::dec << _data.size() << "B (" << Hexa8(*(_data.data() + ROMSize)) <<
 				"), RAM Size: " << std::dec << _ram_size << "B (" << Hexa8(*(_data.data() + RAMSize)) <<
 				"), Type: " << Hexa8(getType()) <<
 				", Battery: " << (hasBattery() ? "Yes" : "No") << std::endl;
