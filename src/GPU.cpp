@@ -17,7 +17,8 @@ void GPU::reset()
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 	
 	getLine() = getScrollX() = getScrollY() = getBGPalette() = getLCDControl() = getLCDStatus() = _cycles = 0;
-	getLCDStatus() = LCDDisplayEnable | Mode::OAM;
+	getLCDControl() = LCDDisplayEnable;
+	getLCDStatus() = Mode::OAM;
 }
 
 void GPU::update_mode(bool render)
@@ -101,12 +102,6 @@ void GPU::render_line()
 {
 	word_t line = getLine();
 	word_t LCDC = getLCDControl();
-	if(!(LCDC & LCDDisplayEnable))
-	{
-		for(word_t i = 0; i < ScreenWidth; ++i)
-			screen[to1D(i, line)] = 0xFF;
-		return;
-	}
 	
 	assert(line < ScreenHeight);
 	// BG Transparency

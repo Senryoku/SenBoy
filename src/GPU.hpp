@@ -16,43 +16,43 @@ public:
 	
 	enum Mode : word_t
 	{
-		HBlank = 0x00,
-		VBlank = 0x01,
-		OAM = 0x02,
-		VRAM = 0x03
+		HBlank 	= 0x00,
+		VBlank 	= 0x01,
+		OAM 	= 0x02,
+		VRAM 	= 0x03
 	};
 	
 	enum LCDControl : word_t
 	{
-		BGDisplay = 0x01,
-		OBJDisplay = 0x02,
-		OBJSize = 0x04,
-		BGTileMapDisplaySelect = 0x08,
-		BGWindowsTileDataSelect = 0x10,
-		WindowDisplay = 0x20,
+		BGDisplay 					= 0x01,
+		OBJDisplay 					= 0x02,
+		OBJSize 					= 0x04,
+		BGTileMapDisplaySelect 		= 0x08,
+		BGWindowsTileDataSelect 	= 0x10,
+		WindowDisplay 				= 0x20,
 		WindowsTileMapDisplaySelect = 0x40,
-		LCDDisplayEnable = 0x80
+		LCDDisplayEnable 			= 0x80
 	};
 	
 	enum LCDStatus : word_t
 	{
-		LCDMode = 0b00000011,
-		Coincidence = 0b00000100,
-		Mode00 = 0b00001000,
-		Mode01 = 0b00010000,
-		Mode10 = 0b00100000,
-		LYC = 0b01000000,
-		InterruptSelection = 0b01001000
+		LCDMode 			= 0b00000011,
+		Coincidence 		= 0b00000100,
+		Mode00 				= 0b00001000,
+		Mode01 				= 0b00010000,
+		Mode10 				= 0b00100000,
+		LYC 				= 0b01000000,
+		InterruptSelection 	= 0b01001000
 	};
 	
 	enum OAMOption : word_t
 	{
-		PaletteNumber = 0x07,	///< CGB Only
+		PaletteNumber 	= 0x07,	///< CGB Only
 		OBJTileVRAMBank = 0x08,	///< CGB Only
-		Palette = 0x10,			///< Non CGB Only
-		XFlip = 0x20,
-		YFlip = 0x40,
-		Priority = 0x80,
+		Palette 		= 0x10,	///< Non CGB Only
+		XFlip 			= 0x20,
+		YFlip 			= 0x40,
+		Priority 		= 0x80
 	};
 	
 	enum BGMapAttribute : word_t
@@ -105,10 +105,10 @@ public:
 		// Coincidence Bit & Interrupt
 		if(getLine() == getLYC())
 		{
-			getLCDStatus() |= Coincidence;
-			exec_stat_interrupt(LYC);
+			getLCDStatus() |= LCDStatus::Coincidence;
+			exec_stat_interrupt(LCDStatus::LYC);
 		} else {
-			getLCDStatus() = getLCDStatus() & (~Coincidence);
+			getLCDStatus() &= (~LCDStatus::Coincidence);
 		}
 	}
 	
@@ -138,13 +138,13 @@ public:
 		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
 	}
 	
-	inline word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
-	inline word_t& getScrollY() const { return mmu->rw(MMU::SCY); }
-	inline word_t& getBGPalette() const { return mmu->rw(MMU::BGP); }
-	inline word_t& getLCDControl() const { return mmu->rw(MMU::LCDC); }
-	inline word_t& getLCDStatus() const { return mmu->rw(MMU::STAT); }
-	inline word_t& getLine() const { return mmu->rw(MMU::LY); }
-	inline word_t& getLYC() const { return mmu->rw(MMU::LYC); }
+	inline word_t& getScrollX() const { return mmu->rw(MMU::Register::SCX); }
+	inline word_t& getScrollY() const { return mmu->rw(MMU::Register::SCY); }
+	inline word_t& getBGPalette() const { return mmu->rw(MMU::Register::BGP); }
+	inline word_t& getLCDControl() const { return mmu->rw(MMU::Register::LCDC); }
+	inline word_t& getLCDStatus() const { return mmu->rw(MMU::Register::STAT); }
+	inline word_t& getLine() const { return mmu->rw(MMU::Register::LY); }
+	inline word_t& getLYC() const { return mmu->rw(MMU::Register::LYC); }
 	
 private:
 	// Timing
@@ -154,7 +154,7 @@ private:
 	inline void exec_stat_interrupt(LCDStatus m)
 	{
 		if((getLCDStatus() & m))
-			mmu->rw(MMU::IF) |= MMU::LCDSTAT;
+			mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
 	}
 
 	void update_mode(bool render = true);
