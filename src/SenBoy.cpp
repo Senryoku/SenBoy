@@ -25,6 +25,7 @@ GPU			gpu;
 Stereo_Buffer gb_snd_buffer;
 GBAudioStream snd_buffer;
 
+
 // GUI
 float screen_scale = 3.0f;
 
@@ -54,12 +55,6 @@ void get_input_from_movie();
 ///////////////////////////////////////////////////////////////////////////////
 // Canvas (SFML)
 
-BEGIN_EVENT_TABLE(wxSFMLCanvas, wxControl)
-    EVT_IDLE(wxSFMLCanvas::OnIdle)
-    EVT_PAINT(wxSFMLCanvas::OnPaint)
-    EVT_ERASE_BACKGROUND(wxSFMLCanvas::OnEraseBackground)
-END_EVENT_TABLE()
-
 MainCanvas::MainCanvas(wxWindow*	Parent,
 						 wxWindowID	Id,
 						 wxPoint	Position,
@@ -68,6 +63,10 @@ MainCanvas::MainCanvas(wxWindow*	Parent,
 	wxSFMLCanvas(Parent, Id, Position, Size, Style)
 {
 	_parent = static_cast<wxFrame*>(Parent);
+}
+
+void MainCanvas::init()
+{
 	setVerticalSyncEnabled(false);
 	
 	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
@@ -182,8 +181,9 @@ void MainCanvas::OnUpdate()
 		setTitle(std::string("SenBoy - ").append(dt.str()));
 	}
 
+	setActive(true);
 	clear(sf::Color::Black);
-	draw(gameboy_screen_sprite);
+	draw(gameboy_screen_sprite); // Crash here when trying to bind the texture...
 }
 
 void MainCanvas::handle_event(sf::Event event)
@@ -316,7 +316,8 @@ enum Actions
 MainFrame::MainFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
         : wxFrame(NULL, wxID_ANY, title, pos, size)
 {	
-	new MainCanvas(this, wxID_ANY, wxPoint(50, 50), size);
+	auto _canvas = new MainCanvas(this, wxID_ANY, wxPoint(50, 50), size);
+	_canvas->init();
 
 	wxMenu *menuFile = new wxMenu;
     menuFile->Append(ID_OPEN, "&Open...\tCtrl-H",
@@ -361,6 +362,7 @@ void MainFrame::OnOpen(wxCommandEvent&)
     } else {
 		SetStatusText("Loaded " + cartridge.getName());
 		reset();
+		
 		emulation_started = true;
 	}
 }

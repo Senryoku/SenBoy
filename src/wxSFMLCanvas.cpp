@@ -28,6 +28,12 @@ wxControl(Parent, Id, Position, Size, Style)
     #endif
 }
 
+BEGIN_EVENT_TABLE(wxSFMLCanvas, wxControl)
+    EVT_IDLE(wxSFMLCanvas::OnIdle)
+    EVT_PAINT(wxSFMLCanvas::OnPaint)
+    EVT_ERASE_BACKGROUND(wxSFMLCanvas::OnEraseBackground)
+END_EVENT_TABLE()
+
 void wxSFMLCanvas::OnIdle(wxIdleEvent&)
 {
 	Refresh();

@@ -27,6 +27,8 @@ public:
 
 	sf::Texture		gameboy_screen;
 	sf::Sprite		gameboy_screen_sprite;
+	
+	void init();
 private:
     sf::Event		_event;
     wxFrame*		_parent;
