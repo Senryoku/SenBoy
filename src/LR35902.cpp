@@ -128,7 +128,7 @@ void LR35902::execute()
 			halt_bug = !_ime;
 			_halt = false;
 		} else { 
-			add_cycles(instr_cycles[0x76]); // Add HALT cycles.
+			add_cycles(1);
 			update_timing();
 			return;
 		}

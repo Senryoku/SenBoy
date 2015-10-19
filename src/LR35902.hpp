@@ -189,7 +189,7 @@ inline std::string LR35902::get_disassembly() const
 inline word_t LR35902::read(addr_t addr) const
 {
 	if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-		return apu->read_register(double_speed() ? frame_cycles / 2 : frame_cycles, addr);
+		return apu->read_register(frame_cycles, addr);
 	else
 		return mmu->read(addr);
 }
@@ -197,7 +197,7 @@ inline word_t LR35902::read(addr_t addr) const
 inline void LR35902::write(addr_t addr, word_t value)
 {
 	if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-		apu->write_register(double_speed() ? frame_cycles / 2 : frame_cycles, addr, value);
+		apu->write_register(frame_cycles, addr, value);
 	else
 		mmu->write(addr, value);
 }
@@ -268,7 +268,7 @@ inline void LR35902::check_interrupts()
 inline void LR35902::add_cycles(unsigned int c)
 {
 	_clock_instr_cycles += c;
-	frame_cycles += c;
+	frame_cycles += double_speed() ? c / 2 : c;
 }
 
 inline void LR35902::push(addr_t addr)

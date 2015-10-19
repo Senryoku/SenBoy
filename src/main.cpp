@@ -293,18 +293,28 @@ int main(int argc, char* argv[])
 						step = false;
 						break;
 					}
-				} while((!debug || frame_by_frame) && !gpu.completed_frame());
+				} while((!debug || frame_by_frame) && (!gpu.completed_frame() || elapsed_cycles < 70224));
 				frame_count++;
 			}
 			
 			if(with_sound)
 			{
-				size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
+				size_t frame_cycles = cpu.frame_cycles;
 				bool stereo = apu.end_frame(frame_cycles);
 				gb_snd_buffer.end_frame(frame_cycles, stereo);
-				auto samples_count = gb_snd_buffer.samples_avail();
+				size_t samples_count = gb_snd_buffer.samples_avail();
 				if(samples_count > 0)
 				{
+					if(samples_count >= snd_buffer.buffer_size)
+					{
+						std::cout << "Warning: Way too many sound samples at once. Discarding some..." << std::endl;
+						blip_sample_t discard[snd_buffer.chunk_size];
+						while(samples_count >= snd_buffer.chunk_size)
+						{
+							gb_snd_buffer.read_samples(discard, snd_buffer.chunk_size);
+							samples_count -= snd_buffer.chunk_size;
+						}
+					}
 					samples_count = gb_snd_buffer.read_samples(snd_buffer.add_samples(samples_count), samples_count);
 					if(!(snd_buffer.getStatus() == sf::SoundSource::Status::Playing)) snd_buffer.play();
 				}

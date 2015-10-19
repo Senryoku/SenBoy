@@ -17,7 +17,6 @@ void GPU::reset()
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 	
 	get_line() = get_scroll_x() = get_scroll_y() = get_bgp() = get_lcdc() = get_lcdstat() = _cycles = 0;
-	get_lcdc() = LCDDisplayEnable;
 	get_lcdstat() = Mode::OAM;
 }
 
@@ -34,17 +33,21 @@ void GPU::step(size_t cycles, bool render)
 		lyc();
 		if(!s_cleared_screen)
 		{
+			_cycles = 0;
 			get_line() = 0;
 			std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 			s_cleared_screen = true;
 			_completed_frame = true;
+		} else if(_cycles > 456) {
+			_cycles -= 456;
+			get_line() = (get_line() + 1) % 154; // Donkey Kong hangs without this.
 		}
-		get_line() = (get_line() + 1) % 154; // Donkey Kong hangs without this.
+		_cycles += cycles;
 		return;
 	}
 	
-	s_cleared_screen = false;
 	_cycles += cycles;
+	s_cleared_screen = false;
 	update_mode(render);
 }
 	
