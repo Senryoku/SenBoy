@@ -1,6 +1,15 @@
 /******************************************************************************
- * Implementations of the Z80 instructions
+ * @file Implementations of the Z80 instructions
 ******************************************************************************/
+	
+// Helper functions on opcodes
+inline word_t extract_src_reg(word_t opcode) const { return (opcode + 1) & 0b111; }
+inline word_t extract_dst_reg(word_t opcode) const { return ((opcode >> 3) + 1) & 0b111; }
+inline void rel_jump(word_t offset) { _pc += from_2c_to_signed(offset); }
+inline int from_2c_to_signed(word_t src) { return (src & 0x80) ? -((~src + 1) & 0xFF) : src; }
+
+///////////////////////////////////////////////////////////////////////////
+// Instructions
 
 inline void instr_nop() { }
 
@@ -77,8 +86,8 @@ inline void instr_add_sp(word_t src)
 
 inline void instr_add_hl(addr_t src)
 {
-	set(Flag::HalfCarry, ((getHL() & 0x07FF) + (src & 0x07FF)) > 0x07FF);
-	uint32_t t = getHL() + src;
+	set(Flag::HalfCarry, ((get_hl() & 0x07FF) + (src & 0x07FF)) > 0x07FF);
+	uint32_t t = get_hl() + src;
 	set(Flag::Carry, t > 0xFFFF);
 	set_hl(t & 0xFFFF);
 	set(Flag::Negative, false);

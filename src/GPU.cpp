@@ -16,26 +16,26 @@ void GPU::reset()
 {
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 	
-	getLine() = getScrollX() = getScrollY() = getBGPalette() = getLCDControl() = getLCDStatus() = _cycles = 0;
-	getLCDControl() = LCDDisplayEnable;
-	getLCDStatus() = Mode::OAM;
+	get_line() = get_scroll_x() = get_scroll_y() = get_bgp() = get_lcdc() = get_lcdstat() = _cycles = 0;
+	get_lcdc() = LCDDisplayEnable;
+	get_lcdstat() = Mode::OAM;
 }
 
 void GPU::update_mode(bool render)
 {	
-	switch(getLCDStatus() & LCDMode)
+	switch(get_lcdstat() & LCDMode)
 	{
 		case Mode::HBlank:
 			if(_cycles >= 204)
 			{
 				_cycles -= 204;
-				getLine()++;
-				if(getLine() < ScreenHeight)
+				get_line()++;
+				if(get_line() < ScreenHeight)
 				{
-					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
+					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
 				} else {
-					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
+					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::VBlank;
 					// VBlank Interrupt
 					mmu->rw(MMU::IF) |= MMU::VBlank;
 					exec_stat_interrupt(Mode01);
@@ -46,13 +46,13 @@ void GPU::update_mode(bool render)
 			if(_cycles >= 456)
 			{
 				_cycles -= 456;
-				getLine()++;
-				if(getLine() == 153) {
-					getLine() = 0; // 456 cycles at line 0 (instead of 153)
-				} else if(getLine() == 1) {
+				get_line()++;
+				if(get_line() == 153) {
+					get_line() = 0; // 456 cycles at line 0 (instead of 153)
+				} else if(get_line() == 1) {
 					_completed_frame = true;
-					getLine() = 0; 
-					getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::OAM;
+					get_line() = 0; 
+					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
 				}
 			}
@@ -61,7 +61,7 @@ void GPU::update_mode(bool render)
 			if(_cycles >= 80)
 			{
 				_cycles -= 80;
-				getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VRAM;
+				get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::VRAM;
 			}
 			break;
 		case Mode::VRAM:
@@ -69,7 +69,7 @@ void GPU::update_mode(bool render)
 			{
 				_cycles -= 172;
 				if(render) render_line();
-				getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::HBlank;
+				get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::HBlank;
 				mmu->check_hdma();
 				exec_stat_interrupt(Mode00);
 			}
@@ -100,8 +100,8 @@ struct Sprite
 	
 void GPU::render_line()
 {
-	word_t line = getLine();
-	word_t LCDC = getLCDControl();
+	word_t line = get_line();
+	word_t LCDC = get_lcdc();
 	
 	assert(line < ScreenHeight);
 	// BG Transparency
@@ -114,7 +114,7 @@ void GPU::render_line()
 	word_t wy = mmu->read(MMU::WY);
 	
 	bool draw_window = (LCDC & WindowDisplay) && wx < 160 && line >= wy;
-		
+
 	// BG Disabled, draw blank in non CGB mode
 	word_t start_col = 0;
 	if(!mmu->cgb_mode() && !(LCDC & BGDisplay))
@@ -134,8 +134,8 @@ void GPU::render_line()
 		addr_t mapoffs = (LCDC & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
 		addr_t base_tile_data = (LCDC & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
 		
-		word_t scroll_x = getScrollX();
-		word_t scroll_y = getScrollY();
+		word_t scroll_x = get_scroll_x();
+		word_t scroll_y = get_scroll_y();
 		
 		mapoffs += 0x20 * (((line + scroll_y) & 0xFF) >> 3);
 		word_t lineoffs = (scroll_x >> 3);
@@ -153,7 +153,7 @@ void GPU::render_line()
 		if(!mmu->cgb_mode())
 		{
 			for(int i = 0; i < 4; ++i)
-				colors_cache[i] = getBGPaletteColor(i);
+				colors_cache[i] = get_bg_color(i);
 		}
 		
 		// CGB Only
@@ -214,7 +214,7 @@ void GPU::render_line()
 	}
 	
 	// Render Sprites
-	if(getLCDControl() & OBJDisplay)
+	if(get_lcdc() & OBJDisplay)
 	{
 		word_t Tile, Opt;
 		word_t tile_l = 0;
@@ -223,7 +223,7 @@ void GPU::render_line()
 		word_t sprite_limit = 10;
 		
 		// 8*16 Sprites ?
-		word_t size = (getLCDControl() & OBJSize) ? 16 : 8;
+		word_t size = (get_lcdc() & OBJSize) ? 16 : 8;
 		
 		std::list<Sprite> sprites;
 		for(word_t s = 0; s < 40; s++)
@@ -256,7 +256,7 @@ void GPU::render_line()
 			{
 				Tile = mmu->read(0xFE00 + s.idx * 4 + 2);
 				Opt = mmu->read(0xFE00 + s.idx * 4 + 3);
-				if(s.y - line < 8 && getLCDControl() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
+				if(s.y - line < 8 && get_lcdc() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
 				if(s.y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
 				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0); // non CGB Only
 				// Only Tile Set #0 ?

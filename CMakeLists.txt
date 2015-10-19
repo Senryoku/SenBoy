@@ -27,6 +27,7 @@ set(SOURCES
 	src/Cartridge.cpp
 	src/MMU.cpp
 	src/GPU.cpp
+	src/LR35902InstrData.cpp
 	src/LR35902.cpp
 	src/main.cpp
 )

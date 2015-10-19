@@ -275,11 +275,11 @@ int main(int argc, char* argv[])
 				do
 				{
 					cpu.execute();
-					if(cpu.getInstrCycles() == 0)
+					if(cpu.get_instr_cycles() == 0)
 						break;
 
-					size_t instr_cycles = (cpu.double_speed() ? cpu.getInstrCycles() / 2 :
-																cpu.getInstrCycles());
+					size_t instr_cycles = (cpu.double_speed() ? cpu.get_instr_cycles() / 2 :
+																cpu.get_instr_cycles());
 					gpu.step(instr_cycles, i == frame_skip);
 					elapsed_cycles += instr_cycles;
 					speed_mesure_cycles += instr_cycles;
@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
 					if(cpu.reached_breakpoint())
 					{
 						std::stringstream ss;
-						ss << "Stepped on a breakpoint at " << Hexa(cpu.getPC());
+						ss << "Stepped on a breakpoint at " << Hexa(cpu.get_pc());
 						log_text.setString(ss.str());
 						debug = true;
 						step = false;
@@ -533,22 +533,23 @@ void get_input_from_movie()
 std::string get_debug_text()
 {
 	std::stringstream dt;
-	dt << "PC: " << Hexa(cpu.getPC());
-	dt << " SP: " << Hexa(cpu.getSP());
-	dt << " | OP: " << Hexa8(cpu.getNextOpcode()) << " ";
-	if(LR35902::instr_length[cpu.getNextOpcode()] > 1)
-		dt << Hexa8(cpu.getNextOperand0()) << " ";
-	if(LR35902::instr_length[cpu.getNextOpcode()] > 2)
-		dt << Hexa8(cpu.getNextOperand1());
+	dt << "PC: " << Hexa(cpu.get_pc());
+	dt << " SP: " << Hexa(cpu.get_sp());
+	dt << " | " << cpu.get_decompiled();
+	dt << " | OP: " << Hexa8(cpu.get_next_opcode()) << " ";
+	if(LR35902::instr_length[cpu.get_next_opcode()] > 1)
+		dt << Hexa8(cpu.get_next_operand0()) << " ";
+	if(LR35902::instr_length[cpu.get_next_opcode()] > 2)
+		dt << Hexa8(cpu.get_next_operand1());
 	dt << std::endl;
-	dt << "AF: " << Hexa(cpu.getAF());
-	dt << " BC: " << Hexa(cpu.getBC());
-	dt << " DE: " << Hexa(cpu.getDE());
-	dt << " HL: " << Hexa(cpu.getHL());
+	dt << "AF: " << Hexa(cpu.get_af());
+	dt << " BC: " << Hexa(cpu.get_bc());
+	dt << " DE: " << Hexa(cpu.get_de());
+	dt << " HL: " << Hexa(cpu.get_hl());
 	dt << std::endl;
-	dt << "LY: " << Hexa8(gpu.getLine());
-	dt << " LCDC: " << Hexa8(gpu.getLCDControl());
-	dt << " STAT: " << Hexa8(gpu.getLCDStatus());
+	dt << "LY: " << Hexa8(gpu.get_line());
+	dt << " LCDC: " << Hexa8(gpu.get_lcdc());
+	dt << " STAT: " << Hexa8(gpu.get_lcdstat());
 	if(cpu.check(LR35902::Flag::Zero)) dt << " Z";
 	if(cpu.check(LR35902::Flag::Negative)) dt << " N";
 	if(cpu.check(LR35902::Flag::HalfCarry)) dt << " HC";
