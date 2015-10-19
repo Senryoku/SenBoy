@@ -27,7 +27,7 @@ public:
 
 	/// Avoid a memcpy by exposing _buffer
 	/// Don't use both versions of add_samples at the same time!
-	blip_sample_t* add_samples(long int count)
+	blip_sample_t* add_samples(size_t count)
 	{
 		assert(count < buffer_size);
 		blip_sample_t* r = _buffer + _buff_end;
@@ -45,9 +45,9 @@ public:
 	}
 	
 	/// Don't use both versions of add_samples at the same time!
-	void add_samples(blip_sample_t* samples, long int count)
+	void add_samples(blip_sample_t* samples, size_t count)
 	{
-		long int empty_space = buffer_size - _buff_end;
+		size_t empty_space = buffer_size - _buff_end;
 		if(count > empty_space)
 		{
 			std::memcpy(_buffer + _buff_end, samples, empty_space * sizeof(blip_sample_t));
