@@ -134,26 +134,6 @@ void LR35902::reset_cart()
 	write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
 
-bool LR35902::loadBIOS(const std::string& path)
-{
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	size_t size = file.tellg();
-	file.seekg(0);
-	
-	if(!file)
-	{
-		std::cerr << "Error: '" << path << "' could not be opened." << std::endl;
-		return false;
-	}
-	
-	file.read((char *) mmu->getPtr(), size);
-	
-	_pc = 0x0000;
-	write(0xFF50, word_t(0x00)); // Enable BIOS ROM
-	
-	return true;
-}
-
 void LR35902::execute()
 {
 	assert((_f & 0x0F) == 0);

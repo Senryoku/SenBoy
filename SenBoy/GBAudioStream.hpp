@@ -10,8 +10,8 @@
 class GBAudioStream : public sf::SoundStream
 {
 public:
-	const size_t chunk_size = 3000;
-	const size_t buffer_size = chunk_size * 20;
+    const size_t chunk_size = 3000;
+    const size_t buffer_size = chunk_size * 20;
 	
 	GBAudioStream(unsigned int sampleRate = 44100)
 	{

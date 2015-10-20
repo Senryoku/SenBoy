@@ -37,9 +37,6 @@ public:
 	/// Reset to post internal checks
 	void reset_cart();
 	
-	/// Loads a BIOS and sets the PC to its first instruction
-	bool loadBIOS(const std::string& path);
-	
 	inline bool double_speed() const { return (mmu->read(MMU::KEY1) & 0x80); }
 	inline uint64_t getClockCycles() const { return _clock_cycles; }
 	inline uint64_t getInstrCycles() const { return _clock_instr_cycles; }
@@ -50,13 +47,13 @@ public:
 	inline addr_t getDE() const { return (static_cast<addr_t>(_d) << 8) + _e; }
 	inline addr_t getHL() const { return (static_cast<addr_t>(_h) << 8) + _l; }
 	
-	inline int getNextOpcode() const { return read(_pc); };
-	inline int getNextOperand0() const { return read(_pc + 1); };
-	inline int getNextOperand1() const { return read(_pc + 2); };
+    inline int getNextOpcode() const { return read(_pc); }
+    inline int getNextOperand0() const { return read(_pc + 1); }
+    inline int getNextOperand1() const { return read(_pc + 2); }
 	
-	inline bool reached_breakpoint() const { return _breakpoint;  };
-	inline void add_breakpoint(addr_t addr) { _breakpoints.insert(addr); };
-	inline void clear_breakpoints() { _breakpoints.clear(); };
+    inline bool reached_breakpoint() const { return _breakpoint;  }
+    inline void add_breakpoint(addr_t addr) { _breakpoints.insert(addr); }
+    inline void clear_breakpoints() { _breakpoints.clear(); }
 	
 	inline void display_state()
 	{

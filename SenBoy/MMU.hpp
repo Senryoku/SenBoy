@@ -276,12 +276,17 @@ public:
 			}
 		}
 	}
-	
+
+    void load_bios();
+
 private:
 	word_t*		_mem = nullptr;	///< This represent the whole address space and contains all that doesn't fit elsewhere.
 	word_t*		_wram[8];		///< Switchable bank of working RAM (CGB Only)
 	word_t*		_vram_bank1;	///< VRAM Bank 1 (Bank 0 is in _mem)
-	
+
+    static const byte_t gb_bios[256];
+    static const byte_t gbc_bios[4096];
+
 	void init_dma(word_t val)
 	{
 		// Doing it here for now.
