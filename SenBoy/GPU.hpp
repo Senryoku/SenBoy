@@ -16,43 +16,43 @@ public:
 	
 	enum Mode : word_t
 	{
-		HBlank = 0x00,
-		VBlank = 0x01,
-		OAM = 0x02,
-		VRAM = 0x03
+		HBlank 	= 0x00,
+		VBlank 	= 0x01,
+		OAM 	= 0x02,
+		VRAM 	= 0x03
 	};
 	
 	enum LCDControl : word_t
 	{
-		BGDisplay = 0x01,
-		OBJDisplay = 0x02,
-		OBJSize = 0x04,
-		BGTileMapDisplaySelect = 0x08,
-		BGWindowsTileDataSelect = 0x10,
-		WindowDisplay = 0x20,
+		BGDisplay 					= 0x01,
+		OBJDisplay 					= 0x02,
+		OBJSize 					= 0x04,
+		BGTileMapDisplaySelect 		= 0x08,
+		BGWindowsTileDataSelect 	= 0x10,
+		WindowDisplay 				= 0x20,
 		WindowsTileMapDisplaySelect = 0x40,
-		LCDDisplayEnable = 0x80
+		LCDDisplayEnable 			= 0x80
 	};
 	
 	enum LCDStatus : word_t
 	{
-		LCDMode = 0b00000011,
-		Coincidence = 0b00000100,
-		Mode00 = 0b00001000,
-		Mode01 = 0b00010000,
-		Mode10 = 0b00100000,
-		LYC = 0b01000000,
-		InterruptSelection = 0b01001000
+		LCDMode 			= 0b00000011,
+		Coincidence 		= 0b00000100,
+		Mode00 				= 0b00001000,
+		Mode01 				= 0b00010000,
+		Mode10 				= 0b00100000,
+		LYC 				= 0b01000000,
+		InterruptSelection 	= 0b01001000
 	};
 	
 	enum OAMOption : word_t
 	{
-		PaletteNumber = 0x07,	///< CGB Only
+		PaletteNumber 	= 0x07,	///< CGB Only
 		OBJTileVRAMBank = 0x08,	///< CGB Only
-		Palette = 0x10,			///< Non CGB Only
-		XFlip = 0x20,
-		YFlip = 0x40,
-		Priority = 0x80,
+		Palette 		= 0x10,	///< Non CGB Only
+		XFlip 			= 0x20,
+		YFlip 			= 0x40,
+		Priority 		= 0x80
 	};
 	
 	enum BGMapAttribute : word_t
@@ -68,96 +68,70 @@ public:
 	~GPU();
 	
 	void reset();
-	
-	inline bool enabled() const
-	{
-		return getLCDControl() & LCDDisplayEnable;
-	}
-	
-	inline void step(size_t cycles, bool render = true)
-	{
-		assert(mmu != nullptr && screen != nullptr);
-		static bool s_cleared_screen = false;
-		
-		_completed_frame = false;
-		
-		if(!enabled())
-		{
-			getLCDStatus() = (getLCDStatus() & ~LCDMode) | Mode::VBlank;
-			if(!s_cleared_screen)
-			{
-				std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
-				s_cleared_screen = true;
-				_completed_frame = true;
-			}
-			lyc();
-			getLine() = 0;
-			return;
-		}
-		
-		s_cleared_screen = false;
-		_cycles += cycles;
-		update_mode(render);
-	}
-	
-	inline void lyc()
-	{
-		// Coincidence Bit & Interrupt
-		if(getLine() == getLYC())
-		{
-			getLCDStatus() |= Coincidence;
-			exec_stat_interrupt(LYC);
-		} else {
-			getLCDStatus() = getLCDStatus() & (~Coincidence);
-		}
-	}
-	
+	void step(size_t cycles, bool render = true);
+	inline bool enabled() const { return get_lcdc() & LCDDisplayEnable; }
 	inline bool completed_frame() const { return _completed_frame; } 
 	
-	inline addr_t to1D(word_t x, word_t y)
-	{
-		assert(y < ScreenHeight && x < ScreenWidth);
-		return y * ScreenWidth + x;
-	}
+	inline addr_t to1D(word_t x, word_t y);
 		
 	/**
 	 * Treats bits in l as low bits and in h as high bits of 2bits values.
 	**/
-	static void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
-	{
-		r0 = r1 = 0;
-		for(int i = 0; i < 4; i++)
-			r0 |= (((l & (1 << (i + 4))) >> (4 + i)) << (2 * i)) | (((h & (1 << (i + 4))) >> (4 + i))  << (2 * i + 1));
-		for(int i = 0; i < 4; i++)
-			r1 |= ((l & (1 << i)) << (2 * i - i)) | ((h & (1 << i)) << (2 * i + 1 - i));
-	}
+	static inline void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1);
 	
 	/// @param val 0 <= val < 4
-	inline word_t getBGPaletteColor(word_t val)
-	{
-		return Colors[(getBGPalette() >> (val * 2)) & 0b11];
-	}
+	inline word_t get_bg_color(word_t val) { return Colors[(get_bgp() >> (val * 2)) & 0b11]; }
 	
-	inline word_t& getScrollX() const { return mmu->rw(MMU::SCX); }
-	inline word_t& getScrollY() const { return mmu->rw(MMU::SCY); }
-	inline word_t& getBGPalette() const { return mmu->rw(MMU::BGP); }
-	inline word_t& getLCDControl() const { return mmu->rw(MMU::LCDC); }
-	inline word_t& getLCDStatus() const { return mmu->rw(MMU::STAT); }
-	inline word_t& getLine() const { return mmu->rw(MMU::LY); }
-	inline word_t& getLYC() const { return mmu->rw(MMU::LYC); }
+	inline word_t& get_scroll_x() const { return mmu->rw(MMU::Register::SCX); }
+	inline word_t& get_scroll_y() const { return mmu->rw(MMU::Register::SCY); }
+	inline word_t& get_bgp() const { return mmu->rw(MMU::Register::BGP); }
+	inline word_t& get_lcdc() const { return mmu->rw(MMU::Register::LCDC); }
+	inline word_t& get_lcdstat() const { return mmu->rw(MMU::Register::STAT); }
+	inline word_t& get_line() const { return mmu->rw(MMU::Register::LY); }
+	inline word_t& get_lyc() const { return mmu->rw(MMU::Register::LYC); }
 	
 private:
 	// Timing
 	unsigned int	_cycles = 0;
 	bool			_completed_frame = false;
 	
-	inline void exec_stat_interrupt(LCDStatus m)
-	{
-		if((getLCDStatus() & m))
-			mmu->rw(MMU::IF) |= MMU::LCDSTAT;
-	}
+	inline void lyc();
+	inline void exec_stat_interrupt(LCDStatus m);
 
 	void update_mode(bool render = true);
 		
 	void render_line();
 };
+
+inline void GPU::lyc()
+{
+	// Coincidence Bit & Interrupt
+	if(get_line() == get_lyc())
+	{
+		get_lcdstat() |= LCDStatus::Coincidence;
+		exec_stat_interrupt(LCDStatus::LYC);
+	} else {
+		get_lcdstat() &= (~LCDStatus::Coincidence);
+	}
+}
+
+inline addr_t GPU::to1D(word_t x, word_t y)
+{
+	assert(y < ScreenHeight && x < ScreenWidth);
+	return y * ScreenWidth + x;
+}
+
+inline void GPU::palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
+{
+	r0 = r1 = 0;
+	for(int i = 0; i < 4; i++)
+		r0 |= (((l & (1 << (i + 4))) >> (4 + i)) << (2 * i)) | (((h & (1 << (i + 4))) >> (4 + i))  << (2 * i + 1));
+	for(int i = 0; i < 4; i++)
+		r1 |= ((l & (1 << i)) << (2 * i - i)) | ((h & (1 << i)) << (2 * i + 1 - i));
+}
+
+inline void GPU::exec_stat_interrupt(LCDStatus m)
+{
+	if((get_lcdstat() & m))
+		mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
+}

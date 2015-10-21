@@ -82,8 +82,8 @@ public:
 	void write_ram(addr_t addr, byte_t value);
 	void write(addr_t addr, byte_t value);
 
-	inline std::string getName() const;
-	inline Type getType() const;
+	inline std::string getName() const;				///< @return Game name
+	inline Type getType() const;					///< @return Cartridge type (mapper)
 	inline bool isMBC1() const;
 	inline bool isMBC2() const;
 	inline bool isMBC3() const;
@@ -100,7 +100,6 @@ public:
 	 * Saves RAM to a file if a battery is present
 	**/
 	void save() const;
-
 	std::string save_path() const;
 
 private:
@@ -118,31 +117,8 @@ private:
 	void latch_clock_data();
 	static bool file_exists(const std::string& path);
 	
-	byte_t rom_bank() const
-	{
-		if(isMBC1())
-		{
-			if(_mode == 0 && *(_data.data() + CartType) >= 0x05)
-				return _rom_bank | ((_ram_bank & 3) << 5);
-			else
-				return _rom_bank;
-		} else {
-			return _rom_bank;
-		}
-	}
-	
-	byte_t ram_bank() const
-	{
-		if(isMBC1())
-		{
-			if(_mode == 1)
-				return _ram_bank;
-			else
-				return 0;
-		} else {
-			return _ram_bank;
-		}
-	}
+	inline byte_t rom_bank() const;
+	inline byte_t ram_bank() const;
 };
 
 #include "Cartridge.inl"

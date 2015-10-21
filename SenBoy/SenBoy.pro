@@ -22,7 +22,9 @@ SOURCES += main.cpp\
     Common.cpp \
     GPU.cpp \
     LR35902.cpp \
-    MMU.cpp
+    MMU.cpp \
+    LR35902InstrData.cpp \
+    QSFMLCanvas.cpp
 
 HEADERS  += mainwindow.h \
     ../ext/Gb_Snd_Emu-0.1.4/boost/config.hpp \
@@ -41,11 +43,13 @@ HEADERS  += mainwindow.h \
     GBAudioStream.hpp \
     GPU.hpp \
     LR35902.hpp \
-    MMU.hpp
+    MMU.hpp \
+    QSFMLCanvas.hpp
 
 INCLUDEPATH += ../ext/Gb_Snd_Emu-0.1.4
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    debugwindow.ui
 
 LIBS += -L"D:/Git/SFML_Qt/lib"
 INCLUDEPATH += D:/Git/SFML_Qt/include

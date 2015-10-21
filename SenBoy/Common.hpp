@@ -46,6 +46,18 @@ struct HexaGen
 {
 	T		v;
 	HexaGen(T _t) : v(_t) {}
+	
+	std::string str() const
+	{
+		std::stringstream ss;
+		ss << *this;
+		return ss.str();
+	}
+	
+	operator std::string() const
+	{
+		return str();
+	}
 };
 
 template<typename T>
@@ -65,3 +77,5 @@ namespace config
 	void set_folder(const char* exec_path);
 	std::string to_abs(const std::string& path);
 }
+
+bool replace(std::string& str, const std::string& from, const std::string& to);

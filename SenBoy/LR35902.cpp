@@ -2,66 +2,6 @@
 
 #include <cstring> // Memset
 
-size_t	LR35902::instr_length[0x100] = {
-	1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1, // 0
-	2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, // 1
-	2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, // 2
-	2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1, // 3
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 4
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 5
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 6
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 7
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 8
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 9
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // A
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // B
-	1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 3, 3, 3, 2, 1, // C
-	1, 1, 3, 0, 3, 1, 2, 1, 1, 1, 3, 0, 3, 0, 2, 1, // D
-	2, 1, 2, 0, 0, 1, 2, 1, 2, 1, 3, 0, 0, 0, 2, 1, // E
-	2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 3, 1, 0, 0, 2, 1  // F
-//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
-};
-
-size_t	LR35902::instr_cycles[0x100] = {
-	4, 12,  8,  8,  4,  4,  8,  4, 20,  8,  8,  8,  4,  4,  8,  4, // 0
-	4, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4, // 1
-	8, 12,  8,  8,  4,  4,  8,  4,  8,  8,  8,  8,  4,  4,  8,  4, // 2
-	8, 12,  8,  8, 12, 12, 12,  4,  8,  8,  8,  8,  4,  4,  8,  4, // 3
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // 4
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // 5
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // 6
-	8,  8,  8,  8,  8,  8,  4,  8,  4,  4,  4,  4,  4,  4,  8,  4, // 7
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // 8
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // 9
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // A
-	4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4, // B
-	8, 12, 12, 16, 12, 16,  8, 16,  8, 16, 12,  0, 12, 24,  8, 16, // C
-	8, 12, 12,  0, 12, 16,  8, 16,  8, 16, 12,  0, 12,  0,  8, 16, // D
-	12,12,  8,  0,  0, 16,  8, 16, 16,  4, 16,  0,  0,  0,  8, 16, // E
-	12,12,  8,  4,  0, 16,  8, 16, 12,  8, 16,  4,  0,  0,  8, 16  // F
-//  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-};
-
-size_t	LR35902::instr_cycles_cb[0x100] = {
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // 0
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // 1
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // 2
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // 3
-	8,  8,  8,  8,  8,  8, 12,  8,  8,  8,  8,  8,  8,  8, 12,  8, // 4
-	8,  8,  8,  8,  8,  8, 12,  8,  8,  8,  8,  8,  8,  8, 12,  8, // 5
-	8,  8,  8,  8,  8,  8, 12,  8,  8,  8,  8,  8,  8,  8, 12,  8, // 6
-	8,  8,  8,  8,  8,  8, 12,  8,  8,  8,  8,  8,  8,  8, 12,  8, // 7
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // 8
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // 9
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // A
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // B
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // C
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // D
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8, // E
-	8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8  // F
-//  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-};
-
 LR35902::LR35902()
 {
 	reset();
@@ -168,7 +108,7 @@ void LR35902::execute()
 			halt_bug = !_ime;
 			_halt = false;
 		} else { 
-			add_cycles(instr_cycles[0x76]); // Add HALT cycles.
+			add_cycles(1);
 			update_timing();
 			return;
 		}
@@ -188,8 +128,7 @@ void LR35902::execute()
 
 	if(mmu->hdma_cycles())
 		add_cycles(double_speed() ? 16 : 8);
-	
-	display_state();
+
 	// Decode opcode (http://www.z80.info/decoding.htm)
 	// And I thought I was being smart... A simple jumptable would have be mush cleaner in the end >.<"
 	if(opcode == 0xCB) // Prefixed instructions
@@ -227,8 +166,8 @@ void LR35902::execute()
 				default: instr_nop(); break;
 			}
 		} else { // (HL)
-			addr_t addr = getHL();
-			word_t value = read(getHL());
+			addr_t addr = get_hl();
+			word_t value = read(get_hl());
 			switch(x)
 			{
 				case 0b00: // Shift & Rotate
@@ -268,7 +207,7 @@ void LR35902::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6) // LD (HL), d8
-							write(getHL(), instr_inc_impl(read(getHL())));
+							write(get_hl(), instr_inc_impl(read(get_hl())));
 						else
 							instr_inc(_r[dst_reg]);
 						break;
@@ -278,7 +217,7 @@ void LR35902::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6) // LD (HL), d8
-							write(getHL(), instr_dec_impl(read(getHL())));
+							write(get_hl(), instr_dec_impl(read(get_hl())));
 						else
 							instr_dec(_r[dst_reg]);
 						break;
@@ -288,7 +227,7 @@ void LR35902::execute()
 					{
 						word_t dst_reg = extract_dst_reg(opcode);
 						if(dst_reg > 6)	{ // LD (HL), d8
-							write(getHL(), read(_pc++));
+							write(get_hl(), read(_pc++));
 						} else {
 							_r[dst_reg] = read(_pc++);
 						}
@@ -307,13 +246,13 @@ void LR35902::execute()
 						case 0x21: set_hl(mmu->read16(_pc)); _pc += 2; break;
 						case 0x31: _sp = mmu->read16(_pc); _pc += 2; break;
 						
-						case 0x02: write(getBC(), _a); break;				// LD (BC), A
-						case 0x12: write(getDE(), _a); break;				// LD (DE), A
-						case 0x22: write(getHL(), _a); incr_hl(); break;	// LD (HL+), A
-						case 0x32: write(getHL(), _a); decr_hl(); break;	// LD (HL-), A
+						case 0x02: write(get_bc(), _a); break;				// LD (BC), A
+						case 0x12: write(get_de(), _a); break;				// LD (DE), A
+						case 0x22: write(get_hl(), _a); incr_hl(); break;	// LD (HL+), A
+						case 0x32: write(get_hl(), _a); decr_hl(); break;	// LD (HL-), A
 						// INC 16bits Reg
-						case 0x03: set_bc(getBC() + 1); break;
-						case 0x13: set_de(getDE() + 1); break;
+						case 0x03: set_bc(get_bc() + 1); break;
+						case 0x13: set_de(get_de() + 1); break;
 						case 0x23: incr_hl(); break;
 						case 0x33: ++_sp; break;
 						//
@@ -327,18 +266,18 @@ void LR35902::execute()
 						case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
 						case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;
 						// ADD HL, 16bits Reg
-						case 0x09: instr_add_hl(getBC()); break;
-						case 0x19: instr_add_hl(getDE()); break;
-						case 0x29: instr_add_hl(getHL()); break;
+						case 0x09: instr_add_hl(get_bc()); break;
+						case 0x19: instr_add_hl(get_de()); break;
+						case 0x29: instr_add_hl(get_hl()); break;
 						case 0x39: instr_add_hl(_sp); break;
 						
-						case 0x0A: _a = read(getBC()); break;
-						case 0x1A: _a = read(getDE()); break;
-						case 0x2A: _a = read(getHL()); incr_hl(); break;
-						case 0x3A: _a = read(getHL()); decr_hl(); break;
+						case 0x0A: _a = read(get_bc()); break;
+						case 0x1A: _a = read(get_de()); break;
+						case 0x2A: _a = read(get_hl()); incr_hl(); break;
+						case 0x3A: _a = read(get_hl()); decr_hl(); break;
 						
-						case 0x0B: set_bc(getBC() - 1); break;
-						case 0x1B: set_de(getDE() - 1); break;
+						case 0x0B: set_bc(get_bc() - 1); break;
+						case 0x1B: set_de(get_de() - 1); break;
 						case 0x2B: decr_hl(); break;
 						case 0x3B: --_sp; break;
 						
@@ -360,7 +299,7 @@ void LR35902::execute()
 				if(reg_src > 6 && reg_dst > 6) // (HL), (HL) => HALT !
 					instr_halt();
 				else if(reg_dst > 6)
-					write(getHL(), fetch_val(reg_src));
+					write(get_hl(), fetch_val(reg_src));
 				else
 					_r[reg_dst] = fetch_val(reg_src);
 				break;
@@ -414,10 +353,10 @@ void LR35902::execute()
 						case 0xD4: _pc += 2; instr_call(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
 						
 						// PUSH
-						case 0xC5: instr_push(getBC()); break;
-						case 0xD5: instr_push(getDE()); break;
-						case 0xE5: instr_push(getHL()); break;
-						case 0xF5: instr_push(getAF()); break;
+						case 0xC5: instr_push(get_bc()); break;
+						case 0xD5: instr_push(get_de()); break;
+						case 0xE5: instr_push(get_hl()); break;
+						case 0xF5: instr_push(get_af()); break;
 						
 						case 0xC6: instr_add(read(_pc++)); break;
 						case 0xD6: instr_sub(read(_pc++)); break;
@@ -435,8 +374,8 @@ void LR35902::execute()
 						
 						case 0xC9: instr_ret(); break;
 						case 0xD9: instr_reti(); break;
-						case 0xE9: _pc = getHL(); break;	// JP (HL)
-						case 0xF9: _sp = getHL(); break;	// LD SP, HL
+						case 0xE9: _pc = get_hl(); break;	// JP (HL)
+						case 0xF9: _sp = get_hl(); break;	// LD SP, HL
 						
 						case 0xCA: _pc += 2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
 						case 0xDA: _pc += 2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;

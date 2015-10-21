@@ -119,3 +119,29 @@ inline unsigned int Cartridge::getHeaderChecksum() const
 {
 	return static_cast<unsigned int>(*(_data.data() + HeaderChecksum) & 0xFF);
 }
+	
+inline byte_t Cartridge::rom_bank() const
+{
+	if(isMBC1())
+	{
+		if(_mode == 0 && *(_data.data() + CartType) >= 0x05)
+			return _rom_bank | ((_ram_bank & 3) << 5);
+		else
+			return _rom_bank;
+	} else {
+		return _rom_bank;
+	}
+}
+
+inline byte_t Cartridge::ram_bank() const
+{
+	if(isMBC1())
+	{
+		if(_mode == 1)
+			return _ram_bank;
+		else
+			return 0;
+	} else {
+		return _ram_bank;
+	}
+}

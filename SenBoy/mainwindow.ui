@@ -35,10 +35,25 @@
     <property name="title">
      <string>&amp;Options</string>
     </property>
-    <addaction name="actionForce_DMG"/>
+    <widget class="QMenu" name="menuConsole">
+     <property name="title">
+      <string>Console</string>
+     </property>
+     <addaction name="actionAutomatic"/>
+     <addaction name="actionGameBoy"/>
+     <addaction name="actionGameBoy_Color"/>
+    </widget>
+    <addaction name="menuConsole"/>
+   </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+     <string>Debug</string>
+    </property>
+    <addaction name="actionDebug_Info"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Options"/>
+   <addaction name="menuDebug"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionOpen">
@@ -51,12 +66,33 @@
     <string>Exit</string>
    </property>
   </action>
-  <action name="actionForce_DMG">
+  <action name="actionAutomatic">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Force DMG</string>
+    <string>Automatic</string>
+   </property>
+  </action>
+  <action name="actionGameBoy">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>GameBoy</string>
+   </property>
+  </action>
+  <action name="actionGameBoy_Color">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>GameBoy Color</string>
+   </property>
+  </action>
+  <action name="actionDebug_Info">
+   <property name="text">
+    <string>Debug Info.</string>
    </property>
   </action>
  </widget>
@@ -95,8 +131,25 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionDebug_Info</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_actionDebug_Info_triggered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>action_open()</slot>
+  <slot>on_actionDebug_Info_triggered()</slot>
  </slots>
 </ui>

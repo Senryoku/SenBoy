@@ -1,33 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <SFML/Graphics.hpp>
-#include <QWidget>
-#include <QTimer>
-
-class QSFMLCanvas : public QWidget, public sf::RenderWindow
-{
-public :
-
-    QSFMLCanvas(QWidget* Parent, const QPoint& Position, const QSize& Size, unsigned int FrameTime = 0);
-
-    virtual ~QSFMLCanvas() =default;
-
-private :
-
-    virtual void OnInit() =0;
-
-    virtual void OnUpdate() =0;
-
-    virtual QPaintEngine* paintEngine() const;
-
-    virtual void showEvent(QShowEvent*);
-
-    virtual void paintEvent(QPaintEvent*);
-
-    QTimer myTimer;
-    bool   myInitialized;
-};
+#include "QSFMLCanvas.hpp"
 
 class MainCanvas : public QSFMLCanvas
 {
@@ -36,6 +10,19 @@ public:
 private:
     virtual void OnInit() override;
     virtual void OnUpdate() override;
+};
+
+#include "ui_debugwindow.h"
+
+class DebugWindow : public QWidget
+{
+    Q_OBJECT
+public:
+    DebugWindow(QWidget* Parent = nullptr);
+    virtual ~DebugWindow();
+
+private:
+    Ui::DebugWindow *ui;
 };
 
 #include <QMainWindow>
@@ -54,9 +41,12 @@ public:
 
 private slots:
     void action_open();
+    void on_actionDebug_Info_triggered();
 
 private:
     Ui::MainWindow *ui;
+
+    DebugWindow*    _debug_window = nullptr;
 
     void open_rom(const QString& path);
     void dragEnterEvent(QDragEnterEvent *event);
