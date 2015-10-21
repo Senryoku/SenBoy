@@ -5,8 +5,13 @@
 
 class MainCanvas : public QSFMLCanvas
 {
+    Q_OBJECT
 public:
     MainCanvas(QWidget* Parent, const QPoint& Position, const QSize& Size);
+
+signals:
+    void state_update();
+
 private:
     virtual void OnInit() override;
     virtual void OnUpdate() override;
@@ -20,6 +25,10 @@ class DebugWindow : public QWidget
 public:
     DebugWindow(QWidget* Parent = nullptr);
     virtual ~DebugWindow();
+
+private slots:
+    void update();
+    void pause();
 
 private:
     Ui::DebugWindow *ui;

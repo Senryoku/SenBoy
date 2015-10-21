@@ -291,6 +291,8 @@ void MainCanvas::OnUpdate()
 
     clear(sf::Color::Black);
     draw(gameboy_screen_sprite);
+
+    emit state_update();
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -303,6 +305,8 @@ MainWindow::MainWindow(QWidget *parent) :
     setAcceptDrops(true);
     resize(QSize(screen_scale * 160, screen_scale * 144 + menuBar()->height() + statusBar()->height()));
     setCentralWidget(new MainCanvas(this, QPoint(0, 0), QSize(screen_scale * 160, screen_scale * 144)));
+
+    connect(centralWidget(), SIGNAL(state_update()), _debug_window, SLOT(update()));
 }
 
 MainWindow::~MainWindow()
@@ -325,7 +329,7 @@ void MainWindow::open_rom(const QString& path)
         reset();
         emulation_running = true;
         statusBar()->showMessage(QString(cartridge.getName().c_str()));
-}
+    }
 }
 
 void MainWindow::action_open()
@@ -365,9 +369,27 @@ DebugWindow::DebugWindow(QWidget* Parent) :
     ui(new Ui::DebugWindow)
 {
     ui->setupUi(this);
+
+    connect(ui->Pause, SIGNAL(clicked(bool)), this, SLOT(pause()));
 }
 
 DebugWindow::~DebugWindow()
 {
     delete ui;
+}
+
+void DebugWindow::update()
+{
+    ui->Disassembly->setText(QString::fromStdString(cpu.get_disassembly()));
+    ui->PC_Val->setText(QString::fromStdString(Hexa(cpu.get_pc())));
+    ui->SP_Val->setText(QString::fromStdString(Hexa(cpu.get_sp())));
+    ui->AF_Val->setText(QString::fromStdString(Hexa(cpu.get_af())));
+    ui->BC_Val->setText(QString::fromStdString(Hexa(cpu.get_bc())));
+    ui->DE_Val->setText(QString::fromStdString(Hexa(cpu.get_de())));
+    ui->HL_Val->setText(QString::fromStdString(Hexa(cpu.get_hl())));
+}
+
+void DebugWindow::pause()
+{
+    debug = !debug;
 }

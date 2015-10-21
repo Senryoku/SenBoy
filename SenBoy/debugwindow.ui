@@ -18,50 +18,50 @@
     <rect>
      <x>270</x>
      <y>10</y>
-     <width>51</width>
-     <height>110</height>
+     <width>21</width>
+     <height>129</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="PC">
       <property name="text">
        <string>PC</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_5">
+     <widget class="QLabel" name="SP">
       <property name="text">
        <string>SP</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_6">
+     <widget class="QLabel" name="AF">
       <property name="text">
-       <string>PS</string>
+       <string>AF</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="BC">
       <property name="text">
-       <string>A</string>
+       <string>BC</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_3">
+     <widget class="QLabel" name="DE">
       <property name="text">
-       <string>X</string>
+       <string>DE</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_4">
+     <widget class="QLabel" name="HL">
       <property name="text">
-       <string>Y</string>
+       <string>HL</string>
       </property>
      </widget>
     </item>
@@ -70,15 +70,58 @@
   <widget class="QWidget" name="verticalLayoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>330</x>
+     <x>300</x>
      <y>10</y>
-     <width>61</width>
-     <height>101</height>
+     <width>91</width>
+     <height>131</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2"/>
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QLabel" name="PC_Val">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="SP_Val">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="AF_Val">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="BC_Val">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="DE_Val">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="HL_Val">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
-  <widget class="QLabel" name="label_7">
+  <widget class="QLabel" name="Disassembly">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -91,7 +134,23 @@
     <string>Disassembly</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="Pause">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>150</y>
+     <width>101</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Pause</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
+ <slots>
+  <signal>state_update()</signal>
+ </slots>
 </ui>
