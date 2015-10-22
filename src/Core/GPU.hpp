@@ -96,7 +96,7 @@ private:
 	unsigned int	_cycles = 0;
 	bool			_completed_frame = false;
 	
-	inline void lyc();
+	inline void lyc(bool changed);
 	inline void exec_stat_interrupt(LCDStatus m);
 
 	void update_mode(bool render = true);
@@ -104,13 +104,13 @@ private:
 	void render_line();
 };
 
-inline void GPU::lyc()
+inline void GPU::lyc(bool changed)
 {
 	// Coincidence Bit & Interrupt
 	if(get_line() == get_lyc())
 	{
 		get_lcdstat() |= LCDStatus::Coincidence;
-		exec_stat_interrupt(LCDStatus::LYC);
+		if(changed) exec_stat_interrupt(LCDStatus::LYC);
 	} else {
 		get_lcdstat() &= (~LCDStatus::Coincidence);
 	}

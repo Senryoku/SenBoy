@@ -22,7 +22,10 @@ struct HexaGen
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 {
-	return os << "0x" << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << (int) t.v;
+	std::iostream::fmtflags f(os.flags());
+	os << "0x" << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << (int) t.v;
+	os.flags(f);
+	return os;
 }
 
 using Hexa = HexaGen<addr_t>;

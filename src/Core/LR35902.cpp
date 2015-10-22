@@ -315,7 +315,7 @@ void LR35902::execute()
 					case 1: instr_adc(value); break;
 					case 2: instr_sub(value); break;
 					case 3: instr_sbc(value); break;
-					case  4: instr_and(value); break;
+					case 4: instr_and(value); break;
 					case 5: instr_xor(value); break;
 					case 6: instr_or(value); break;
 					case 7: instr_cp(value); break;

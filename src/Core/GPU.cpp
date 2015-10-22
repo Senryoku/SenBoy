@@ -27,11 +27,11 @@ void GPU::step(size_t cycles, bool render)
 	static bool s_cleared_screen = false;
 	
 	_completed_frame = false;
+	word_t l = get_line();
 	
 	if(!enabled())
 	{
-		get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::VBlank;
-		lyc();
+		get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::HBlank;
 		if(!s_cleared_screen)
 		{
 			_cycles = 0;
@@ -44,12 +44,13 @@ void GPU::step(size_t cycles, bool render)
 			get_line() = (get_line() + 1) % 154; // Donkey Kong hangs without this.
 		}
 		_cycles += cycles;
-		return;
+	} else {
+		_cycles += cycles;
+		s_cleared_screen = false;
+		update_mode(render);
 	}
 	
-	_cycles += cycles;
-	s_cleared_screen = false;
-	update_mode(render);
+	lyc(get_line() != l);
 }
 	
 void GPU::update_mode(bool render)
@@ -106,8 +107,6 @@ void GPU::update_mode(bool render)
 			}
 			break;
 	}
-	
-	lyc();
 }
 
 struct Sprite
