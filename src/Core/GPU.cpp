@@ -31,7 +31,6 @@ void GPU::step(size_t cycles, bool render)
 	
 	if(!enabled())
 	{
-		get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::HBlank;
 		if(!s_cleared_screen)
 		{
 			_cycles = 0;
@@ -39,16 +38,12 @@ void GPU::step(size_t cycles, bool render)
 			std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 			s_cleared_screen = true;
 			_completed_frame = true;
-		} else if(_cycles > 456) {
-			_cycles -= 456;
-			get_line() = (get_line() + 1) % 154; // Donkey Kong hangs without this.
 		}
 		_cycles += cycles;
-	} else {
-		_cycles += cycles;
-		s_cleared_screen = false;
-		update_mode(render);
-	}
+	} else s_cleared_screen = false;
+	
+	_cycles += cycles;
+	update_mode(render);
 	
 	lyc(get_line() != l);
 }
@@ -131,6 +126,12 @@ struct Sprite
 void GPU::render_line()
 {
 	word_t line = get_line();
+	if(!enabled())
+	{
+		std::memset(screen + to1D(0, line), 0xFF, ScreenWidth);
+		return;
+	}
+	
 	word_t LCDC = get_lcdc();
 	
 	assert(line < ScreenHeight);
