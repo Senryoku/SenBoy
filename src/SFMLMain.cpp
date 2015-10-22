@@ -68,8 +68,16 @@ size_t frame_count = 0;
 // Not in sync. Doesn't work.
 bool use_movie = false;
 std::ifstream movie;
+std::ofstream movie_save;
 unsigned int movie_start = 0;
 char playback[2];
+enum MovieType
+{
+	VBM,
+	BK2,
+	SBM		// SenBoy Movie
+};
+MovieType	movie_type = VBM;
 
 void open_debug_window();
 void setup_window();
@@ -81,6 +89,7 @@ std::string get_debug_log();
 void toggle_speed();
 void reset();
 void get_input_from_movie();
+void movie_save_frame();
 void update_tiledata();
 void update_tilemaps();
 
@@ -135,33 +144,62 @@ int main(int argc, char* argv[])
 	apu.output(gb_snd_buffer.center(), gb_snd_buffer.left(), gb_snd_buffer.right());
 	snd_buffer.setVolume(50);
 
+	// Movie Saving
+	char* movie_save_path = get_option(argc, argv, "$ms");
+	if(movie_save_path)
+	{
+		movie_save.open(movie_save_path, std::ios::binary);
+	}
+	
 	// Movie loading
 	char* movie_path = get_option(argc, argv, "$m");
 	if(movie_path)
 	{
-		// VBM
-		 movie.open(movie_path, std::ios::binary);
-		// BK2
-		//movie.open(argv[2]);
-		if(!movie) {
-			std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
-		} else {
-			// VBM
-			char tmp[4];
-			movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
-			movie.read(tmp, 4);
-			movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
-			movie.seekg(movie_start);
-			use_movie = true;
-			use_bios = false;
-			
-			// BK2 (Not the archive, just the Input Log)
-			/*movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-			movie_start = movie.tellg();
-			use_movie = true;
-			use_bios = false;*/
-			
-			std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
+		switch(movie_type)
+		{
+			case SBM:
+			{
+				movie.open(movie_path, std::ios::binary);
+				if(!movie) {
+					std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
+				} else {
+					movie_start = movie.tellg();
+					use_movie = true;
+					use_bios = false;
+					std::cout << "Loaded SenBoy Movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
+				}
+				break;
+			}
+			case VBM:
+				movie.open(movie_path, std::ios::binary);
+				if(!movie) {
+					std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
+				} else {
+					// VBM
+					char tmp[4];
+					movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
+					movie.read(tmp, 4);
+					movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+					movie.seekg(movie_start);
+					use_movie = true;
+					use_bios = false;
+					
+					std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
+				}
+				break;
+			case BK2: // BK2 (Not the archive, just the Input Log)
+				movie.open(movie_path);
+				if(!movie) {
+					std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
+				} else {
+					movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+					movie_start = movie.tellg();
+					use_movie = true;
+					use_bios = false;
+					
+					std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
+				}
+				break;
 		}
 	}
 	
@@ -214,7 +252,7 @@ int main(int argc, char* argv[])
 			for(size_t i = 0; i < frame_skip + 1; ++i)
 			{
 				get_input_from_movie();
-
+				movie_save_frame();
 				do
 				{
 					cpu.execute();
@@ -239,6 +277,7 @@ int main(int argc, char* argv[])
 					if(log_file)
 						log_file << get_debug_log() << std::endl;
 				} while((!debug || frame_by_frame) && (!gpu.completed_frame() || cpu.frame_cycles <= 70224));
+				
 				frame_count++;
 			}
 			
@@ -459,23 +498,47 @@ void reset()
 // Get next input from the movie file.
 void get_input_from_movie()
 {
-	// VBM
-	if(use_movie) movie.read(playback, 2);
-	// BK2
-	/*if(use_movie)
+	if(use_movie)
 	{
-		char line[13];
-		movie.getline(line, 13);
-		playback[0] = 0;
-		if(line[1] != '.') playback[0] |= 0x40; // Up
-		if(line[2] != '.') playback[0] |= 0x80; // Down
-		if(line[3] != '.') playback[0] |= 0x20; // Left
-		if(line[4] != '.') playback[0] |= 0x10; // Right
-		if(line[5] != '.') playback[0] |= 0x08; // Start
-		if(line[6] != '.') playback[0] |= 0x04; // Select
-		if(line[7] != '.') playback[0] |= 0x02; // B
-		if(line[8] != '.') playback[0] |= 0x01; // A
-	}*/
+		switch(movie_type)
+		{
+			case SBM:
+				movie.read(playback, 1);
+				break;
+			case VBM:
+				movie.read(playback, 2);
+				break;
+			case BK2:
+			{
+				char line[13];
+				movie.getline(line, 13);
+				playback[0] = 0;
+				if(line[1] != '.') playback[0] |= 0x40; // Up
+				if(line[2] != '.') playback[0] |= 0x80; // Down
+				if(line[3] != '.') playback[0] |= 0x20; // Left
+				if(line[4] != '.') playback[0] |= 0x10; // Right
+				if(line[5] != '.') playback[0] |= 0x08; // Start
+				if(line[6] != '.') playback[0] |= 0x04; // Select
+				if(line[7] != '.') playback[0] |= 0x02; // B
+				if(line[8] != '.') playback[0] |= 0x01; // A
+				break;
+			}
+		}
+	}
+}
+
+void movie_save_frame()
+{
+	word_t input = 0;
+	if(mmu.callback_joy_a()) 		input |= 0x01;
+	if(mmu.callback_joy_b()) 		input |= 0x02;
+	if(mmu.callback_joy_select()) 	input |= 0x04;
+	if(mmu.callback_joy_start()) 	input |= 0x08;
+	if(mmu.callback_joy_right()) 	input |= 0x10;
+	if(mmu.callback_joy_left()) 	input |= 0x20;
+	if(mmu.callback_joy_up()) 		input |= 0x40;
+	if(mmu.callback_joy_down()) 	input |= 0x80;
+	movie_save << input;
 }
 
 std::string get_debug_text()
