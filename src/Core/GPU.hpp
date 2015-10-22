@@ -2,6 +2,7 @@
 
 #include <cstring> // Memset
 
+#include "Color.hpp"
 #include "MMU.hpp"
 
 class GPU

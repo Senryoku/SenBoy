@@ -6,6 +6,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "Config.hpp"
+
 Cartridge::Cartridge(const std::string& path)
 {
 	load(path);
@@ -85,7 +87,7 @@ byte_t Cartridge::read(addr_t addr) const
 	} else if(addr < 0x8000) { // Switchable ROM Bank
 		if(isMBC1() || isMBC2() || isMBC3())
 		{
-			assert(addr + ((rom_bank() & 0x7F) - 1) * 0x4000 < _data.size());
+			assert(addr + (static_cast<size_t>((rom_bank() & 0x7F) - 1) * 0x4000) < _data.size());
 			return _data[addr + ((rom_bank() & 0x7F) - 1) * 0x4000];
 		} else if(isMBC5()) {
 			return _data[addr + ((rom_bank() & 0x1FF) - 1) * 0x4000];
@@ -93,7 +95,7 @@ byte_t Cartridge::read(addr_t addr) const
 	} else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
 		if(isMBC1() || isMBC5())
 		{
-			assert(ram_bank() * 0x2000 + (addr & 0x1FFF) < _ram_size);
+			assert(static_cast<size_t>(ram_bank() * 0x2000 + (addr & 0x1FFF)) < _ram_size);
 			return _ram[ram_bank() * 0x2000 + (addr & 0x1FFF)];
 		} else if(isMBC3()) {
 			if(_ram_bank >= 0x8 && _ram_bank <= 0xC)
@@ -114,7 +116,7 @@ void Cartridge::write_ram(addr_t addr, byte_t value)
 	if(_enable_ram)
 	{
 		assert(!_ram.empty());
-		assert(ram_bank() * 0x2000 + (addr & 0x1FFF) < _ram_size);
+		assert(static_cast<size_t>(ram_bank() * 0x2000 + (addr & 0x1FFF)) < _ram_size);
 		_ram[ram_bank() * 0x2000 + (addr & 0x1FFF)] = value;
 	}
 }

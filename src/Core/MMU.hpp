@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "Cartridge.hpp"
+#include "Color.hpp"
 
 class MMU
 {
