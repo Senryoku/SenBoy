@@ -37,9 +37,6 @@ public:
 	/// Reset to post internal checks
 	void reset_cart();
 	
-	/// Loads a BIOS and sets the PC to its first instruction
-	bool loadBIOS(const std::string& path);
-	
 	inline bool double_speed() const { return (mmu->read(MMU::KEY1) & 0x80); }
 	inline uint64_t get_clock_cycles() const { return _clock_cycles; }
 	inline uint64_t get_instr_cycles() const { return _clock_instr_cycles; }

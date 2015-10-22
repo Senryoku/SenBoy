@@ -43,7 +43,7 @@ public:
 		Mode01 				= 0b00010000,
 		Mode10 				= 0b00100000,
 		LYC 				= 0b01000000,
-		InterruptSelection 	= 0b01001000
+		InterruptSelection 	= 0b01111000
 	};
 	
 	enum OAMOption : word_t

@@ -16,7 +16,8 @@ void GPU::reset()
 {
 	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 	
-	get_line() = get_scroll_x() = get_scroll_y() = get_bgp() = get_lcdc() = get_lcdstat() = _cycles = 0;
+	get_line() = get_scroll_x() = get_scroll_y() = get_bgp() = get_lcdstat() = _cycles = 0;
+	get_lcdc() = 0x91;
 	get_lcdstat() = Mode::OAM;
 }
 

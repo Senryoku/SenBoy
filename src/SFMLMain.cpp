@@ -43,6 +43,7 @@ sf::Texture	gameboy_logo_tex;
 sf::Sprite gameboy_logo_sprite;
 
 // Debug GUI
+std::ofstream log_file;
 sf::Texture	gameboy_tiledata[2];
 sf::Sprite gameboy_tiledata_sprite[2];
 sf::Texture	gameboy_tilemap[2];
@@ -52,7 +53,7 @@ sf::Text debug_text;
 sf::Text log_text;
 sf::Text tiledata_text[2];
 color_t* tile_data[2] = {nullptr, nullptr};
-color_t* tile_map[2] = {nullptr, nullptr};
+color_t* tile_maps[2] = {nullptr, nullptr};
 
 // Timing
 sf::Clock timing_clock;
@@ -71,13 +72,18 @@ unsigned int movie_start = 0;
 char playback[2];
 
 void open_debug_window();
+void setup_window();
+void setup_debug_window();
 void handle_event(sf::Event event);
 void handle_event_debug(sf::Event event);
 std::string get_debug_text();
+std::string get_debug_log();
 void toggle_speed();
 void reset();
 void get_input_from_movie();
-	
+void update_tiledata();
+void update_tilemaps();
+
 int main(int argc, char* argv[])
 {
 	config::set_folder(argv[0]);
@@ -89,6 +95,7 @@ int main(int argc, char* argv[])
 				<< " -d : Enable debug display." << std::endl
 				<< " -b : Skip BIOS." << std::endl
 				<< " -s : Disable sound." << std::endl
+				<< " $l : Specify a log file." << std::endl
 				<< " --dmg : Force DMG mode." << std::endl
 				<< " --cgb : Force CGB mode." << std::endl;
 		if(has_option(argc, argv, "-h")) return 0;
@@ -109,6 +116,8 @@ int main(int argc, char* argv[])
 		mmu.force_dmg = true;
 	if(has_option(argc, argv, "--cgb"))
 		mmu.force_cgb = true;
+	if(get_option(argc, argv, "$l"))
+		log_file.open(get_option(argc, argv, "$l"));
 	
 	// Linking them all together
 	mmu.cartridge = &cartridge;
@@ -180,83 +189,10 @@ int main(int argc, char* argv[])
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Setting up GUI
-		
+	
+	setup_window();
 	if(debug_display) open_debug_window();
-	
-	window.create(sf::VideoMode(
-		screen_scale * gpu.ScreenWidth + padding, 
-		screen_scale * gpu.ScreenHeight + padding), 
-		"SenBoy");
-	window.setVerticalSyncEnabled(false);
-	
-	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
-		std::cerr << "Error creating the screen texture!" << std::endl;
-	gameboy_screen_sprite.setTexture(gameboy_screen);
-	gameboy_screen_sprite.setPosition(padding / 2, 
-									padding / 2);
-	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
-	
-	if(mmu.cgb_mode())
-		gameboy_logo_tex.loadFromFile(config::to_abs("data/gbc_logo.png"));
-	else
-		gameboy_logo_tex.loadFromFile(config::to_abs("data/gb_logo.png"));
-	gameboy_logo_sprite.setTexture(gameboy_logo_tex);
-	gameboy_logo_sprite.setPosition(padding / 2, 
-									padding / 2 + screen_scale * gpu.ScreenHeight);
-	gameboy_logo_sprite.setScale(screen_scale / 4.0, screen_scale / 4.0);
-	
-	if(!font.loadFromFile(config::to_abs("data/Hack-Regular.ttf")))
-		std::cerr << "Error loading the font!" << std::endl;
-	
-	// Debug Window settings
-	auto right = [&](const sf::Sprite& s) -> float { return s.getGlobalBounds().left + s.getGlobalBounds().width; };
-	for(int i = 0; i < 2; ++i)
-	{
-		if(!gameboy_tiledata[i].create(16 * 8, (8 * 3) * 8))
-			std::cerr << "Error creating the vram texture!" << std::endl;
-		gameboy_tiledata_sprite[i].setTexture(gameboy_tiledata[i]);
-		gameboy_tiledata_sprite[i].setScale(0.5 * screen_scale, 0.5 * screen_scale);
-		tile_data[i] = new color_t[(16 * 8) * ((8 * 3) * 8)];
-		std::memset(tile_data[i], 128, 4 * (16 * 8) * ((8 * 3) * 8));
-	}
-	gameboy_tiledata_sprite[0].setPosition(25, padding / 2);
-	gameboy_tiledata_sprite[1].setPosition(right(gameboy_tiledata_sprite[0]) + padding * 0.25,
-											gameboy_tiledata_sprite[0].getPosition().y);
-	
-	for(int i = 0; i < 2; ++i)
-	{
-		if(!gameboy_tilemap[i].create(32 * 8, 32 * 8))
-			std::cerr << "Error creating the vram texture!" << std::endl;
-		gameboy_tilemap_sprite[i].setTexture(gameboy_tilemap[i]);
-		gameboy_tilemap_sprite[i].setScale(0.5 * screen_scale, 0.5 * screen_scale);
-		tile_map[i] = new color_t[32 * 8 * 32 * 8];
-		std::memset(tile_map[i], 128, 32 * 8 * 32 * 8);
-	}
-	gameboy_tilemap_sprite[0].setPosition(right(gameboy_tiledata_sprite[1]) + padding * 0.25, 
-									gameboy_tiledata_sprite[0].getPosition().y);
-	gameboy_tilemap_sprite[1].setPosition(right(gameboy_tilemap_sprite[0]) + padding * 0.25, 
-									gameboy_tiledata_sprite[0].getPosition().y);
-	
-	debug_text.setFont(font);
-	debug_text.setCharacterSize(16);
-	debug_text.setPosition(5, 0);
-	
-	log_text.setFont(font);
-	log_text.setCharacterSize(16);
-	log_text.setPosition(5, window.getSize().y - padding * 0.5 + 5);
-	log_text.setString("Log");
-
-	tiledata_text[0].setFont(font);
-	tiledata_text[0].setCharacterSize(16);
-	tiledata_text[0].setPosition(gameboy_tiledata_sprite[0].getGlobalBounds().left,
-		gameboy_tiledata_sprite[0].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
-	tiledata_text[0].setString("TileData (Bank 0)");
-	
-	tiledata_text[1].setFont(font);
-	tiledata_text[1].setCharacterSize(16);
-	tiledata_text[1].setPosition(gameboy_tiledata_sprite[1].getGlobalBounds().left,
-		gameboy_tiledata_sprite[1].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
-	tiledata_text[1].setString("TileData (Bank 1)");
+	setup_debug_window();
 
 	///////////////////////////////////////////////////////////////////////////
 	
@@ -300,7 +236,9 @@ int main(int argc, char* argv[])
 						step = false;
 						break;
 					}
-				} while((!debug || frame_by_frame) && (!gpu.completed_frame() || elapsed_cycles < 70224));
+					if(log_file)
+						log_file << get_debug_log() << std::endl;
+				} while((!debug || frame_by_frame) && (!gpu.completed_frame() || cpu.frame_cycles <= 70224));
 				frame_count++;
 			}
 			
@@ -332,81 +270,19 @@ int main(int argc, char* argv[])
 			frame_by_frame = false;
 			step = false;
 		}
-			
-		// Debug display Tilemap
-		if(window_debug.isOpen())
-		{
-			word_t tile_l;
-			word_t tile_h;
-			word_t tile_data0, tile_data1;
-			for(int tm = 0; tm < 2; ++tm)
-			{
-				for(int t = 0; t < 256 + 128; ++t)
-				{
-					size_t tile_off = 8 * (t % 16) + (16 * 8 * 8) * (t / 16); 
-					for(int y = 0; y < 8; ++y)
-					{
-						tile_l = mmu.read_vram(tm, 0x8000 + t * 16 + y * 2);
-						tile_h = mmu.read_vram(tm, 0x8000 + t * 16 + y * 2 + 1);
-						GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-						for(int x = 0; x < 8; ++x)
-						{
-							word_t shift = ((7 - x) % 4) * 2;
-							word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
-							tile_data[tm][tile_off + 16 * 8 * y + x] = std::min((4 - color) * 64, 255);
-						}
-					}
-				}
-				gameboy_tiledata[tm].update(reinterpret_cast<uint8_t*>(tile_data[tm]));
-			}
-			
-			for(int tm = 0; tm < 2; ++tm)
-			{
-				addr_t mapoffs = (tm == 0) ? 0x9800 : 0x9C00;
-				bool select = (gpu.get_lcdc() & GPU::BGWindowsTileDataSelect);
-				addr_t base_tile_data = select ? 0x8000 : 0x9000;
-				for(int t = 0; t < 32 * 32; ++t)
-				{
-					size_t tile_off = (8 * 8 * 32) * (t / 32) + 8 * (t % 32);
-					for(int y = 0; y < 8; ++y)
-					{
-						int ti = mmu.read_vram(0, mapoffs + t);
-						if(!select && (ti & 0x80))
-							 ti = -((~ti + 1) & 0xFF);
-						tile_l = mmu.read_vram(tm, base_tile_data + ti * 16 + y * 2);
-						tile_h = mmu.read_vram(tm, base_tile_data + ti * 16 + y * 2 + 1);
-						GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
-						for(int x = 0; x < 8; ++x)
-						{
-							word_t shift = ((7 - x) % 4) * 2;
-							word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
-							tile_map[tm][tile_off + (8 * 32) * y +  + x] = std::min((4 - color) * 64, 255);
-						}
-					}
-				}
-				gameboy_tilemap[tm].update(reinterpret_cast<uint8_t*>(tile_map[tm]));
-			}
-		}
 		
 		if(debug)
 		{
-			if(window_debug.isOpen())
-				debug_text.setString(get_debug_text());
-			else
-				window.setTitle("SenBoy - Paused");
-		} else {
-			if(--speed_update == 0)
-			{
-				speed_update = 10;
-				double t = timing_clock.getElapsedTime().asSeconds();
-				speed = 100.0 * (double(speed_mesure_cycles) / cpu.ClockRate) / (t - frame_time);
-				frame_time = t;
-				speed_mesure_cycles = 0;
-			}
+			window.setTitle("SenBoy - Paused");
+		} else if(--speed_update == 0) {
+			speed_update = 10;
+			double t = timing_clock.getElapsedTime().asSeconds();
+			speed = 100.0 * (double(speed_mesure_cycles) / cpu.ClockRate) / (t - frame_time);
+			frame_time = t;
+			speed_mesure_cycles = 0;
 			std::stringstream dt;
 			dt << "Speed " << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << speed << "%";
 			window.setTitle(std::string("SenBoy - ").append(dt.str()));
-			debug_text.setString(dt.str());
 		}
 		
 		if(window_debug.isOpen())
@@ -414,10 +290,15 @@ int main(int argc, char* argv[])
 			while(window_debug.pollEvent(event))
 				handle_event_debug(event);
 			
-			log_text.setPosition(5, window.getSize().y - log_text.getGlobalBounds().height - 8);
+			debug_text.setString(get_debug_text());
+			log_text.setPosition(5, window_debug.getSize().y - log_text.getGlobalBounds().height - 8);
+			
+			update_tiledata();
+			update_tilemaps();
 			
 			window_debug.clear(sf::Color::Black);
 			window_debug.draw(debug_text);
+			window_debug.draw(log_text);
 			for(int i = 0; i < 2; ++i)
 			{
 				window_debug.draw(tiledata_text[i]);
@@ -437,6 +318,8 @@ int main(int argc, char* argv[])
 	
 	delete[] tile_data[0];
 	delete[] tile_data[1];
+	delete[] tile_maps[0];
+	delete[] tile_maps[1];
 }
 
 void open_debug_window()
@@ -561,14 +444,10 @@ void reset()
 {
 	gpu.reset();
 	cpu.reset();
-	cpu.reset_cart();
 	if(use_bios)
-	{
-		if(mmu.cgb_mode())
-			cpu.loadBIOS(config::to_abs("data/gbc_bios.bin"));
-		else
-			cpu.loadBIOS(config::to_abs("data/bios.bin"));
-	}
+		mmu.load_bios();
+	else
+		cpu.reset_cart();
 	elapsed_cycles = 0;
 	timing_clock.restart();
 	debug_text.setString("Reset");
@@ -624,4 +503,161 @@ std::string get_debug_text()
 	if(cpu.check(LR35902::Flag::HalfCarry)) dt << " HC";
 	if(cpu.check(LR35902::Flag::Carry)) dt << " C";
 	return dt.str();
+}
+
+std::string get_debug_log()
+{
+	std::stringstream dt;
+	dt << Hexa(cpu.get_pc());
+	dt << " " << cpu.get_disassembly();
+	dt << " " << Hexa8(cpu.get_next_opcode()) << " ";
+	if(LR35902::instr_length[cpu.get_next_opcode()] > 1)
+		dt << Hexa8(cpu.get_next_operand0()) << " ";
+	if(LR35902::instr_length[cpu.get_next_opcode()] > 2)
+		dt << Hexa8(cpu.get_next_operand1());
+	dt << " SP: " << Hexa(cpu.get_sp());
+	dt << " AF: " << Hexa(cpu.get_af());
+	dt << " BC: " << Hexa(cpu.get_bc());
+	dt << " DE: " << Hexa(cpu.get_de());
+	dt << " HL: " << Hexa(cpu.get_hl());
+	return dt.str();
+}
+
+void update_tiledata()
+{
+	word_t tile_l;
+	word_t tile_h;
+	word_t tile_data0, tile_data1;
+	for(int tm = 0; tm < 2; ++tm)
+	{
+		for(int t = 0; t < 256 + 128; ++t)
+		{
+			size_t tile_off = 8 * (t % 16) + (16 * 8 * 8) * (t / 16); 
+			for(int y = 0; y < 8; ++y)
+			{
+				tile_l = mmu.read_vram(tm, 0x8000 + t * 16 + y * 2);
+				tile_h = mmu.read_vram(tm, 0x8000 + t * 16 + y * 2 + 1);
+				GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+				for(int x = 0; x < 8; ++x)
+				{
+					word_t shift = ((7 - x) % 4) * 2;
+					word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+					tile_data[tm][tile_off + 16 * 8 * y + x] = std::min((4 - color) * 64, 255);
+				}
+			}
+		}
+		gameboy_tiledata[tm].update(reinterpret_cast<uint8_t*>(tile_data[tm]));
+	}
+}
+
+void update_tilemaps()
+{
+	word_t tile_l;
+	word_t tile_h;
+	word_t tile_data0, tile_data1;
+	for(int tm = 0; tm < 2; ++tm)
+	{
+		addr_t mapoffs = (tm == 0) ? 0x9800 : 0x9C00;
+		bool select = (gpu.get_lcdc() & GPU::BGWindowsTileDataSelect);
+		addr_t base_tile_data = select ? 0x8000 : 0x9000;
+		for(int t = 0; t < 32 * 32; ++t)
+		{
+			size_t tile_off = (8 * 8 * 32) * (t / 32) + 8 * (t % 32);
+			for(int y = 0; y < 8; ++y)
+			{
+				int ti = mmu.read_vram(0, mapoffs + t);
+				if(!select && (ti & 0x80))
+					 ti = -((~ti + 1) & 0xFF);
+				tile_l = mmu.read_vram(tm, base_tile_data + ti * 16 + y * 2);
+				tile_h = mmu.read_vram(tm, base_tile_data + ti * 16 + y * 2 + 1);
+				GPU::palette_translation(tile_l, tile_h, tile_data0, tile_data1);
+				for(int x = 0; x < 8; ++x)
+				{
+					word_t shift = ((7 - x) % 4) * 2;
+					word_t color = ((x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
+					tile_maps[tm][tile_off + (8 * 32) * y +  + x] = std::min((4 - color) * 64, 255);
+				}
+			}
+		}
+		gameboy_tilemap[tm].update(reinterpret_cast<uint8_t*>(tile_maps[tm]));
+	}
+}
+void setup_window()
+{
+	window.create(sf::VideoMode(
+		screen_scale * gpu.ScreenWidth + padding, 
+		screen_scale * gpu.ScreenHeight + padding), 
+		"SenBoy");
+	window.setVerticalSyncEnabled(false);
+	
+	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
+		std::cerr << "Error creating the screen texture!" << std::endl;
+	gameboy_screen_sprite.setTexture(gameboy_screen);
+	gameboy_screen_sprite.setPosition(padding / 2, 
+									padding / 2);
+	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
+	
+	if(mmu.cgb_mode())
+		gameboy_logo_tex.loadFromFile(config::to_abs("data/gbc_logo.png"));
+	else
+		gameboy_logo_tex.loadFromFile(config::to_abs("data/gb_logo.png"));
+	gameboy_logo_sprite.setTexture(gameboy_logo_tex);
+	gameboy_logo_sprite.setPosition(padding / 2, 
+									padding / 2 + screen_scale * gpu.ScreenHeight);
+	gameboy_logo_sprite.setScale(screen_scale / 4.0, screen_scale / 4.0);
+	
+	if(!font.loadFromFile(config::to_abs("data/Hack-Regular.ttf")))
+		std::cerr << "Error loading the font!" << std::endl;
+}
+
+void setup_debug_window()
+{
+	auto right = [&](const sf::Sprite& s) -> float { return s.getGlobalBounds().left + s.getGlobalBounds().width; };
+	for(int i = 0; i < 2; ++i)
+	{
+		if(!gameboy_tiledata[i].create(16 * 8, (8 * 3) * 8))
+			std::cerr << "Error creating the vram texture!" << std::endl;
+		gameboy_tiledata_sprite[i].setTexture(gameboy_tiledata[i]);
+		gameboy_tiledata_sprite[i].setScale(0.5 * screen_scale, 0.5 * screen_scale);
+		tile_data[i] = new color_t[(16 * 8) * ((8 * 3) * 8)];
+		std::memset(tile_data[i], 128, 4 * (16 * 8) * ((8 * 3) * 8));
+	}
+	gameboy_tiledata_sprite[0].setPosition(25, padding / 2);
+	gameboy_tiledata_sprite[1].setPosition(right(gameboy_tiledata_sprite[0]) + padding * 0.25,
+											gameboy_tiledata_sprite[0].getPosition().y);
+	
+	for(int i = 0; i < 2; ++i)
+	{
+		if(!gameboy_tilemap[i].create(32 * 8, 32 * 8))
+			std::cerr << "Error creating the vram texture!" << std::endl;
+		gameboy_tilemap_sprite[i].setTexture(gameboy_tilemap[i]);
+		gameboy_tilemap_sprite[i].setScale(0.5 * screen_scale, 0.5 * screen_scale);
+		tile_maps[i] = new color_t[32 * 8 * 32 * 8];
+		std::memset(tile_maps[i], 128, 32 * 8 * 32 * 8);
+	}
+	gameboy_tilemap_sprite[0].setPosition(right(gameboy_tiledata_sprite[1]) + padding * 0.25, 
+									gameboy_tiledata_sprite[0].getPosition().y);
+	gameboy_tilemap_sprite[1].setPosition(right(gameboy_tilemap_sprite[0]) + padding * 0.25, 
+									gameboy_tiledata_sprite[0].getPosition().y);
+	
+	debug_text.setFont(font);
+	debug_text.setCharacterSize(16);
+	debug_text.setPosition(5, 0);
+	
+	log_text.setFont(font);
+	log_text.setCharacterSize(16);
+	log_text.setPosition(5, window.getSize().y - padding * 0.5 + 5);
+	log_text.setString("Log");
+
+	tiledata_text[0].setFont(font);
+	tiledata_text[0].setCharacterSize(16);
+	tiledata_text[0].setPosition(gameboy_tiledata_sprite[0].getGlobalBounds().left,
+		gameboy_tiledata_sprite[0].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
+	tiledata_text[0].setString("TileData (Bank 0)");
+	
+	tiledata_text[1].setFont(font);
+	tiledata_text[1].setCharacterSize(16);
+	tiledata_text[1].setPosition(gameboy_tiledata_sprite[1].getGlobalBounds().left,
+		gameboy_tiledata_sprite[1].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
+	tiledata_text[1].setString("TileData (Bank 1)");
 }

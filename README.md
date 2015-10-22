@@ -10,6 +10,8 @@ It is buggy, ugly and absolutely not optimised. I am not aiming for performance 
 
 <img src="img/SenBoy_PKM0.png" width=350 /> <img src="img/SenBoy_PKM1.png" width=350 />
 
+<img src="img/SenBoy_PKM2.png" width=350 />
+
 ### GameBoy
 <img src="img/SenBoy_Kirby.png" width=350 />
 <img src="img/SenBoy_Zelda0.png" width=350 /> <img src="img/SenBoy_Zelda1.png" width=350 /> <img src="img/SenBoy_Zelda2.png" width=350 />
@@ -52,6 +54,7 @@ Enter					| Toggle Debugging (Halt Execution)
 Space					| Advance one instruction (in debug)
 L						| Advance one frame
 M						| Toggle Real Speed
+D						| Open debug window
 B						| Add a breakpoint (peek at your console)
 N						| Clear all breakpoints
 NumPad +				| Volume Up
