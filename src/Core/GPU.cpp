@@ -36,14 +36,18 @@ void GPU::step(size_t cycles, bool render)
 			_cycles = 0;
 			get_line() = 0;
 			std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
-			s_cleared_screen = true;
 			_completed_frame = true;
+			s_cleared_screen = true;
 		}
-		_cycles += cycles;
-	} else s_cleared_screen = false;
+		return;
+	} else if(s_cleared_screen) {
+		_cycles = 0;
+		get_line() = 0;
+		s_cleared_screen = false;
+	}
 	
 	_cycles += cycles;
-	update_mode(render);
+	update_mode(render && enabled());
 	
 	lyc(get_line() != l);
 }
@@ -78,7 +82,7 @@ void GPU::update_mode(bool render)
 					get_line() = 0; // 456 cycles at line 0 (instead of 153)
 				} else if(get_line() == 1) {
 					_completed_frame = true;
-					get_line() = 0; 
+					get_line() = 0;
 					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
 				}
@@ -126,12 +130,6 @@ struct Sprite
 void GPU::render_line()
 {
 	word_t line = get_line();
-	if(!enabled())
-	{
-		std::memset(screen + to1D(0, line), 0xFF, ScreenWidth);
-		return;
-	}
-	
 	word_t LCDC = get_lcdc();
 	
 	assert(line < ScreenHeight);
