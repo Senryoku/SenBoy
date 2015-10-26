@@ -43,6 +43,7 @@ Option			| Effect
 
 Controls uses any connected Joystick, or the keyboard. There is no way to configure it !
 Values are hard coded to match a Xbox360/XboxOne controller and the keyboard uses the following mapping: 
+
 Gameboy Button	| Keyboard Key
 ----------------|--------------
 A				| S
