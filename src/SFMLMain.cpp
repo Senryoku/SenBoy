@@ -28,7 +28,7 @@ LR35902		cpu;
 Gb_Apu		apu;
 MMU			mmu;
 GPU			gpu;
-	
+
 Stereo_Buffer gb_snd_buffer;
 GBAudioStream snd_buffer;
 
@@ -43,7 +43,6 @@ sf::Texture	gameboy_logo_tex;
 sf::Sprite gameboy_logo_sprite;
 
 // Debug GUI
-std::ofstream log_file;
 sf::Texture	gameboy_tiledata[2];
 sf::Sprite gameboy_tiledata_sprite[2];
 sf::Texture	gameboy_tilemap[2];
@@ -104,7 +103,8 @@ int main(int argc, char* argv[])
 				<< " -d : Enable debug display." << std::endl
 				<< " -b : Skip BIOS." << std::endl
 				<< " -s : Disable sound." << std::endl
-				<< " $l : Specify a log file." << std::endl
+				<< " $m : Specify a input movie file." << std::endl
+				<< " $ms : Specify a output movie file." << std::endl
 				<< " --dmg : Force DMG mode." << std::endl
 				<< " --cgb : Force CGB mode." << std::endl;
 		if(has_option(argc, argv, "-h")) return 0;
@@ -125,8 +125,6 @@ int main(int argc, char* argv[])
 		mmu.force_dmg = true;
 	if(has_option(argc, argv, "--cgb"))
 		mmu.force_cgb = true;
-	if(get_option(argc, argv, "$l"))
-		log_file.open(get_option(argc, argv, "$l"));
 	
 	// Linking them all together
 	mmu.cartridge = &cartridge;
@@ -210,10 +208,10 @@ int main(int argc, char* argv[])
 		mmu.callback_joy_down = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
 		mmu.callback_joy_right = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
 		mmu.callback_joy_left = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
-		mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::A); };
-		mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Z); };
-		mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Q); };
-		mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::S); };
+		mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::S); };
+		mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::D); };
+		mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::F); };
+		mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::G); };
 	} else {
 		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
 		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
@@ -274,8 +272,6 @@ int main(int argc, char* argv[])
 						step = false;
 						break;
 					}
-					if(log_file)
-						log_file << get_debug_log() << std::endl;
 				} while((!debug || frame_by_frame) && (!gpu.completed_frame() || cpu.frame_cycles <= 70224));
 				
 				frame_count++;
@@ -365,9 +361,42 @@ void open_debug_window()
 {
 	if(window_debug.isOpen())
 		return;
-	window_debug.create(sf::VideoMode(1.75 * padding + 2 * 0.5 * screen_scale * (16 * 8 + 32 * 8), 
+	window_debug.create(sf::VideoMode(1.25 * padding + 2 * 0.5 * screen_scale * (16 * 8 + 32 * 8), 
 		screen_scale * 0.5 * 32 * 8 + padding), 
 		"SenBoy - Debug");
+}
+
+void toggle_debug()
+{
+	debug = !debug;
+	elapsed_cycles = 0;
+	timing_clock.restart();
+	log_text.setString(debug ? "Debugging" : "Running");
+}
+
+void add_breakpoint()
+{
+	addr_t addr;
+	std::cout << "Adding breakpoint. Enter an address: " << std::endl;
+	std::cin >> std::hex >> addr;
+	cpu.add_breakpoint(addr);
+	std::stringstream ss;
+	ss << "Added a breakpoint at " << Hexa(addr) << ".";
+	log_text.setString(ss.str());
+}
+
+void clear_breakpoints()
+{
+	cpu.clear_breakpoints();
+	log_text.setString("Cleared breakpoints.");
+}
+
+void advance_frame()
+{
+	frame_by_frame = true;
+	step = true;
+	debug = true;
+	log_text.setString("Advancing one frame");
 }
 
 void handle_event(sf::Event event)
@@ -380,17 +409,8 @@ void handle_event(sf::Event event)
 		{
 			case sf::Keyboard::Escape: window.close(); break;
 			case sf::Keyboard::Space: step = true; break;
-			case sf::Keyboard::Return: 
-			{
-				debug = !debug;
-				elapsed_cycles = 0;
-				timing_clock.restart();
-				log_text.setString(debug ? "Debugging" : "Running");
-				break;
-			}
-			case sf::Keyboard::BackSpace:
-				reset();
-				break;
+			case sf::Keyboard::Return: toggle_debug(); break;
+			case sf::Keyboard::BackSpace: reset(); break;
 			case sf::Keyboard::Add:
 			{
 				float vol = snd_buffer.getVolume();
@@ -408,32 +428,10 @@ void handle_event(sf::Event event)
 				break;
 			}
 			case sf::Keyboard::D: open_debug_window(); break;
-			case sf::Keyboard::B:
-			{
-				addr_t addr;
-				std::cout << "Adding breakpoint. Enter an address: " << std::endl;
-				std::cin >> std::hex >> addr;
-				cpu.add_breakpoint(addr);
-				std::stringstream ss;
-				ss << "Added a breakpoint at " << Hexa(addr) << ".";
-				log_text.setString(ss.str());
-				break;
-			}
-			case sf::Keyboard::N:
-			{
-				cpu.clear_breakpoints();
-				log_text.setString("Cleared breakpoints.");
-				break;
-			}
+			case sf::Keyboard::B: add_breakpoint(); break;
+			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
-			case sf::Keyboard::L:
-			{
-				frame_by_frame = true;
-				step = true;
-				debug = true;
-				log_text.setString("Advancing one frame");
-				break;
-			}
+			case sf::Keyboard::L: advance_frame(); break;
 			default: break;
 		}
 	} else if (event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
@@ -469,6 +467,20 @@ void handle_event_debug(sf::Event event)
 {
 	if (event.type == sf::Event::Closed)
 		window_debug.close();
+	if (event.type == sf::Event::KeyPressed)
+	{
+		switch(event.key.code)
+		{
+			case sf::Keyboard::Escape: window_debug.close(); break;
+			case sf::Keyboard::Space: step = true; break;
+			case sf::Keyboard::Return: toggle_debug(); break;
+			case sf::Keyboard::B: add_breakpoint(); break;
+			case sf::Keyboard::N: clear_breakpoints(); break;
+			case sf::Keyboard::M: toggle_speed(); break;
+			case sf::Keyboard::L: advance_frame(); break;
+			default: break;
+		}
+	}
 }
 
 void toggle_speed()
@@ -645,6 +657,7 @@ void update_tilemaps()
 		gameboy_tilemap[tm].update(reinterpret_cast<uint8_t*>(tile_maps[tm]));
 	}
 }
+
 void setup_window()
 {
 	window.create(sf::VideoMode(
@@ -675,7 +688,10 @@ void setup_window()
 
 void setup_debug_window()
 {
-	auto right = [&](const sf::Sprite& s) -> float { return s.getGlobalBounds().left + s.getGlobalBounds().width; };
+	auto right = [&](const sf::Sprite& s) -> float { 
+		return s.getGlobalBounds().left + s.getGlobalBounds().width;
+	};
+	
 	for(int i = 0; i < 2; ++i)
 	{
 		if(!gameboy_tiledata[i].create(16 * 8, (8 * 3) * 8))
@@ -724,3 +740,4 @@ void setup_debug_window()
 		gameboy_tiledata_sprite[1].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
 	tiledata_text[1].setString("TileData (Bank 1)");
 }
+
