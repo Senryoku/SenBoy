@@ -5,7 +5,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-set(SenBoy_VERSION_MAJOR 0)
+set(SenBoy_VERSION_MAJOR 1)
 set(SenBoy_VERSION_MINOR 9)
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")

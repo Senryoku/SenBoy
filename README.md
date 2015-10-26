@@ -26,8 +26,6 @@ make
 ````
 ## Usage
 
-Note: You will need GB (CGB) Bios in data/bios.bin (data/gbc_bios.bin) for SenBoy to run normally (You can skip bios by adding option -b in command line, but some things might break (Notably palettes of GameBoy games in GameBoy Color mode)).
-
 **SenBoy still lacks a proper GUI**.
 
 Pass a rom path via the command line to run it :
@@ -43,7 +41,18 @@ Option			| Effect
 --dmg 			| Force execution in original GameBoy mode
 --cgb 			| Force execution in GameBoy Color mode
 
-Controls uses any connected Joystick. There is no way to configure it ! (Values are hard coded to match a Xbox360/XboxOne controller)
+Controls uses any connected Joystick, or the keyboard. There is no way to configure it !
+Values are hard coded to match a Xbox360/XboxOne controller and the keyboard uses the following mapping: 
+Gameboy Button	| Keyboard Key
+----------------|--------------
+A				| S
+B				| D
+Select			| F
+Start			| G
+Up				| Up Arrow
+Down			| Down Arrow
+Left			| Left Arrow
+Right			| Right Arrow
 
 When SenBoy is running, the following shortcuts are available:
 
@@ -61,7 +70,6 @@ NumPad +				| Volume Up
 NumPad -				| Volume Down
 
 ## TODO
-* ~~Fix Stuttering on Windows (lack of sleep() precision?)~~
 * Gameboy Color Mode
   * Debugging (Crash in Pokemon Crystal?)
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
@@ -104,3 +112,4 @@ SenBoy is NOT sub-instruction accurate.
 ## Thanks
 * http://gbdev.gg8.se/ for their awesome wiki.
 * Shay 'Blargg' Green for his tests roms, his Gb_Snd_Emu library and all his contributions to the emulation scene!
+
