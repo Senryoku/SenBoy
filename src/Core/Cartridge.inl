@@ -120,7 +120,7 @@ inline unsigned int Cartridge::getHeaderChecksum() const
 	return static_cast<unsigned int>(*(_data.data() + HeaderChecksum) & 0xFF);
 }
 	
-inline byte_t Cartridge::rom_bank() const
+inline int Cartridge::rom_bank() const
 {
 	if(isMBC1())
 	{
@@ -133,7 +133,7 @@ inline byte_t Cartridge::rom_bank() const
 	}
 }
 
-inline byte_t Cartridge::ram_bank() const
+inline int Cartridge::ram_bank() const
 {
 	if(isMBC1())
 	{

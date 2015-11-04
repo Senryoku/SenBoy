@@ -117,8 +117,8 @@ private:
 	void latch_clock_data();
 	static bool file_exists(const std::string& path);
 	
-	inline byte_t rom_bank() const;
-	inline byte_t ram_bank() const;
+	inline int rom_bank() const;
+	inline int ram_bank() const;
 };
 
 #include "Cartridge.inl"
