@@ -12,10 +12,6 @@ Cartridge::Cartridge(const std::string& path)
 {
 	load(path);
 }
-
-Cartridge::~Cartridge()
-{
-}
 	
 bool Cartridge::load(const std::string& path)
 {
@@ -150,10 +146,10 @@ void Cartridge::write(addr_t addr, byte_t value)
 				if(addr < 0x3000) {	// Bits 0-7
 					_rom_bank = (_rom_bank & 0x100) | (value & 0xFF);
 				} else {			// Bit 8
-					if(getROMSize() / 0x4000 >= 0x100)
+					if(getROMBankCount() >= 0x100)
 						_rom_bank = (_rom_bank & 0x0FF) | ((value & 0x01) ? 0x100 : 0);
 				}
-				assert(_rom_bank < 0x1E0 && _rom_bank < getROMSize() / 0x4000);
+				assert(_rom_bank < 0x1E0 && _rom_bank < getROMBankCount());
 			}
 		break;
 

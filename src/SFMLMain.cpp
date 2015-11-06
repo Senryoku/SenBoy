@@ -24,10 +24,10 @@ size_t frame_skip = 0;		// Increase for better performances.
 
 // Components of the emulated GameBoy
 Cartridge	cartridge;
-LR35902		cpu;
+MMU			mmu(cartridge);
 Gb_Apu		apu;
-MMU			mmu;
-GPU			gpu;
+LR35902		cpu(mmu, apu);
+GPU			gpu(mmu);
 
 Stereo_Buffer gb_snd_buffer;
 GBAudioStream snd_buffer;
@@ -125,13 +125,7 @@ int main(int argc, char* argv[])
 		mmu.force_dmg = true;
 	if(has_option(argc, argv, "--cgb"))
 		mmu.force_cgb = true;
-	
-	// Linking them all together
-	mmu.cartridge = &cartridge;
-	if(with_sound) cpu.apu = &apu;
-	cpu.mmu = &mmu;
-	gpu.mmu = &mmu;
-	
+		
 	// Loading ROM
 	if(!cartridge.load(path))
 		return 0;
@@ -300,7 +294,7 @@ int main(int argc, char* argv[])
 				}
 			}
 			
-			gameboy_screen.update(reinterpret_cast<uint8_t*>(gpu.screen));
+			gameboy_screen.update(reinterpret_cast<const uint8_t*>(gpu.get_screen()));
 			
 			frame_by_frame = false;
 			step = false;

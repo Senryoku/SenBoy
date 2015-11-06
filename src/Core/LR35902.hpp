@@ -22,13 +22,10 @@ public:
 		Carry = 0x10		///< Last result was > 0xFF or < 0x00
 	};
 
-	MMU*	mmu = nullptr;
-	Gb_Apu*	apu = nullptr;
-
 	size_t  frame_cycles = 0;
 	bool 	emulate_halt_bug = false; ///< @todo Debug
 	
-	LR35902();
+	LR35902(MMU& _mmu, Gb_Apu& _apu);
 	~LR35902() =default;
 	
 	/// Reset the CPU, zero-ing all registers. (Power-up state)
@@ -37,7 +34,7 @@ public:
 	/// Reset to post internal checks
 	void reset_cart();
 	
-	inline bool double_speed() const { return (mmu->read(MMU::KEY1) & 0x80); }
+	inline bool double_speed() const { return (_mmu->read(MMU::KEY1) & 0x80); }
 	inline uint64_t get_clock_cycles() const { return _clock_cycles; }
 	inline uint64_t get_instr_cycles() const { return _clock_instr_cycles; }
 	inline addr_t get_pc() const { return _pc; }
@@ -73,6 +70,9 @@ public:
 	static std::string	instr_cb_str[0x100];
 	
 private:
+	MMU*	_mmu = nullptr;
+	Gb_Apu*	_apu = nullptr;
+	
 	///////////////////////////////////////////////////////////////////////////
 	// Debug
 	
@@ -165,38 +165,38 @@ inline std::string LR35902::get_disassembly() const
 	size_t p = std::string::npos;
 	if(length > 2)
 	{
-		if((p = r.find(" a16")) != std::string::npos) r.insert(p + 4, " = " + Hexa(mmu->read16(operand)).str());
-		if((p = r.find(",a16")) != std::string::npos) r.insert(p + 4, " = " + Hexa(mmu->read16(operand)).str());
-		if((p = r.find("(a16)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(read(mmu->read16(operand))).str());
-		if((p = r.find("d16")) != std::string::npos) r.insert(p + 3, " = " + Hexa(mmu->read16(operand)).str());
+		if((p = r.find(" a16")) != std::string::npos) r.insert(p + 4, " = " + Hexa(_mmu->read16(operand)).str());
+		if((p = r.find(",a16")) != std::string::npos) r.insert(p + 4, " = " + Hexa(_mmu->read16(operand)).str());
+		if((p = r.find("(a16)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(read(_mmu->read16(operand))).str());
+		if((p = r.find("d16")) != std::string::npos) r.insert(p + 3, " = " + Hexa(_mmu->read16(operand)).str());
 	} else if(length > 1 && op != 0xCB) {
-		if((p = r.find("a8")) != std::string::npos) r.insert(p + 2, " = " + Hexa(0xFF00 + mmu->read(operand)).str()
-							+ " => " + Hexa8(mmu->read(0xFF00 + mmu->read(operand))).str());
-		if((p = r.find("d8")) != std::string::npos) r.insert(p + 2, " = " + Hexa8(mmu->read(operand)).str());
-		if((p = r.find("r8")) != std::string::npos) r.insert(p + 2, " = " + Hexa8(from_2c_to_signed(mmu->read(operand))).str());
+		if((p = r.find("a8")) != std::string::npos) r.insert(p + 2, " = " + Hexa(0xFF00 + _mmu->read(operand)).str()
+							+ " => " + Hexa8(_mmu->read(0xFF00 + _mmu->read(operand))).str());
+		if((p = r.find("d8")) != std::string::npos) r.insert(p + 2, " = " + Hexa8(_mmu->read(operand)).str());
+		if((p = r.find("r8")) != std::string::npos) r.insert(p + 2, " = " + Hexa8(from_2c_to_signed(_mmu->read(operand))).str());
 	}
-	if((p = r.find("(BC)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(mmu->read(get_bc())).str());
-	if((p = r.find("(DE)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(mmu->read(get_de())).str());
-	if((p = r.find("(HL)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(mmu->read(get_hl())).str());
-	if((p = r.find("(HL+)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(mmu->read(get_hl())).str());
-	if((p = r.find("(HL-)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(mmu->read(get_hl())).str());
+	if((p = r.find("(BC)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(_mmu->read(get_bc())).str());
+	if((p = r.find("(DE)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(_mmu->read(get_de())).str());
+	if((p = r.find("(HL)")) != std::string::npos) r.insert(p + 4, " = " + Hexa8(_mmu->read(get_hl())).str());
+	if((p = r.find("(HL+)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(_mmu->read(get_hl())).str());
+	if((p = r.find("(HL-)")) != std::string::npos) r.insert(p + 5, " = " + Hexa8(_mmu->read(get_hl())).str());
 	return r;
 };
 	
 inline word_t LR35902::read(addr_t addr) const
 {
-	if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-		return apu->read_register(frame_cycles, addr);
+	if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+		return _apu->read_register(frame_cycles, addr);
 	else
-		return mmu->read(addr);
+		return _mmu->read(addr);
 }
 
 inline void LR35902::write(addr_t addr, word_t value)
 {
-	if(apu && Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-		apu->write_register(frame_cycles, addr, value);
+	if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+		_apu->write_register(frame_cycles, addr, value);
 	else
-		mmu->write(addr, value);
+		_mmu->write(addr, value);
 }
 
 inline void LR35902::exec_interrupt(MMU::InterruptFlag i, addr_t addr)
@@ -205,7 +205,7 @@ inline void LR35902::exec_interrupt(MMU::InterruptFlag i, addr_t addr)
 	_pc = addr;
 	_ime = false;
 	add_cycles(20);
-	mmu->rw(MMU::IF) &= ~i;
+	_mmu->rw(MMU::IF) &= ~i;
 	_halt = false;
 }
 
@@ -217,11 +217,11 @@ inline void LR35902::update_timing()
 	if(_divider_register >= 256)
 	{
 		_divider_register -= 256;
-		mmu->rw(MMU::DIV)++;
+		_mmu->rw(MMU::DIV)++;
 	}
 		
 	_timer_counter += _clock_instr_cycles;
-	word_t TAC = mmu->read(MMU::TAC);
+	word_t TAC = _mmu->read(MMU::TAC);
 	unsigned int tac_divisor = 1026;
 	if((TAC & 0b11) == 0b01) tac_divisor = 16;
 	if((TAC & 0b11) == 0b10) tac_divisor = 64;
@@ -229,21 +229,21 @@ inline void LR35902::update_timing()
 	while((TAC & 0b100) && _timer_counter >= tac_divisor)
 	{
 		_timer_counter -= tac_divisor;
-		if(mmu->read(MMU::TIMA) != 0xFF)
+		if(_mmu->read(MMU::TIMA) != 0xFF)
 		{
-			mmu->rw(MMU::TIMA)++;
+			_mmu->rw(MMU::TIMA)++;
 		} else {
-			mmu->rw(MMU::TIMA) = mmu->read(MMU::TMA);
+			_mmu->rw(MMU::TIMA) = _mmu->read(MMU::TMA);
 			// Interrupt
-			mmu->rw(MMU::IF) |= MMU::TimerOverflow;
+			_mmu->rw(MMU::IF) |= MMU::TimerOverflow;
 		}
 	}
 }
 
 inline void LR35902::check_interrupts()
 {
-	word_t IF = mmu->read(MMU::IF);
-	word_t IE = mmu->read(MMU::IE);
+	word_t IF = _mmu->read(MMU::IF);
+	word_t IE = _mmu->read(MMU::IE);
 	if(IF & IE) // An enabled interrupt is waiting
 	{
 		// Check each interrupt in order of priority.

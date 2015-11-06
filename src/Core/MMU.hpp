@@ -90,8 +90,6 @@ public:
 		Button = 0x20
 	};
 	
-	Cartridge*		cartridge = nullptr;
-	
 	bool			force_dmg = false; ///< Force the execution as a simple GameBoy (DMG)
 	bool			force_cgb = false; ///< Force the execution as a Color GameBoy (Priority over force_dmg)
 	
@@ -105,8 +103,7 @@ public:
 	callback_joy	callback_joy_b;
 	callback_joy	callback_joy_a;
 	
-	MMU();
-	
+	MMU(Cartridge& cartridge);
 	~MMU();
 	
 	void reset();
@@ -138,6 +135,8 @@ public:
 	inline bool hdma_cycles() { bool r = _hdma_cycles; _hdma_cycles = false; return r; }
 	
 private:
+	Cartridge*	_cartridge = nullptr;
+	
 	word_t*		_mem = nullptr;	///< This represent the whole address space and contains all that doesn't fit elsewhere.
 	word_t*		_wram[8];		///< Switchable bank of working RAM (CGB Only)
 	word_t*		_vram_bank1;	///< VRAM Bank 1 (Bank 0 is in _mem)
@@ -171,7 +170,7 @@ private:
 inline bool MMU::cgb_mode() const 
 {
 	/// @todo Better
-	return force_cgb || (!force_dmg && cartridge->getCGBFlag() != Cartridge::No);
+	return force_cgb || (!force_dmg && _cartridge->getCGBFlag() != Cartridge::No);
 }
 
 inline word_t MMU::read(addr_t addr) const
@@ -179,11 +178,11 @@ inline word_t MMU::read(addr_t addr) const
 	if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
 		return _mem[addr];
 	} else if(addr < 0x8000) { // 2 * 16kB ROM Banks
-		return static_cast<word_t>(cartridge->read(addr));
+		return static_cast<word_t>(_cartridge->read(addr));
 	} else if(cgb_mode() && _mem[VBK] != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
 		return _vram_bank1[addr - 0x8000];
 	} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
-		return cartridge->read(addr);
+		return _cartridge->read(addr);
 	} else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) { // CGB Mode - Working RAM Bank 0
 		return _wram[0][addr - 0xC000];
 	} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
@@ -248,11 +247,11 @@ inline addr_t MMU::read16(addr_t addr)
 inline void	MMU::write(addr_t addr, word_t value)
 {
 	if(addr < 0x8000) // Memory Banks management
-		cartridge->write(addr, value);
+		_cartridge->write(addr, value);
 	else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
 		_vram_bank1[addr - 0x8000] = value;
 	else if(addr >= 0xA000 && addr < 0xC000) // External RAM
-		cartridge->write(addr, value);
+		_cartridge->write(addr, value);
 	else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) // CGB Mode - Working RAM Bank 0
 		_wram[0][addr - 0xC000] = value;
 	else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Switchable WRAM Banks

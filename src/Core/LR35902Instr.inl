@@ -17,9 +17,9 @@ inline void instr_stop()
 {
 	_stop = true;
 	// Switch Double Speed
-	word_t key1 = mmu->read(MMU::KEY1);
+	word_t key1 = _mmu->read(MMU::KEY1);
 	if(key1 & 0x8)
-		mmu->write(MMU::KEY1, word_t(~(key1 & 1) & 1));
+		_mmu->write(MMU::KEY1, word_t(~(key1 & 1) & 1));
 }
 
 inline void instr_halt()

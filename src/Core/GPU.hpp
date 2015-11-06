@@ -1,16 +1,14 @@
 #pragma once
 
 #include <cstring> // Memset
+#include <memory>
 
 #include "Color.hpp"
 #include "MMU.hpp"
 
 class GPU
 {
-public:	
-	MMU*		mmu = nullptr;
-	color_t*	screen = nullptr;
-	
+public:
 	const word_t ScreenWidth = 160;
 	const word_t ScreenHeight = 144;
 	const word_t Colors[4] = {255, 192, 96, 0};
@@ -65,15 +63,15 @@ public:
 		BGtoOAMPriority		= 0x80
 	};
 	
-	GPU();
-	~GPU();
+	GPU(MMU& _mmu);
+	~GPU() =default;
 	
 	void reset();
 	void step(size_t cycles, bool render = true);
 	inline bool enabled() const { return get_lcdc() & LCDDisplayEnable; }
 	inline bool completed_frame() const { return _completed_frame; } 
 	
-	inline addr_t to1D(word_t x, word_t y);
+	inline size_t to1D(word_t x, word_t y);
 		
 	/**
 	 * Treats bits in l as low bits and in h as high bits of 2bits values.
@@ -81,20 +79,23 @@ public:
 	static inline void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1);
 	
 	/// @param val 0 <= val < 4
-	inline word_t get_bg_color(word_t val) { return Colors[(get_bgp() >> (val * 2)) & 0b11]; }
+	inline word_t get_bg_color(word_t val) const { return Colors[(get_bgp() >> (val * 2)) & 0b11]; }
 	
-	inline word_t& get_scroll_x() const { return mmu->rw(MMU::Register::SCX); }
-	inline word_t& get_scroll_y() const { return mmu->rw(MMU::Register::SCY); }
-	inline word_t& get_bgp() const { return mmu->rw(MMU::Register::BGP); }
-	inline word_t& get_lcdc() const { return mmu->rw(MMU::Register::LCDC); }
-	inline word_t& get_lcdstat() const { return mmu->rw(MMU::Register::STAT); }
-	inline word_t& get_line() const { return mmu->rw(MMU::Register::LY); }
-	inline word_t& get_lyc() const { return mmu->rw(MMU::Register::LYC); }
+	inline const color_t* get_screen() const { return _screen.get(); }
+	inline word_t& get_scroll_x() const { return _mmu->rw(MMU::Register::SCX); }
+	inline word_t& get_scroll_y() const { return _mmu->rw(MMU::Register::SCY); }
+	inline word_t& get_bgp() const { return _mmu->rw(MMU::Register::BGP); }
+	inline word_t& get_lcdc() const { return _mmu->rw(MMU::Register::LCDC); }
+	inline word_t& get_lcdstat() const { return _mmu->rw(MMU::Register::STAT); }
+	inline word_t& get_line() const { return _mmu->rw(MMU::Register::LY); }
+	inline word_t& get_lyc() const { return _mmu->rw(MMU::Register::LYC); }
 	
 private:
+	MMU*						_mmu;
+	std::unique_ptr<color_t[]>	_screen;
 	// Timing
-	unsigned int	_cycles = 0;
-	bool			_completed_frame = false;
+	unsigned int				_cycles = 0;
+	bool						_completed_frame = false;
 	
 	inline void lyc(bool changed);
 	inline void exec_stat_interrupt(LCDStatus m);
@@ -103,6 +104,8 @@ private:
 		
 	void render_line();
 };
+
+// Inlined member functions
 
 inline void GPU::lyc(bool changed)
 {
@@ -116,7 +119,7 @@ inline void GPU::lyc(bool changed)
 	}
 }
 
-inline addr_t GPU::to1D(word_t x, word_t y)
+inline size_t GPU::to1D(word_t x, word_t y)
 {
 	assert(y < ScreenHeight && x < ScreenWidth);
 	return y * ScreenWidth + x;
@@ -134,5 +137,5 @@ inline void GPU::palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
 inline void GPU::exec_stat_interrupt(LCDStatus m)
 {
 	if((get_lcdstat() & m))
-		mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
+		_mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
 }

@@ -85,6 +85,11 @@ inline size_t Cartridge::getROMSize() const
 	return 32 * 1024;
 }
 
+inline size_t Cartridge::getROMBankCount() const
+{
+	return getROMSize() / 0x4000;
+}
+
 inline size_t Cartridge::getRAMSize() const
 {
 	if(_data.empty()) return 0;

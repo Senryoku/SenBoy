@@ -74,7 +74,7 @@ public:
 	
 	Cartridge() =default;
 	Cartridge(const std::string& path);
-	~Cartridge();
+	~Cartridge() =default;
 
 	bool load(const std::string& path);
 
@@ -90,6 +90,7 @@ public:
 	inline bool isMBC5() const;
 	inline bool hasBattery() const;
 	inline size_t getROMSize() const;
+	inline size_t getROMBankCount() const;
 	inline bool hasRAM() const;
 	inline size_t getRAMSize() const;
 	inline CGBFlag getCGBFlag() const;

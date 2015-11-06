@@ -2,7 +2,8 @@
 
 #include <cstring>
 
-MMU::MMU() :
+MMU::MMU(Cartridge& cartridge) :
+	_cartridge(&cartridge),
 	_mem(new word_t[MemSize]),
 	_vram_bank1(new word_t[VRAMSize])
 {

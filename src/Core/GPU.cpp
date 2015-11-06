@@ -2,19 +2,15 @@
 
 #include <list>
 
-GPU::GPU()
+GPU::GPU(MMU& mmu) :
+	_mmu(&mmu),
+	_screen(new color_t[ScreenWidth * ScreenHeight])
 {
-	screen = new color_t[ScreenWidth * ScreenHeight];
-}
-
-GPU::~GPU()
-{
-	delete[] screen;
 }
 	
 void GPU::reset()
 {
-	std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
+	std::memset(_screen.get(), 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 	
 	get_line() = get_scroll_x() = get_scroll_y() = get_bgp() = get_lcdstat() = _cycles = 0;
 	get_lcdc() = 0x91;
@@ -23,7 +19,7 @@ void GPU::reset()
 
 void GPU::step(size_t cycles, bool render)
 {
-	assert(mmu != nullptr && screen != nullptr);
+	assert(_mmu != nullptr && _screen != nullptr);
 	static bool s_cleared_screen = false;
 	
 	_completed_frame = false;
@@ -35,7 +31,7 @@ void GPU::step(size_t cycles, bool render)
 		{
 			_cycles = 0;
 			get_line() = 0;
-			std::memset(screen, 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
+			std::memset(_screen.get(), 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));
 			_completed_frame = true;
 			s_cleared_screen = true;
 		}
@@ -68,7 +64,7 @@ void GPU::update_mode(bool render)
 				} else {
 					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::VBlank;
 					// VBlank Interrupt
-					mmu->rw(MMU::IF) |= MMU::VBlank;
+					_mmu->rw(MMU::IF) |= MMU::VBlank;
 					exec_stat_interrupt(Mode01);
 				}
 			}
@@ -101,7 +97,7 @@ void GPU::update_mode(bool render)
 				_cycles -= 172;
 				if(render) render_line();
 				get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::HBlank;
-				mmu->check_hdma();
+				_mmu->check_hdma();
 				exec_stat_interrupt(Mode00);
 			}
 			break;
@@ -139,18 +135,18 @@ void GPU::render_line()
 	// CGB Only
 	bool line_bg_priorities[ScreenWidth];
 	
-	int wx = mmu->read(MMU::WX) - 7; // Can be < 0
-	word_t wy = mmu->read(MMU::WY);
+	int wx = _mmu->read(MMU::WX) - 7; // Can be < 0
+	word_t wy = _mmu->read(MMU::WY);
 	
 	bool draw_window = (LCDC & WindowDisplay) && wx < 160 && line >= wy;
 
 	// BG Disabled, draw blank in non CGB mode
 	word_t start_col = 0;
-	if(!mmu->cgb_mode() && !(LCDC & BGDisplay))
+	if(!_mmu->cgb_mode() && !(LCDC & BGDisplay))
 	{
 		for(word_t i = 0; i < (draw_window ? wx : ScreenWidth); ++i)
 		{
-			screen[to1D(i, line)] = 255;
+			_screen[to1D(i, line)] = 255;
 			line_color_idx[i] = 0;
 		}
 		start_col = wx; // Skip to window drawing
@@ -179,7 +175,7 @@ void GPU::render_line()
 		word_t tile_data0 = 0, tile_data1 = 0;
 		
 		color_t colors_cache[4];
-		if(!mmu->cgb_mode())
+		if(!_mmu->cgb_mode())
 		{
 			for(int i = 0; i < 4; ++i)
 				colors_cache[i] = get_bg_color(i);
@@ -208,25 +204,25 @@ void GPU::render_line()
 			
 			if(x == 8 || i == start_col) // Loading Tile Data (Next Tile)
 			{
-				if(mmu->cgb_mode())
+				if(_mmu->cgb_mode())
 				{
-					map_attributes = mmu->read_vram(1, mapoffs + lineoffs);
+					map_attributes = _mmu->read_vram(1, mapoffs + lineoffs);
 					for(int i = 0; i < 4; ++i)
-						colors_cache[i] = mmu->get_bg_color(map_attributes & BackgroundPalette, i);
+						colors_cache[i] = _mmu->get_bg_color(map_attributes & BackgroundPalette, i);
 					vram_bank = (map_attributes & TileVRAMBank) ? 1 : 0;
 					xflip = (map_attributes & HorizontalFlip);
 					yflip = (map_attributes & VerticalFlip);
 				}
 				
 				x = x & 7;
-				tile = mmu->read_vram(0, mapoffs + lineoffs);
+				tile = _mmu->read_vram(0, mapoffs + lineoffs);
 				int idx = tile;
 				// If the second Tile Set is used, the tile index is signed.
 				if(!(LCDC & BGWindowsTileDataSelect) && (tile & 0x80))
 					idx = -((~tile + 1) & 0xFF);
 				int Y = yflip ? 7 - y : y;
-				tile_l = mmu->read_vram(vram_bank, base_tile_data + 16 * idx + Y * 2);
-				tile_h = mmu->read_vram(vram_bank, base_tile_data + 16 * idx + Y * 2 + 1);
+				tile_l = _mmu->read_vram(vram_bank, base_tile_data + 16 * idx + Y * 2);
+				tile_h = _mmu->read_vram(vram_bank, base_tile_data + 16 * idx + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 				lineoffs = (lineoffs + 1) & 31;
 			}
@@ -236,7 +232,7 @@ void GPU::render_line()
 			word_t color = ((color_x > 3 ? tile_data1 : tile_data0) >> shift) & 0b11;
 			line_color_idx[i] = color;
 			line_bg_priorities[i] = (map_attributes & BGtoOAMPriority);
-			screen[to1D(i, line)] = colors_cache[color];
+			_screen[to1D(i, line)] = colors_cache[color];
 			
 			++x;
 		}
@@ -259,15 +255,15 @@ void GPU::render_line()
 		{
 			Sprite spr = {
 				s, 
-				mmu->read(0xFE00 + s * 4 + 1) - 8, 
-				mmu->read(0xFE00 + s * 4) - 16,
+				_mmu->read(0xFE00 + s * 4 + 1) - 8, 
+				_mmu->read(0xFE00 + s * 4) - 16,
 			};
 			if(spr.y <= line && (spr.y + size) > line) // Visible on this scanline?
 				sprites.push_back(spr);
 		}
 		
 		// If CGB mode, prioriy is only idx, i.e. sprites are already sorted.
-		if(!mmu->cgb_mode())
+		if(!_mmu->cgb_mode())
 			sprites.sort();
 		
 		if(sprites.size() > sprite_limit)
@@ -276,23 +272,23 @@ void GPU::render_line()
 		// Draw the sprites in reverse priority order.
 		sprites.reverse();
 		
-		bool bg_window_no_priority = mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
+		bool bg_window_no_priority = _mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
 		
 		for(auto& s : sprites)
 		{
-			// Visible on screen?
+			// Visible on _screen?
 			if(s.x > -8 && s.x < ScreenWidth)
 			{
-				Tile = mmu->read(0xFE00 + s.idx * 4 + 2);
-				Opt = mmu->read(0xFE00 + s.idx * 4 + 3);
+				Tile = _mmu->read(0xFE00 + s.idx * 4 + 2);
+				Opt = _mmu->read(0xFE00 + s.idx * 4 + 3);
 				if(s.y - line < 8 && get_lcdc() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
 				if(s.y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
-				word_t palette = mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0); // non CGB Only
+				word_t palette = _mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0); // non CGB Only
 				// Only Tile Set #0 ?
 				int Y = (Opt & YFlip) ? (size - 1) - (line - s.y) : line - s.y;
-				word_t vram_bank = (mmu->cgb_mode() && (Opt & OBJTileVRAMBank)) ? 1 : 0;
-				tile_l = mmu->read_vram(vram_bank, 0x8000 + 16 * Tile + Y * 2);
-				tile_h = mmu->read_vram(vram_bank, 0x8000 + 16 * Tile + Y * 2 + 1);
+				word_t vram_bank = (_mmu->cgb_mode() && (Opt & OBJTileVRAMBank)) ? 1 : 0;
+				tile_l = _mmu->read_vram(vram_bank, 0x8000 + 16 * Tile + Y * 2);
+				tile_h = _mmu->read_vram(vram_bank, 0x8000 + 16 * Tile + Y * 2 + 1);
 				palette_translation(tile_l, tile_h, tile_data0, tile_data1);
 				for(word_t x = 0; x < 8; x++)
 				{
@@ -303,16 +299,16 @@ void GPU::render_line()
 					bool over_bg = (!line_bg_priorities[s.x + x] && 					// (CGB Only - BG Attributes)
 									!(Opt & Priority)) || line_color_idx[s.x + x] == 0;	// Priority over background or transparency
 									
-					if(s.x + x >= 0 && s.x + x < ScreenWidth && 		// On screen
+					if(s.x + x >= 0 && s.x + x < ScreenWidth && 		// On _screen
 						color != 0 && 									// Transparency
 						(bg_window_no_priority || over_bg))
 					{
 						color_t c;
-						if(mmu->cgb_mode())
-							c = mmu->get_sprite_color((Opt & PaletteNumber), color);
+						if(_mmu->cgb_mode())
+							c = _mmu->get_sprite_color((Opt & PaletteNumber), color);
 						else 
 							c = Colors[(palette >> (color * 2)) & 0b11];
-						screen[to1D(s.x + x, line)] = c;
+						_screen[to1D(s.x + x, line)] = c;
 					}
 				}
 			}

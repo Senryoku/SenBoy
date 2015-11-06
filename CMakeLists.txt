@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(SenBoy)
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
-  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 set(SenBoy_VERSION_MAJOR 1)

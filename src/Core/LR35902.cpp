@@ -2,7 +2,9 @@
 
 #include <cstring> // Memset
 
-LR35902::LR35902()
+LR35902::LR35902(MMU& mmu, Gb_Apu& apu) :
+	_mmu(&mmu),
+	_apu(&apu)
 {
 	reset();
 	
@@ -29,7 +31,7 @@ void LR35902::reset_cart()
 {
 	_pc = 0x0100;
 	_sp = 0xFFFE;
-	if(mmu->cgb_mode())
+	if(_mmu->cgb_mode())
 		set_af(0x11B0);
 	else
 		set_af(0x01B0);
@@ -69,7 +71,7 @@ void LR35902::reset_cart()
 	write(0xFF4B, word_t(0x00));
 	write(0xFFFF, word_t(0x00));
 	
-	if(!mmu->cgb_mode())
+	if(!_mmu->cgb_mode())
 		write(MMU::P1, word_t(0xCF)); // GB Only
 	write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
@@ -103,7 +105,7 @@ void LR35902::execute()
 	bool halt_bug = false;
 	if(_halt)
 	{
-		if(mmu->read(MMU::IF) & mmu->read(MMU::IE))
+		if(_mmu->read(MMU::IF) & _mmu->read(MMU::IE))
 		{
 			halt_bug = !_ime;
 			_halt = false;
@@ -126,7 +128,7 @@ void LR35902::execute()
 		_pc--;
 	}
 
-	if(mmu->hdma_cycles())
+	if(_mmu->hdma_cycles())
 		add_cycles(double_speed() ? 16 : 8);
 
 	// Decode opcode (http://www.z80.info/decoding.htm)
@@ -241,10 +243,10 @@ void LR35902::execute()
 						case 0x20: instr_jr(!check(Flag::Zero), read(_pc++)); break;
 						case 0x30: instr_jr(!check(Flag::Carry), read(_pc++)); break;
 						
-						case 0x01: set_bc(mmu->read16(_pc)); _pc += 2; break;
-						case 0x11: set_de(mmu->read16(_pc)); _pc += 2; break;
-						case 0x21: set_hl(mmu->read16(_pc)); _pc += 2; break;
-						case 0x31: _sp = mmu->read16(_pc); _pc += 2; break;
+						case 0x01: set_bc(_mmu->read16(_pc)); _pc += 2; break;
+						case 0x11: set_de(_mmu->read16(_pc)); _pc += 2; break;
+						case 0x21: set_hl(_mmu->read16(_pc)); _pc += 2; break;
+						case 0x31: _sp = _mmu->read16(_pc); _pc += 2; break;
 						
 						case 0x02: write(get_bc(), _a); break;				// LD (BC), A
 						case 0x12: write(get_de(), _a); break;				// LD (DE), A
@@ -261,7 +263,7 @@ void LR35902::execute()
 						case 0x27: instr_daa(); break;
 						case 0x37: instr_scf(); break;
 						//
-						case 0x08: mmu->write16(mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
+						case 0x08: _mmu->write16(_mmu->read16(_pc), _sp); _pc += 2; break;	// 16bits LD
 						case 0x18: instr_jr(read(_pc++)); break;
 						case 0x28: instr_jr(check(Flag::Zero), read(_pc++)); break;
 						case 0x38: instr_jr(check(Flag::Carry), read(_pc++)); break;
@@ -341,16 +343,16 @@ void LR35902::execute()
 						case 0xE1: set_hl(instr_pop()); break;
 						case 0xF1: set_af(instr_pop()); break;
 						
-						case 0xC2: _pc += 2; instr_jp(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
-						case 0xD2: _pc += 2; instr_jp(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						case 0xC2: _pc += 2; instr_jp(!check(Flag::Zero), _mmu->read16(_pc - 2)); break;
+						case 0xD2: _pc += 2; instr_jp(!check(Flag::Carry), _mmu->read16(_pc - 2)); break;
 						case 0xE2: write(0xFF00 + _c, _a); break;	// LD ($FF00+C),A
 						case 0xF2: _a = read(0xFF00 + _c); break;	// LD A,($FF00+C)
 						
-						case 0xC3: instr_jp(mmu->read16(_pc)); break;
+						case 0xC3: instr_jp(_mmu->read16(_pc)); break;
 						case 0xF3: instr_di(); break;
 						
-						case 0xC4: _pc += 2; instr_call(!check(Flag::Zero), mmu->read16(_pc - 2)); break;
-						case 0xD4: _pc += 2; instr_call(!check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						case 0xC4: _pc += 2; instr_call(!check(Flag::Zero), _mmu->read16(_pc - 2)); break;
+						case 0xD4: _pc += 2; instr_call(!check(Flag::Carry), _mmu->read16(_pc - 2)); break;
 						
 						// PUSH
 						case 0xC5: instr_push(get_bc()); break;
@@ -377,23 +379,23 @@ void LR35902::execute()
 						case 0xE9: _pc = get_hl(); break;	// JP (HL)
 						case 0xF9: _sp = get_hl(); break;	// LD SP, HL
 						
-						case 0xCA: _pc += 2; instr_jp(check(Flag::Zero), mmu->read16(_pc - 2)); break;
-						case 0xDA: _pc += 2; instr_jp(check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						case 0xCA: _pc += 2; instr_jp(check(Flag::Zero), _mmu->read16(_pc - 2)); break;
+						case 0xDA: _pc += 2; instr_jp(check(Flag::Carry), _mmu->read16(_pc - 2)); break;
 						case 0xEA: 
-							write(mmu->read16(_pc), _a);
+							write(_mmu->read16(_pc), _a);
 							_pc += 2;
 							break;	// 16bits LD
 						case 0xFA:
-							_a = read(mmu->read16(_pc));
+							_a = read(_mmu->read16(_pc));
 							_pc += 2;
 							break;
 						
 						case 0xFB: instr_ei(); break;
 					
-						case 0xCC: _pc += 2; instr_call(check(Flag::Zero), mmu->read16(_pc - 2)); break;
-						case 0xDC: _pc += 2; instr_call(check(Flag::Carry), mmu->read16(_pc - 2)); break;
+						case 0xCC: _pc += 2; instr_call(check(Flag::Zero), _mmu->read16(_pc - 2)); break;
+						case 0xDC: _pc += 2; instr_call(check(Flag::Carry), _mmu->read16(_pc - 2)); break;
 						
-						case 0xCD: _pc += 2; instr_call(mmu->read16(_pc - 2)); break;
+						case 0xCD: _pc += 2; instr_call(_mmu->read16(_pc - 2)); break;
 						
 						case 0xCE: instr_adc(read(_pc++)); break;
 						case 0xDE: instr_sbc(read(_pc++)); break;
