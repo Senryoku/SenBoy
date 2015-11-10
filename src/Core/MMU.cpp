@@ -116,8 +116,7 @@ void MMU::check_hdma()
 	
 void MMU::init_vram_dma(word_t val)
 {
-	/// @todo Proper timing, @see http://gbdev.gg8.se/wiki/articles/Video_Display#Bit7.3D1_-_H-Blank_DMA
-	/// @todo 8 cycles by 0x10 bytes transfered?
+	_mem[HDMA5] = val & 0x7F;
 	
 	addr_t src = (read(HDMA2) + (addr_t(read(HDMA1)) << 8)) & 0xFFF0;
 	addr_t dst = ((read(HDMA4) + (addr_t(read(HDMA3)) << 8)) & 0x1FF0);
@@ -139,11 +138,7 @@ void MMU::init_vram_dma(word_t val)
 	} else { // H-Blank DMA
 		_hdma_src = src;
 		_hdma_dst = dest_ptr;
-		_pending_hdma = true; // Perform better in Pokemon Crystal
-
-		// Perform better in pretty much all other games
-		//for(addr_t i = 0; i < length; ++i)
-		//	dest_ptr[i] = read(src + i);
+		_pending_hdma = true;
 	}
 }
 
