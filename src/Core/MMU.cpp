@@ -67,7 +67,7 @@ bool MMU::load_bios(const std::string& path)
 void MMU::update_joypad(word_t value)
 {
 	//assert(value == Direction || value == Button);
-	_mem[P1] = ~value; //(~value & 0x3F) | 0x0F;// value | 0x0F;
+	_mem[P1] = ~value;
 	if(_mem[P1] & Direction)
 	{
 		if(callback_joy_up()) _mem[P1] &= ~UpSelect;
@@ -85,7 +85,7 @@ void MMU::update_joypad(word_t value)
 void MMU::init_dma(word_t val)
 {
 	// Doing it here for now.
-	// It couldn't find the exact timing right now.
+	// I can't find the exact timing right now.
 	addr_t start = val * 0x100;
 	for(size_t i = 0; i < 0xA0; ++i)
 		_mem[0xFE00 + i] = read(start + i);

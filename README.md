@@ -1,20 +1,15 @@
 # SenBoy
 
-Work in progress GameBoy (Color) emulator. Original Gameboy compatibility is pretty good, however Gameboy Color support is still in early stages, Link's Awakening DX for example runs decently (being a DMG game with Color functionnalities), but there is a lot of debugging to do (probably timing related). 
-It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow. Also, it still lacks a proper GUI (Debugging infos all over the place).
+Work in progress GameBoy (Color) emulator. 
+
+Original Gameboy compatibility is pretty good, however Gameboy Color support is still in early stages, Link's Awakening DX for example runs decently (being a DMG game with Color functionnalities), but there is a lot of debugging to do (probably timing related). 
+It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow. Also, it still lacks a proper GUI (you'll have to pass your ROM via the command line).
 
 ## Screenshots
 
-### Gameboy Color
-<img src="img/SenBoy_ZeldaDX0.png" width=350 /> <img src="img/SenBoy_ZeldaDX1.png" width=350 />
+<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Kirby_0.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Zelda_0.png" width=350 />
 
-<img src="img/SenBoy_PKM0.png" width=350 /> <img src="img/SenBoy_PKM1.png" width=350 />
-
-<img src="img/SenBoy_PKM2.png" width=350 />
-
-### GameBoy
-<img src="img/SenBoy_Kirby.png" width=350 />
-<img src="img/SenBoy_Zelda0.png" width=350 /> <img src="img/SenBoy_Zelda1.png" width=350 /> <img src="img/SenBoy_Zelda2.png" width=350 />
+<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_PokemonCrystal_0.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Debug_0.png" width=350 />
 
 ## Compilation
 
@@ -46,10 +41,10 @@ Values are hard coded to match a Xbox360/XboxOne controller and the keyboard use
 
 Gameboy Button	| Keyboard Key
 ----------------|--------------
-A				| S
-B				| D
-Select			| F
-Start			| G
+A				| F
+B				| G
+Select			| H
+Start			| J
 Up				| Up Arrow
 Down			| Down Arrow
 Left			| Left Arrow

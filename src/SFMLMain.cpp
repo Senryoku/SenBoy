@@ -98,15 +98,20 @@ int main(int argc, char* argv[])
 	
 	if(argc == 1 || has_option(argc, argv, "-h"))
 	{
-		std::cout << "SenBoy - Usage:" << std::endl
-				<< "./SenBoy \"path/to/rom\" [-d] [-b]" << std::endl
-				<< " -d : Enable debug display." << std::endl
-				<< " -b : Skip BIOS." << std::endl
-				<< " -s : Disable sound." << std::endl
-				<< " $m : Specify a input movie file." << std::endl
-				<< " $ms : Specify a output movie file." << std::endl
-				<< " --dmg : Force DMG mode." << std::endl
-				<< " --cgb : Force CGB mode." << std::endl;
+		std::cout << "------------------------------------------------------------" << std::endl
+				<< " SenBoy - Help" << std::endl
+				<< " Basic usage:" << std::endl
+				<< "  ./SenBoy \"path/to/rom\" [-options]" << std::endl
+				<< " Supported options:" << std::endl
+				<< "  -d \t\tStart in debug." << std::endl
+				<< "  -b \t\tSkip BIOS." << std::endl
+				<< "  -s \t\tDisable sound." << std::endl
+				//<< "  $m \"path\" \tSpecify a input movie file." << std::endl
+				//<< "  $ms \"path\" \tSpecify a output movie file." << std::endl
+				<< "  --dmg \tForce DMG mode." << std::endl
+				<< "  --cgb \tForce CGB mode." << std::endl
+				<< " See the README.txt for more and up-to-date informations." << std::endl
+				<< "------------------------------------------------------------" << std::endl;
 		if(has_option(argc, argv, "-h")) return 0;
 	}
 	
@@ -114,6 +119,8 @@ int main(int argc, char* argv[])
 	char* rom_path = get_file(argc, argv);
 	if(rom_path)
 		path = rom_path;
+	else
+		std::cout << "No ROM specified: Running standard tests." << std::endl;
 	
 	if(has_option(argc, argv, "-d"))
 		debug = debug_display = true;
@@ -202,10 +209,10 @@ int main(int argc, char* argv[])
 		mmu.callback_joy_down = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
 		mmu.callback_joy_right = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
 		mmu.callback_joy_left = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
-		mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::S); };
-		mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::D); };
-		mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::F); };
-		mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::G); };
+		mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::F); };
+		mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::G); };
+		mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::H); };
+		mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::J); };
 	} else {
 		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
 		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
