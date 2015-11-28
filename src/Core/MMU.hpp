@@ -11,9 +11,9 @@
 class MMU
 {
 public:	
-	static constexpr size_t		MemSize = 0x10000; // Bytes
-	static constexpr size_t		WRAMSize = 0x1000; // Bytes
-	static constexpr size_t		VRAMSize = 0x2000; // Bytes
+	static constexpr size_t MemSize = 0x10000; // Bytes
+	static constexpr size_t WRAMSize = 0x1000; // Bytes
+	static constexpr size_t VRAMSize = 0x2000; // Bytes
 	
 	enum Register : addr_t
 	{
@@ -70,28 +70,28 @@ public:
 	
 	enum InterruptFlag : word_t
 	{
-		None = 0x00,
-		VBlank = 0x01,				// VBlank
-		LCDSTAT = 0x02,				// LCD Stat
-		TimerOverflow = 0x04,		// Timer
-		TransferComplete = 0x08,	// Serial
-		Transition = 0x10,			// Joypad
-		All = 0xFF
+		None				= 0x00,
+		VBlank				= 0x01,	// VBlank
+		LCDSTAT				= 0x02,	// LCD Stat
+		TimerOverflow		= 0x04,	// Timer
+		TransferComplete	= 0x08,	// Serial
+		Transition			= 0x10,	// Joypad
+		All					= 0xFF
 	};
 	
 	/// 0 = Pressed/Selected
 	enum Joypad : word_t
 	{
-		RightA = 0x01,
-		LeftB = 0x02,
-		UpSelect = 0x04,
-		DownStart = 0x08,
-		Direction = 0x10,
-		Button = 0x20
+		RightA		= 0x01,
+		LeftB		= 0x02,
+		UpSelect	= 0x04,
+		DownStart	= 0x08,
+		Direction	= 0x10,
+		Button		= 0x20
 	};
 	
-	bool			force_dmg = false; ///< Force the execution as a simple GameBoy (DMG)
-	bool			force_cgb = false; ///< Force the execution as a Color GameBoy (Priority over force_dmg)
+	bool force_dmg = false; ///< Force the execution as a simple GameBoy (DMG)
+	bool force_cgb = false; ///< Force the execution as a Color GameBoy (Priority over force_dmg)
 	
 	using callback_joy = std::function<bool (void)>;
 	callback_joy	callback_joy_up;
@@ -135,7 +135,7 @@ public:
 	inline bool hdma_cycles() { bool r = _hdma_cycles; _hdma_cycles = false; return r; }
 	
 private:
-	Cartridge*	_cartridge = nullptr;
+	Cartridge* const _cartridge;
 	
 	word_t*		_mem = nullptr;	///< This represent the whole address space and contains all that doesn't fit elsewhere.
 	word_t*		_wram[8];		///< Switchable bank of working RAM (CGB Only)
@@ -206,7 +206,7 @@ inline word_t MMU::read(Register reg) const
 inline word_t& MMU::rw(addr_t addr)
 {
 	if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
-		std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ROM! Use write instead." << std::endl;
+		std::cout << "Error: Tried to r/w to " << Hexa(addr) << ", which is ROM! Use write instead." << std::endl;
 		return _mem[0x0100]; // Dummy value.
 	} else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
 		return _vram_bank1[addr - 0x8000];
@@ -215,7 +215,7 @@ inline word_t& MMU::rw(addr_t addr)
 	} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
 		return _wram[get_wram_bank()][addr - 0xD000];
 	} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
-		std::cout << "Error: Tried to r/w to 0x" << std::hex << addr << ", which is ExternalRAM! Use write instead." << std::endl;
+		std::cout << "Error: Tried to r/w to " << Hexa(addr) << ", which is ExternalRAM! Use write instead." << std::endl;
 		return _mem[0x0100];
 	} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
 		return _mem[addr - 0x2000];
@@ -233,7 +233,7 @@ inline word_t MMU::read_vram(word_t bank, addr_t addr)
 {
 	if(bank == 0)
 		return _mem[addr];
-	else if(bank == 1);
+	else if(bank == 1)
 		return _vram_bank1[addr - 0x8000];
 		
 	return 0;
@@ -258,7 +258,7 @@ inline void	MMU::write(addr_t addr, word_t value)
 		_wram[get_wram_bank()][addr - 0xD000] = value;
 	else if(addr == Register::STAT) // Bits 0, 1 & 2 are read only
 		_mem[Register::STAT] = (_mem[Register::STAT] & 7) | (value & 0xF8);
-	else if(addr == Register::LY) // Bits 0, 1 & 2 are read only
+	else if(addr == Register::LY) // LY reset when written to
 		_mem[Register::LY] = 0;
 	else if(addr == Register::DIV) // DIV reset when written to
 		_mem[DIV] = 0;

@@ -91,7 +91,7 @@ public:
 	inline word_t& get_lyc() const { return _mmu->rw(MMU::Register::LYC); }
 	
 private:
-	MMU*						_mmu;
+	MMU* const					_mmu;
 	std::unique_ptr<color_t[]>	_screen;
 	// Timing
 	unsigned int				_cycles = 0;

@@ -70,8 +70,8 @@ public:
 	static std::string	instr_cb_str[0x100];
 	
 private:
-	MMU*	_mmu = nullptr;
-	Gb_Apu*	_apu = nullptr;
+	MMU* const		_mmu;
+	Gb_Apu* const	_apu;
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Debug
