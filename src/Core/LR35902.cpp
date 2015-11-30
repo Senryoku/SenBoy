@@ -95,6 +95,8 @@ void LR35902::execute()
 	}
 	*/
 	
+	if(_ime) check_interrupts();
+	
 	/* Handles HALT instruction (Halts until a interrupt is fired).
 	 *
 	 * "If interrupts are disabled (DI) then
@@ -410,8 +412,6 @@ void LR35902::execute()
 	}
 	//assert(_clock_instr_cycles > 0);	
 	_clock_cycles += _clock_instr_cycles;
-	
-	if(_ime) check_interrupts();
 	
 	update_timing();
 	

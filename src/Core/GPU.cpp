@@ -63,13 +63,14 @@ void GPU::update_mode(bool render)
 					exec_stat_interrupt(Mode10);
 				} else {
 					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::VBlank;
-					// VBlank Interrupt
-					_mmu->rw(MMU::IF) |= MMU::VBlank;
 					exec_stat_interrupt(Mode01);
 				}
 			}
 			break;
 		case Mode::VBlank:
+		{
+			static bool fired_interrupt = false;
+			if(!fired_interrupt) { _mmu->rw(MMU::IF) |= MMU::VBlank; fired_interrupt = true; }
 			if(_cycles >= 456)
 			{
 				_cycles -= 456;
@@ -81,9 +82,11 @@ void GPU::update_mode(bool render)
 					get_line() = 0;
 					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
+					fired_interrupt = false;
 				}
 			}
 			break;
+		}
 		case Mode::OAM:
 			if(_cycles >= 80)
 			{
