@@ -116,8 +116,6 @@ void LR35902::execute()
 		}
 	}
 	
-	if(_ime) check_interrupts();
-	
 	// Reads the next instruction opcode.
 	word_t opcode = read(_pc++);
 	add_cycles(instr_cycles[opcode]);
@@ -412,6 +410,8 @@ void LR35902::execute()
 	}
 	//assert(_clock_instr_cycles > 0);	
 	_clock_cycles += _clock_instr_cycles;
+	
+	if(_ime) check_interrupts();
 	
 	update_timing();
 	
