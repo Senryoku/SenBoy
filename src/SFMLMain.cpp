@@ -273,7 +273,7 @@ int main(int argc, char* argv[])
 						step = false;
 						break;
 					}
-				} while((!debug || frame_by_frame) && (!gpu.completed_frame() || cpu.frame_cycles <= 70224));
+				} while((!debug || frame_by_frame) && (!gpu.completed_frame() && cpu.frame_cycles <= 70224));
 				
 				frame_count++;
 			}
