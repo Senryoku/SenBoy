@@ -60,6 +60,14 @@ public:
 		_buff_end = (_buff_end + count) % buffer_size;
 	}
 	
+	void reset()
+	{
+		std::memset(_buffer, 0, buffer_size * sizeof(blip_sample_t));
+		_offset = 0;
+		_buff_end = 0;
+		_buff_max = buffer_size;
+	}
+	
 private:
 	virtual bool onGetData(Chunk& data)
     {

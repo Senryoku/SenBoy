@@ -78,6 +78,7 @@ public:
 
 	bool load(const std::string& path);
 	bool load_from_memory(const unsigned char data[], size_t size);
+	void reset();
 
 	byte_t read(addr_t addr) const;
 	void write_ram(addr_t addr, byte_t value);

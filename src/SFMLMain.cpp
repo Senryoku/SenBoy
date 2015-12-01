@@ -507,12 +507,15 @@ void toggle_speed()
 
 void reset()
 {
-	gpu.reset();
+	apu.reset();
+	snd_buffer.reset();
 	cpu.reset();
+	mmu.reset();
 	if(use_bios)
 		mmu.load_bios();
 	else
 		cpu.reset_cart();
+	gpu.reset();
 	elapsed_cycles = 0;
 	timing_clock.restart();
 	debug_text.setString("Reset");
