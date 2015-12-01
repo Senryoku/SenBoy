@@ -12,6 +12,8 @@
 #include "Config.hpp"
 
 // Options
+bool post_process = false;
+float blend_speed = 0.70f;
 bool debug_display = false;
 bool use_bios = true;
 bool with_sound = true;
@@ -41,6 +43,7 @@ sf::Texture	gameboy_screen;
 sf::Sprite gameboy_screen_sprite;
 sf::Texture	gameboy_logo_tex;
 sf::Sprite gameboy_logo_sprite;
+std::unique_ptr<color_t[]> screen_buffer;
 
 // Debug GUI
 sf::Texture	gameboy_tiledata[2];
@@ -143,6 +146,8 @@ int main(int argc, char* argv[])
 	apu.output(gb_snd_buffer.center(), gb_snd_buffer.left(), gb_snd_buffer.right());
 	snd_buffer.setVolume(50);
 
+	screen_buffer.reset(new color_t[gpu.ScreenWidth * gpu.ScreenHeight]);
+	
 	// Movie Saving
 	char* movie_save_path = get_option(argc, argv, "$ms");
 	if(movie_save_path)
@@ -301,7 +306,14 @@ int main(int argc, char* argv[])
 				}
 			}
 			
-			gameboy_screen.update(reinterpret_cast<const uint8_t*>(gpu.get_screen()));
+			if(post_process)
+			{
+				for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremly basic, LCDs don't work like this.
+					screen_buffer[i] = (1.0f - blend_speed) * screen_buffer[i] + blend_speed * gpu.get_screen()[i];
+				gameboy_screen.update(reinterpret_cast<const uint8_t*>(screen_buffer.get()));
+			} else {
+				gameboy_screen.update(reinterpret_cast<const uint8_t*>(gpu.get_screen()));
+			}
 			
 			frame_by_frame = false;
 			step = false;
@@ -433,6 +445,7 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
 			case sf::Keyboard::L: advance_frame(); break;
+			case sf::Keyboard::P: post_process = !post_process; break;
 			default: break;
 		}
 	} else if (event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
@@ -741,4 +754,3 @@ void setup_debug_window()
 		gameboy_tiledata_sprite[1].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
 	tiledata_text[1].setString("TileData (Bank 1)");
 }
-

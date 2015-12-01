@@ -84,10 +84,11 @@ void MMU::update_joypad(word_t value)
 	
 void MMU::init_dma(word_t val)
 {
+	_mem[DMA] = val;
 	// Doing it here for now.
 	// I can't find the exact timing right now.
 	addr_t start = val * 0x100;
-	for(size_t i = 0; i < 0xA0; ++i)
+	for(addr_t i = 0; i < 0xA0; ++i)
 		_mem[0xFE00 + i] = read(start + i);
 }
 

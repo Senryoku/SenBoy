@@ -79,7 +79,7 @@ public:
 	static inline void palette_translation(word_t l, word_t h, word_t& r0, word_t& r1);
 	
 	/// @param val 0 <= val < 4
-	inline word_t get_bg_color(word_t val) const { return Colors[(get_bgp() >> (val * 2)) & 0b11]; }
+	inline word_t get_bg_color(word_t val) const { return Colors[(get_bgp() >> (val << 1)) & 3]; }
 	
 	inline const color_t* get_screen() const { return _screen.get(); }
 	inline word_t& get_scroll_x() const { return _mmu->rw(MMU::Register::SCX); }
