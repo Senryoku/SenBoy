@@ -22,10 +22,20 @@ bool Cartridge::load(const std::string& path)
 		std::cerr << "Error: '" << path << "' could not be opened." << std::endl;
 		return false;
 	}
+	std::cout << "Loaded '" << path << "' : " << std::endl;
+				
+	return init();
+}
 
-	_data.assign(std::istreambuf_iterator<byte_t>(file),
-				std::istreambuf_iterator<byte_t>());
+bool Cartridge::load_from_memory(const unsigned char data[], size_t size)
+{
+	_data = std::vector<byte_t>(data, data + size);
+	std::cout << "Loaded a ROM from memory : " << std::endl;
+	return init();
+}
 
+bool Cartridge::init()
+{
 	if(!(isMBC1() || isMBC3() || isMBC5()))
 	{
 		std::cerr << "Error: Cartridge format 0x" << std::hex << getType()
@@ -35,8 +45,7 @@ bool Cartridge::load(const std::string& path)
 
 	_ram_size = getRAMSize();
 	
-	std::cout << "Loaded '" << path << "' : " << std::endl << 
-				" Title: '" << getName() <<
+	std::cout << " Title: '" << getName() <<
 				"', Size: " << std::dec << _data.size() << "B (" << Hexa8(*(_data.data() + ROMSize)) <<
 				"), RAM Size: " << std::dec << _ram_size << "B (" << Hexa8(*(_data.data() + RAMSize)) <<
 				"), Type: " << Hexa8(getType()) <<
@@ -69,7 +78,6 @@ bool Cartridge::load(const std::string& path)
 			_ram.resize(_ram_size, 0);
 		}
 	}
-	
 	return true;
 }
 
