@@ -1,9 +1,8 @@
 # SenBoy
 
-Work in progress GameBoy (Color) emulator. 
+GameBoy (Color) emulator.
 
-Original Gameboy compatibility is pretty good, however Gameboy Color support is still in early stages, Link's Awakening DX for example runs decently (being a DMG game with Color functionnalities), but there is a lot of debugging to do (probably timing related). 
-It is buggy, ugly and absolutely not optimised. I am not aiming for performance anyway and it's therefore pretty slow. Also, it still lacks a proper GUI (you'll have to pass your ROM via the command line).
+Original Gameboy compatibility is pretty good, but Gameboy Color support is still far from perfect. This was developed as a side project and is by no means finished or polished. This version still lacks a proper GUI (you'll have to pass your ROM via the command line), however a web version compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
 
 ## Screenshots
 
