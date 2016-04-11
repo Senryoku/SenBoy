@@ -543,16 +543,19 @@ void get_input_from_movie()
 
 void movie_save_frame()
 {
-	word_t input = 0;
-	if(mmu.callback_joy_a()) 		input |= 0x01;
-	if(mmu.callback_joy_b()) 		input |= 0x02;
-	if(mmu.callback_joy_select()) 	input |= 0x04;
-	if(mmu.callback_joy_start()) 	input |= 0x08;
-	if(mmu.callback_joy_right()) 	input |= 0x10;
-	if(mmu.callback_joy_left()) 	input |= 0x20;
-	if(mmu.callback_joy_up()) 		input |= 0x40;
-	if(mmu.callback_joy_down()) 	input |= 0x80;
-	movie_save << input;
+	if(movie_save)
+	{
+		word_t input = 0;
+		if(mmu.callback_joy_a()) 		input |= 0x01;
+		if(mmu.callback_joy_b()) 		input |= 0x02;
+		if(mmu.callback_joy_select()) 	input |= 0x04;
+		if(mmu.callback_joy_start()) 	input |= 0x08;
+		if(mmu.callback_joy_right()) 	input |= 0x10;
+		if(mmu.callback_joy_left()) 	input |= 0x20;
+		if(mmu.callback_joy_up()) 		input |= 0x40;
+		if(mmu.callback_joy_down()) 	input |= 0x80;
+		movie_save << input;
+	}
 }
 
 std::string get_debug_text()
