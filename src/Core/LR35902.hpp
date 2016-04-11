@@ -2,9 +2,9 @@
 
 #include <unordered_set>
 
-#include "gb_apu/Gb_Apu.h"
+#include <gb_apu/Gb_Apu.h>
 
-#include "MMU.hpp"
+#include <Core/MMU.hpp>
 
 /**
  * Gameboy CPU (Sharp LR35902)

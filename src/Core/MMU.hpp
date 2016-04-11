@@ -5,8 +5,8 @@
 #include <iostream>
 #include <functional>
 
-#include "Cartridge.hpp"
-#include "Color.hpp"
+#include <Core/Cartridge.hpp>
+#include <Tools/Color.hpp>
 
 class MMU
 {

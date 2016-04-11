@@ -7,7 +7,7 @@
 #include <vector>
 #include <cassert>
 
-#include "Common.hpp"
+#include <Tools/Common.hpp>
 
 /**
  * GameBoy Cartridge

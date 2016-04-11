@@ -2,14 +2,11 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
-#include "MMU.hpp"
-#include "Cartridge.hpp"
-#include "GPU.hpp"
-#include "LR35902.hpp"
-#include "GBAudioStream.hpp"
+#include <Core/GameBoy.hpp>
+#include <GBAudioStream.hpp>
 
-#include "CommandLine.hpp"
-#include "Config.hpp"
+#include <Tools/CommandLine.hpp>
+#include <Tools/Config.hpp>
 
 // Options
 bool post_process = false;
@@ -79,7 +76,7 @@ enum MovieType
 	BK2,
 	SBM		// SenBoy Movie
 };
-MovieType	movie_type = VBM;
+MovieType	movie_type = SBM;
 
 void open_debug_window();
 void setup_window();
@@ -90,6 +87,7 @@ std::string get_debug_text();
 std::string get_debug_log();
 void toggle_speed();
 void reset();
+void modify_volume(float v);
 void get_input_from_movie();
 void movie_save_frame();
 void update_tiledata();
@@ -164,60 +162,53 @@ int main(int argc, char* argv[])
 			case SBM:
 			{
 				movie.open(movie_path, std::ios::binary);
-				if(!movie) {
-					std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
-				} else {
+				if(movie) {
 					movie_start = movie.tellg();
-					use_movie = true;
-					use_bios = false;
-					std::cout << "Loaded SenBoy Movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
 				}
 				break;
 			}
 			case VBM:
 				movie.open(movie_path, std::ios::binary);
-				if(!movie) {
-					std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
-				} else {
+				if(movie) {
 					// VBM
 					char tmp[4];
 					movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
 					movie.read(tmp, 4);
 					movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
 					movie.seekg(movie_start);
-					use_movie = true;
-					use_bios = false;
-					
-					std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
 				}
 				break;
 			case BK2: // BK2 (Not the archive, just the Input Log)
 				movie.open(movie_path);
-				if(!movie) {
-					std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
-				} else {
+				if(movie) {
 					movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 					movie_start = movie.tellg();
-					use_movie = true;
-					use_bios = false;
-					
-					std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
 				}
 				break;
+			default:
+				std::cerr << "Error: Unknown movie type." << std::endl;
+				break;
+		}
+		if(!movie)
+			std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
+		else {
+			use_movie = true;
+			use_bios = false;
+			std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
 		}
 	}
 	
 	// Input callbacks
 	if(!use_movie)
 	{
-		mmu.callback_joy_up = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Up); };
-		mmu.callback_joy_down = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
-		mmu.callback_joy_right = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
-		mmu.callback_joy_left = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
-		mmu.callback_joy_a = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::F); };
-		mmu.callback_joy_b = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::G); };
-		mmu.callback_joy_select = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::H); };
-		mmu.callback_joy_start = [&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::J); };
+		mmu.callback_joy_up =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Up); };
+		mmu.callback_joy_down =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
+		mmu.callback_joy_right =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
+		mmu.callback_joy_left =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
+		mmu.callback_joy_a =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::F); };
+		mmu.callback_joy_b = 		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::G); };
+		mmu.callback_joy_select =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::H); };
+		mmu.callback_joy_start =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::J); };
 	} else {
 		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
 		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
@@ -412,6 +403,14 @@ void advance_frame()
 	log_text.setString("Advancing one frame");
 }
 
+void modify_volume(float v)
+{
+	float vol = snd_buffer.getVolume();
+	vol = std::max(0.0f, std::min(vol + v, 100.0f));
+	snd_buffer.setVolume(vol);
+	log_text.setString(std::string("Volume at ").append(std::to_string(vol)));
+}
+
 void handle_event(sf::Event event)
 {
 	if (event.type == sf::Event::Closed)
@@ -424,22 +423,8 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::Space: step = true; break;
 			case sf::Keyboard::Return: toggle_debug(); break;
 			case sf::Keyboard::BackSpace: reset(); break;
-			case sf::Keyboard::Add:
-			{
-				float vol = snd_buffer.getVolume();
-				vol = std::min(vol + 10.0f, 100.0f);
-				snd_buffer.setVolume(vol);
-				log_text.setString(std::string("Volume at ").append(std::to_string(vol)));
-				break;
-			}
-			case sf::Keyboard::Subtract:
-			{
-				float vol = snd_buffer.getVolume();
-				vol = std::max(vol - 10.0f, 0.0f);
-				snd_buffer.setVolume(vol);
-				log_text.setString(std::string("Volume at ").append(std::to_string(vol)));
-				break;
-			}
+			case sf::Keyboard::Add: modify_volume(10.0f); break;
+			case sf::Keyboard::Subtract: modify_volume(-10.0f); break;
 			case sf::Keyboard::D: open_debug_window(); break;
 			case sf::Keyboard::B: add_breakpoint(); break;
 			case sf::Keyboard::N: clear_breakpoints(); break;

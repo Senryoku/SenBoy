@@ -4,26 +4,27 @@ template<typename T>
 struct HexaGen
 {
 	T		v;
+	
 	HexaGen(T _t) : v(_t) {}
 	
-	std::string str() const
+	inline std::string str() const
 	{
 		std::stringstream ss;
 		ss << *this;
 		return ss.str();
 	}
 	
-	operator std::string() const
+	inline operator std::string() const
 	{
 		return str();
 	}
 };
 
 template<typename T>
-std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
+inline std::ostream& operator<<(std::ostream& os, const HexaGen<T>& t)
 {
 	std::iostream::fmtflags f(os.flags());
-	os << "0x" << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << (int) t.v;
+	os << "0x" << std::hex << std::uppercase << std::setw(sizeof(T) * 2) << std::setfill('0') << (int) t.v;
 	os.flags(f);
 	return os;
 }

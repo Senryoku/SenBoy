@@ -9,8 +9,6 @@ set(SenBoy_VERSION_MAJOR 0)
 set(SenBoy_VERSION_MINOR 92)
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
-include_directories("${CMAKE_SOURCE_DIR}/src/Core")
-include_directories("${CMAKE_SOURCE_DIR}/src/Tools")
 include_directories("${CMAKE_SOURCE_DIR}/ext/Gb_Snd_Emu-0.1.4")
 
 set(CMAKE_CXX_FLAGS			"${CMAKE_CXX_FLAGS} --std=c++11 -Wall")

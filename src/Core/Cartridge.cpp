@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "Config.hpp"
+#include <Tools/Config.hpp>
 
 Cartridge::Cartridge(const std::string& path)
 {

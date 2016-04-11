@@ -3,8 +3,8 @@
 #include <cstring> // Memset
 #include <memory>
 
-#include "Color.hpp"
-#include "MMU.hpp"
+#include <Tools/Color.hpp>
+#include <Core/MMU.hpp>
 
 class GPU
 {
