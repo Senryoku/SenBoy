@@ -18,7 +18,7 @@ bool fullscreen = false;
 bool post_process = false;
 float blend_speed = 0.70f;
 bool show_gui = false;
-bool use_bios = true;
+bool use_boot = true;
 bool with_sound = true;
 bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
@@ -26,6 +26,7 @@ bool frame_by_frame = true;
 bool real_speed = true;
 size_t sample_rate = 44100;	// Audio sample rate
 size_t frame_skip = 0;		// Increase for better performances.
+std::string rom_path("");
 
 // Components of the emulated GameBoy
 Cartridge	cartridge;
@@ -103,29 +104,41 @@ int main(int argc, char* argv[])
 	if(argc == 1) help();
 	if(has_option(argc, argv, "-h")) { help(); return 0; }
 	
-	std::string path(config::to_abs("tests/cpu_instrs/cpu_instrs.gb"));
 	char* rom_path = get_file(argc, argv);
 	if(rom_path)
-		path = rom_path;
-	else {
-		log("No ROM specified: Running standard tests.");
+	{
+		rom_path = rom_path;
+		cartridge.load(rom_path);
+	} else {
+		log("No ROM specified.");
 		show_gui = true;
+		
+		// Loads a empty ROM with a valid header
+		unsigned char header[0x150] = {0};
+		std::memcpy(header + 0x134, "SENBOY", 6); // Title
+		const unsigned char logo[3 * 16] = {
+			0x00, 0x00, 0x07, 0xc7, 0x09, 0x19, 0x0f, 0x8e, 0x04, 0x67, 0x06, 0x66, 0x0f, 0xcf, 0x08, 0xd9, 0x0f, 0x99, 0x03, 0xb9, 0x03, 0x3e, 0x00, 0x00, 
+			0x00, 0x00, 0x19, 0x70, 0xdd, 0x90, 0x88, 0xf0, 0x54, 0x40, 0xee, 0x60, 0xcc, 0xf0, 0xdd, 0x80, 0x99, 0xf0, 0x88, 0x00, 0xcc, 0xc0, 0x00, 0x00
+		};
+		// Checksum
+		char x = 0;
+		for(int i = 0x134; i < 0x14C; ++i) x = x - header[i] - 1;
+		header[0x14D] = x;
+		
+		std::memcpy(header + 0x104, logo, 3 * 16);
+		cartridge.load_from_memory(header, 0x150);
 	}
 	
 	if(has_option(argc, argv, "-d"))
 		debug = true;
 	if(has_option(argc, argv, "-b"))
-		use_bios = false;
+		use_boot = false;
 	if(has_option(argc, argv, "-s"))
 		with_sound = false;
 	if(has_option(argc, argv, "--dmg"))
 		mmu.force_dmg = true;
 	if(has_option(argc, argv, "--cgb"))
 		mmu.force_cgb = true;
-		
-	// Loading ROM
-	if(!cartridge.load(path))
-		return 0;
 	
 	// Audio buffers
 	gb_snd_buffer.clock_rate(LR35902::ClockRate);
@@ -592,10 +605,15 @@ void reset()
 	snd_buffer.reset();
 	cpu.reset();
 	mmu.reset();
-	if(use_bios)
-		mmu.load_bios();
-	else
-		cpu.reset_cart();
+	if(rom_path.empty())
+	{
+		mmu.load_senboot();
+	} else {
+		if(use_boot)
+			mmu.load_boot();
+		else
+			cpu.reset_cart();
+	}
 	gpu.reset();
 	elapsed_cycles = 0;
 	timing_clock.restart();
@@ -644,7 +662,7 @@ void load_movie(const char* movie_path)
 		log("Error: Unable to open movie file '", movie_path, "'.");
 	else {
 		use_movie = true;
-		use_bios = false;
+		use_boot = false;
 		log("Loaded movie file '", movie_path, "'. Starting in playback mode...");
 	}
 }

@@ -122,10 +122,12 @@ public:
 	inline color_t get_bg_color(word_t p, word_t c) { return get_color(_bg_palette_data, p, c); }
 	inline color_t get_sprite_color(word_t p, word_t c) { return get_color(_sprite_palette_data, p, c); }
 	
-	/// Loads a BIOS according to gameboy type
-	void load_bios();
-	/// Loads a BIOS from a file
-	bool load_bios(const std::string& path);
+	/// Loads a boot room according to gameboy type
+	void load_boot();
+	/// Loads a boot room from a file
+	bool load_boot(const std::string& path);
+	/// Loads a custom boot room
+	void load_senboot();
 	
 	inline void key_down(word_t type, word_t key) { rw(IF) |= Transition; }
 	inline void key_up(word_t type, word_t key) {}
@@ -163,8 +165,9 @@ private:
 	inline void write_sprite_palette_data(word_t val);
 	inline color_t get_color(const word_t (&pd)[8][8], word_t p, word_t c);
 	
-    static const word_t gb_bios[256];
-    static const word_t gbc_bios[4096];
+    static const word_t gb_boot[256];
+    static const word_t sen_boot[256];
+    static const word_t gbc_boot[4096];
 };
 
 inline bool MMU::cgb_mode() const 
