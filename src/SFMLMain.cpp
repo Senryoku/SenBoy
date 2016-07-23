@@ -19,6 +19,7 @@ bool post_process = false;
 float blend_speed = 0.70f;
 bool show_gui = false;
 bool use_boot = true;
+bool custom_boot = false;
 bool with_sound = true;
 bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
@@ -385,6 +386,17 @@ void gui()
 			ImGui::EndMenu();
 		}
 		
+		if(ImGui::BeginMenu("Boot"))
+		{
+			ImGui::Checkbox("Use Boot ROM", &use_boot);
+			ImGui::Separator();
+			if(ImGui::RadioButton("Original", !custom_boot))
+				custom_boot = false;
+			if(ImGui::RadioButton("Custom", custom_boot))
+				custom_boot = true;
+			ImGui::EndMenu();
+		}
+		
 		if(ImGui::BeginMenu("Views"))
 		{
 			if(ImGui::MenuItem("GameBoy")) gameboy_window = !gameboy_window;
@@ -421,6 +433,7 @@ void gui()
 		if(!p.empty())
 		{
 			cartridge.save();
+			rom_path = p.string();
 			cartridge.load(p.string());
 			reset();
 			show_gui = false;
@@ -614,8 +627,12 @@ void reset()
 		mmu.load_senboot();
 	} else {
 		if(use_boot)
-			mmu.load_boot();
-		else
+		{
+			if(custom_boot)
+				mmu.load_senboot();
+			else
+				mmu.load_boot();
+		} else
 			cpu.reset_cart();
 	}
 	gpu.reset();
