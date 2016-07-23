@@ -90,6 +90,7 @@ void get_input_from_movie();
 void movie_save_frame();
 void update_tiledata();
 void update_tilemaps();
+void set_input_callbacks();
 
 template<typename T, typename ...Args>
 void log(const T& msg, Args... args);
@@ -143,33 +144,6 @@ int main(int argc, char* argv[])
 	const char* movie_path = get_option(argc, argv, "$m");
 	if(movie_path)
 		load_movie(movie_path);
-	
-	// Input callbacks
-	if(!use_movie)
-	{
-		mmu.callback_joy_up =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Up); };
-		mmu.callback_joy_down =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
-		mmu.callback_joy_right =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
-		mmu.callback_joy_left =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
-		auto lambda_button = [&] (auto joy, auto key) -> bool { 
-			for(int i = 0; i < sf::Joystick::Count; ++i) 
-				if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, joy)) return true; 
-			return sf::Keyboard::isKeyPressed(key);
-		};
-		mmu.callback_joy_a =		std::bind(lambda_button, 0, sf::Keyboard::F);
-		mmu.callback_joy_b = 		std::bind(lambda_button, 1, sf::Keyboard::G);
-		mmu.callback_joy_select =	std::bind(lambda_button, 6, sf::Keyboard::H);
-		mmu.callback_joy_start =	std::bind(lambda_button, 7, sf::Keyboard::J);
-	} else {
-		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
-		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
-		mmu.callback_joy_select = 	[&] () -> bool { return playback[0] & 0x04; };
-		mmu.callback_joy_start = 	[&] () -> bool { return playback[0] & 0x08; };
-		mmu.callback_joy_right = 	[&] () -> bool { return playback[0] & 0x10; };
-		mmu.callback_joy_left = 	[&] () -> bool { return playback[0] & 0x20; };
-		mmu.callback_joy_up = 		[&] () -> bool { return playback[0] & 0x40; };
-		mmu.callback_joy_down = 	[&] () -> bool { return playback[0] & 0x80; };
-	}
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Setting up GUI
@@ -350,6 +324,8 @@ std::experimental::filesystem::path explore(const std::experimental::filesystem:
 {
 	namespace fs = std::experimental::filesystem;
 	fs::path return_path;
+	if(!fs::is_directory(path))
+		return return_path;
 	for(auto& p: fs::directory_iterator(path))
 	{
 		if(fs::is_directory(p))
@@ -373,20 +349,49 @@ void gui()
 {
 	ImGui::SFML::Update(delta_clock.restart());
 	
+	static bool gameboy_window = false;
+	static bool debug_window = false;
+	
 	bool open_rom_popup = false;
+	bool open_movie_popup = false;
+	bool about_popup = false;
 	if(ImGui::BeginMainMenuBar())
 	{
 		if(ImGui::BeginMenu("File"))
 		{
-			open_rom_popup = ImGui::MenuItem("Open ROM##menuitem");
+			open_rom_popup = ImGui::MenuItem("Open ROM");
+			//open_movie_popup = ImGui::MenuItem("Open Movie"); // @todo Debug then re-enable...
+			if(ImGui::MenuItem("Save"))
+				cartridge.save();
+			if(ImGui::MenuItem("Exit"))
+				window.close();
 			ImGui::EndMenu();
 		}
+		
+		if(ImGui::BeginMenu("Views"))
+		{
+			if(ImGui::MenuItem("GameBoy")) gameboy_window = !gameboy_window;
+			if(ImGui::MenuItem("Debug")) debug_window = !debug_window;
+			ImGui::EndMenu();
+		}
+		
 		if(ImGui::BeginMenu("Help"))
 		{
+			about_popup = ImGui::MenuItem("About##menuitem");
 			ImGui::EndMenu();
 		}
 						
 		ImGui::EndMainMenuBar();
+	}
+	
+	if(about_popup) ImGui::OpenPopup("About");
+	if(ImGui::BeginPopupModal("About"))
+	{
+		ImGui::Text("SenBoy - A basic GameBoy emulator by Senryoku.");
+		ImGui::Text("https://github.com/Senryoku/SenBoy");
+		if(ImGui::Button("Ok"))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
 	}
 	
 	if(open_rom_popup) ImGui::OpenPopup("Open ROM");
@@ -395,27 +400,48 @@ void gui()
 		namespace fs = std::experimental::filesystem;
 		static char root_path[256] = ".";
 		ImGui::InputText("Root", root_path, 256);
-		if(fs::is_directory(root_path))
+		auto p = explore(root_path, {".gb", ".gbc"});
+		if(!p.empty())
 		{
-			auto p = explore(root_path, {".gb", ".gbc"});
-			if(!p.empty())
-			{
-				cartridge.save();
-				cartridge.load(p.string());
-				reset();
-				show_gui = false;
-				// @todo Not so sure about that...
-				ImGui::GetIO().WantCaptureKeyboard = ImGui::GetIO().WantTextInput = false;
-				ImGui::CloseCurrentPopup();
-			}
+			cartridge.save();
+			cartridge.load(p.string());
+			reset();
+			show_gui = false;
+			// @todo Not so sure about that...
+			ImGui::GetIO().WantCaptureKeyboard = ImGui::GetIO().WantTextInput = false;
+			ImGui::CloseCurrentPopup();
 		}
+		if(ImGui::Button("Cancel"))
+			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 	
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(gpu.ScreenWidth, 
-		gpu.ScreenHeight + 19)); // Why 19? You tell me... (Title bar ?)
-	ImGui::Begin("GameBoy", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
+	if(open_movie_popup) ImGui::OpenPopup("Open Movie");
+	if(ImGui::BeginPopup("Open Movie"))
 	{
+		namespace fs = std::experimental::filesystem;
+		static char root_path[256] = ".";
+		ImGui::InputText("Root", root_path, 256);
+		auto p = explore(root_path, {".sbm", ".vbm", ".bkm"});
+		if(!p.empty())
+		{
+			load_movie(p.string().c_str());
+			reset();
+			show_gui = false;
+			// @todo Not so sure about that...
+			ImGui::GetIO().WantCaptureKeyboard = ImGui::GetIO().WantTextInput = false;
+			ImGui::CloseCurrentPopup();
+		}
+		if(ImGui::Button("Cancel"))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
+	
+	if(gameboy_window)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(gpu.ScreenWidth, 
+			gpu.ScreenHeight + 19)); // Why 19? You tell me... (Title bar ?)
+		ImGui::Begin("GameBoy", &gameboy_window, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
 		ImVec2 win_size = ImGui::GetWindowContentRegionMax();
 		win_size.x -= ImGui::GetWindowContentRegionMin().x;
 		win_size.y -= ImGui::GetWindowContentRegionMin().y;
@@ -423,13 +449,13 @@ void gui()
 		scale = std::max(scale, 1.0f);
 		gameboy_screen_sprite.setScale(scale, scale);
 		ImGui::Image(gameboy_screen_sprite);
+		ImGui::End();
+		ImGui::PopStyleVar(1);
 	}
-	ImGui::End();
-	ImGui::PopStyleVar(1);
 	
-	ImGui::SetNextWindowCollapsed(true, ImGuiSetCond_FirstUseEver);
-	ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+	if(debug_window)
 	{
+		ImGui::Begin("Debug informations", &debug_window, ImGuiWindowFlags_NoCollapse);
 		if(ImGui::CollapsingHeader("CPU"))
 		{
 			ImGui::Text("%s: %s", "PC", Hexa(cpu.get_pc()).c_str());
@@ -459,8 +485,8 @@ void gui()
 			ImGui::Image(gameboy_tilemap_sprite[0]);
 			ImGui::Image(gameboy_tilemap_sprite[1]);
 		}
+		ImGui::End();
 	}
-	ImGui::End();
     
 	ImGui::Render();
 }
@@ -577,6 +603,7 @@ void reset()
 	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
 	apu.end_frame(frame_cycles);
 	if(use_movie) movie.seekg(movie_start);
+	set_input_callbacks();
 }
 
 void load_movie(const char* movie_path)
@@ -746,6 +773,35 @@ void setup_window()
 	else
 		window.create(sf::VideoMode(800, 600), "SenBoy");
 	window.setVerticalSyncEnabled(false);
+}
+
+void set_input_callbacks()
+{
+	if(!use_movie)
+	{
+		mmu.callback_joy_up =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Up); };
+		mmu.callback_joy_down =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
+		mmu.callback_joy_right =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
+		mmu.callback_joy_left =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
+		auto lambda_button = [&] (auto joy, auto key) -> bool { 
+			for(int i = 0; i < sf::Joystick::Count; ++i) 
+				if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, joy)) return true; 
+			return sf::Keyboard::isKeyPressed(key);
+		};
+		mmu.callback_joy_a =		std::bind(lambda_button, 0, sf::Keyboard::F);
+		mmu.callback_joy_b = 		std::bind(lambda_button, 1, sf::Keyboard::G);
+		mmu.callback_joy_select =	std::bind(lambda_button, 6, sf::Keyboard::H);
+		mmu.callback_joy_start =	std::bind(lambda_button, 7, sf::Keyboard::J);
+	} else {
+		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
+		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
+		mmu.callback_joy_select = 	[&] () -> bool { return playback[0] & 0x04; };
+		mmu.callback_joy_start = 	[&] () -> bool { return playback[0] & 0x08; };
+		mmu.callback_joy_right = 	[&] () -> bool { return playback[0] & 0x10; };
+		mmu.callback_joy_left = 	[&] () -> bool { return playback[0] & 0x20; };
+		mmu.callback_joy_up = 		[&] () -> bool { return playback[0] & 0x40; };
+		mmu.callback_joy_down = 	[&] () -> bool { return playback[0] & 0x80; };
+	}
 }
 
 void log()
