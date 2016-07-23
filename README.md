@@ -12,7 +12,7 @@ Original Gameboy compatibility is pretty good, but Gameboy Color support is stil
 
 ## Compilation
 
-Compilation has only been tested on Ubuntu/Windows (MinGW) with g++.
+Compilation is only being tested on Windows (MinGW) with g++ 6.1.0, and occasionally on Ubuntu.
 You will need CMake and a copy of SFML 2.X (see Dependencies). On Windows, or if you used a non standard install path, you may want to set the CMake variables `CMAKE_PREFIX_PATH` to where are stored the SFML libraries and `SFML_INCLUDE_DIR` to the folder containing the SFML headers (using cmake-gui or the command line). Once this done, this should be enough:
 ````
 cmake .
@@ -101,8 +101,10 @@ halt_bug				| :x: FAIL
 SenBoy is NOT sub-instruction accurate.
 
 ## Dependencies
-* SFML 2.X (http://www.sfml-dev.org/) for graphical output and input handling.
-* Gb_Snd_Emu-0.1.4 (http://blargg.8bitalley.com/libs/audio.html#Gb_Snd_Emu) for sound emulation (Included).
+* [SFML 2.X](http://www.sfml-dev.org/) for graphical output and input handling.
+* [Gb_Snd_Emu-0.1.4](http://blargg.8bitalley.com/libs/audio.html#Gb_Snd_Emu) for sound emulation (Included).
+* [dear imgui](https://github.com/ocornut/imgui) (Included)
+* [imgui-sfml](https://github.com/eliasdaler/imgui-sfml) (Included)
 
 ## Thanks
 * http://gbdev.gg8.se/ for their awesome wiki.

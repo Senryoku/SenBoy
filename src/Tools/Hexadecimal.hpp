@@ -18,6 +18,11 @@ struct HexaGen
 	{
 		return str();
 	}
+	
+	inline const char* c_str() const
+	{
+		return str().c_str();
+	}
 };
 
 template<typename T>

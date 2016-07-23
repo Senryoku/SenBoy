@@ -148,7 +148,6 @@ void LR35902::execute()
 			{
 				case 0b00: // Shift & Rotate
 				{
-					
 					switch((opcode >> 3) & 0b111)
 					{
 						case 0: r = instr_rlc(r); break;
@@ -368,7 +367,7 @@ void LR35902::execute()
 						case 0xC8: instr_ret(check(Flag::Zero)); break;
 						case 0xD8: instr_ret(check(Flag::Carry)); break;
 						case 0xE8: instr_add_sp(read(_pc++)); break;	// ADD SP, n
-						case 0xF8:	//LD HL,SP+r8     (16bits LD)
+						case 0xF8: // LD HL,SP+r8     (16bits LD)
 						{
 							set_hl(add16(_sp, read(_pc++)));
 							break;

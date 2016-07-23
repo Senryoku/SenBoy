@@ -1,6 +1,11 @@
+#include <experimental/filesystem>
+
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+
+#include <imgui.h>
+#include <imgui-SFML.h>
 
 #include <Core/GameBoy.hpp>
 #include <GBAudioStream.hpp>
@@ -9,9 +14,10 @@
 #include <Tools/Config.hpp>
 
 // Options
+bool fullscreen = false;
 bool post_process = false;
 float blend_speed = 0.70f;
-bool debug_display = false;
+bool show_gui = false;
 bool use_bios = true;
 bool with_sound = true;
 bool debug = false;			// Pause execution
@@ -32,14 +38,9 @@ Stereo_Buffer gb_snd_buffer;
 GBAudioStream snd_buffer;
 
 // GUI
-float screen_scale = 3.0f;
-size_t padding = 25 * 2 * screen_scale;
 sf::RenderWindow window;
-sf::RenderWindow window_debug;
 sf::Texture	gameboy_screen;
 sf::Sprite gameboy_screen_sprite;
-sf::Texture	gameboy_logo_tex;
-sf::Sprite gameboy_logo_sprite;
 std::unique_ptr<color_t[]> screen_buffer;
 
 // Debug GUI
@@ -47,15 +48,12 @@ sf::Texture	gameboy_tiledata[2];
 sf::Sprite gameboy_tiledata_sprite[2];
 sf::Texture	gameboy_tilemap[2];
 sf::Sprite gameboy_tilemap_sprite[2];
-sf::Font font;
-sf::Text debug_text;
-sf::Text log_text;
-sf::Text tiledata_text[2];
 color_t* tile_data[2] = {nullptr, nullptr};
 color_t* tile_maps[2] = {nullptr, nullptr};
 
 // Timing
 sf::Clock timing_clock;
+sf::Clock delta_clock; // GUI Clock
 double frame_time = 0;
 size_t speed_update = 10;
 double speed = 100;
@@ -78,53 +76,43 @@ enum MovieType
 };
 MovieType	movie_type = SBM;
 
-void open_debug_window();
+void help();
+void toggleFullscreen();
 void setup_window();
-void setup_debug_window();
+void gui();
 void handle_event(sf::Event event);
 void handle_event_debug(sf::Event event);
-std::string get_debug_text();
-std::string get_debug_log();
 void toggle_speed();
 void reset();
 void modify_volume(float v);
+void load_movie(const char* movie_path);
 void get_input_from_movie();
 void movie_save_frame();
 void update_tiledata();
 void update_tilemaps();
 
+template<typename T, typename ...Args>
+void log(const T& msg, Args... args);
+
 int main(int argc, char* argv[])
 {
+	// Command Line Options
 	config::set_folder(argv[0]);
 	
-	if(argc == 1 || has_option(argc, argv, "-h"))
-	{
-		std::cout << "------------------------------------------------------------" << std::endl
-				<< " SenBoy - Help" << std::endl
-				<< " Basic usage:" << std::endl
-				<< "  ./SenBoy \"path/to/rom\" [-options]" << std::endl
-				<< " Supported options:" << std::endl
-				<< "  -d \t\tStart in debug." << std::endl
-				<< "  -b \t\tSkip BIOS." << std::endl
-				<< "  -s \t\tDisable sound." << std::endl
-				//<< "  $m \"path\" \tSpecify a input movie file." << std::endl
-				//<< "  $ms \"path\" \tSpecify a output movie file." << std::endl
-				<< "  --dmg \tForce DMG mode." << std::endl
-				<< "  --cgb \tForce CGB mode." << std::endl
-				<< " See the README.txt for more and up-to-date informations." << std::endl
-				<< "------------------------------------------------------------" << std::endl;
-		if(has_option(argc, argv, "-h")) return 0;
-	}
+	if(argc == 1) help();
+	if(has_option(argc, argv, "-h")) { help(); return 0; }
 	
 	std::string path(config::to_abs("tests/cpu_instrs/cpu_instrs.gb"));
 	char* rom_path = get_file(argc, argv);
 	if(rom_path)
 		path = rom_path;
-	else
-		std::cout << "No ROM specified: Running standard tests." << std::endl;
+	else {
+		log("No ROM specified: Running standard tests.");
+		show_gui = true;
+	}
 	
 	if(has_option(argc, argv, "-d"))
-		debug = debug_display = true;
+		debug = true;
 	if(has_option(argc, argv, "-b"))
 		use_bios = false;
 	if(has_option(argc, argv, "-s"))
@@ -147,56 +135,14 @@ int main(int argc, char* argv[])
 	screen_buffer.reset(new color_t[gpu.ScreenWidth * gpu.ScreenHeight]);
 	
 	// Movie Saving
-	char* movie_save_path = get_option(argc, argv, "$ms");
+	const char* movie_save_path = get_option(argc, argv, "$ms");
 	if(movie_save_path)
-	{
 		movie_save.open(movie_save_path, std::ios::binary);
-	}
 	
 	// Movie loading
-	char* movie_path = get_option(argc, argv, "$m");
+	const char* movie_path = get_option(argc, argv, "$m");
 	if(movie_path)
-	{
-		switch(movie_type)
-		{
-			case SBM:
-			{
-				movie.open(movie_path, std::ios::binary);
-				if(movie) {
-					movie_start = movie.tellg();
-				}
-				break;
-			}
-			case VBM:
-				movie.open(movie_path, std::ios::binary);
-				if(movie) {
-					// VBM
-					char tmp[4];
-					movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
-					movie.read(tmp, 4);
-					movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
-					movie.seekg(movie_start);
-				}
-				break;
-			case BK2: // BK2 (Not the archive, just the Input Log)
-				movie.open(movie_path);
-				if(movie) {
-					movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-					movie_start = movie.tellg();
-				}
-				break;
-			default:
-				std::cerr << "Error: Unknown movie type." << std::endl;
-				break;
-		}
-		if(!movie)
-			std::cerr << "Error: Unable to open movie file '" << movie_path << "'." << std::endl;
-		else {
-			use_movie = true;
-			use_bios = false;
-			std::cout << "Loaded movie file '" << movie_path << "'. Starting in playback mode..." << std::endl;
-		}
-	}
+		load_movie(movie_path);
 	
 	// Input callbacks
 	if(!use_movie)
@@ -205,10 +151,15 @@ int main(int argc, char* argv[])
 		mmu.callback_joy_down =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
 		mmu.callback_joy_right =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
 		mmu.callback_joy_left =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
-		mmu.callback_joy_a =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 0)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::F); };
-		mmu.callback_joy_b = 		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 1)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::G); };
-		mmu.callback_joy_select =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 6)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::H); };
-		mmu.callback_joy_start =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, 7)) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::J); };
+		auto lambda_button = [&] (auto joy, auto key) -> bool { 
+			for(int i = 0; i < sf::Joystick::Count; ++i) 
+				if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, joy)) return true; 
+			return sf::Keyboard::isKeyPressed(key);
+		};
+		mmu.callback_joy_a =		std::bind(lambda_button, 0, sf::Keyboard::F);
+		mmu.callback_joy_b = 		std::bind(lambda_button, 1, sf::Keyboard::G);
+		mmu.callback_joy_select =	std::bind(lambda_button, 6, sf::Keyboard::H);
+		mmu.callback_joy_start =	std::bind(lambda_button, 7, sf::Keyboard::J);
 	} else {
 		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
 		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
@@ -224,8 +175,28 @@ int main(int argc, char* argv[])
 	// Setting up GUI
 	
 	setup_window();
-	if(debug_display) open_debug_window();
-	setup_debug_window();
+    ImGui::SFML::Init(window);
+
+	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
+		std::cerr << "Error creating the screen texture!" << std::endl;
+	gameboy_screen_sprite.setTexture(gameboy_screen);
+	
+	for(int i = 0; i < 2; ++i)
+	{
+		if(!gameboy_tiledata[i].create(16 * 8, (8 * 3) * 8))
+			std::cerr << "Error creating the vram texture!" << std::endl;
+		gameboy_tiledata_sprite[i].setTexture(gameboy_tiledata[i]);
+		
+		tile_data[i] = new color_t[(16 * 8) * ((8 * 3) * 8)];
+		std::memset(tile_data[i], 128, 4 * (16 * 8) * ((8 * 3) * 8));
+
+		if(!gameboy_tilemap[i].create(32 * 8, 32 * 8))
+			std::cerr << "Error creating the vram texture!" << std::endl;
+		gameboy_tilemap_sprite[i].setTexture(gameboy_tilemap[i]);
+		
+		tile_maps[i] = new color_t[32 * 8 * 32 * 8];
+		std::memset(tile_maps[i], 128, 32 * 8 * 32 * 8);
+	}
 
 	///////////////////////////////////////////////////////////////////////////
 	
@@ -262,9 +233,7 @@ int main(int argc, char* argv[])
 			
 					if(cpu.reached_breakpoint())
 					{
-						std::stringstream ss;
-						ss << "Stepped on a breakpoint at " << Hexa(cpu.get_pc());
-						log_text.setString(ss.str());
+						log("Stepped on a breakpoint at ", Hexa(cpu.get_pc()));
 						debug = true;
 						step = false;
 						break;
@@ -284,7 +253,7 @@ int main(int argc, char* argv[])
 				{
 					if(samples_count >= snd_buffer.buffer_size)
 					{
-						std::cout << "Warning: Way too many sound samples at once. Discarding some..." << std::endl;
+						log("Warning: Way too many sound samples at once. Discarding some...");
 						blip_sample_t discard[snd_buffer.chunk_size];
 						while(samples_count >= snd_buffer.chunk_size)
 						{
@@ -324,32 +293,22 @@ int main(int argc, char* argv[])
 			window.setTitle(std::string("SenBoy - ").append(dt.str()));
 		}
 		
-		if(window_debug.isOpen())
-		{
-			while(window_debug.pollEvent(event))
-				handle_event_debug(event);
-			
-			debug_text.setString(get_debug_text());
-			log_text.setPosition(5, window_debug.getSize().y - log_text.getGlobalBounds().height - 8);
-			
-			update_tiledata();
-			update_tilemaps();
-			
-			window_debug.clear(sf::Color::Black);
-			window_debug.draw(debug_text);
-			window_debug.draw(log_text);
-			for(int i = 0; i < 2; ++i)
-			{
-				window_debug.draw(tiledata_text[i]);
-				window_debug.draw(gameboy_tiledata_sprite[i]);
-				window_debug.draw(gameboy_tilemap_sprite[i]);
-			}
-			window_debug.display();
-		}
-		
         window.clear(sf::Color::Black);
+		auto win_size = window.getView().getSize();
+		auto sprite_lb = gameboy_screen_sprite.getLocalBounds();
+		float scale = std::min(win_size.x / sprite_lb.width, 
+			win_size.y / sprite_lb.height);
+		scale = std::max(scale, 1.0f);
+		gameboy_screen_sprite.setScale(scale, scale);
+		auto sprite_gb = gameboy_screen_sprite.getGlobalBounds();
+		gameboy_screen_sprite.setPosition(win_size.x / 2 - sprite_gb.width / 2, 
+			win_size.y / 2 - sprite_gb.height / 2);
+		if(show_gui) gameboy_screen_sprite.setColor(sf::Color{255, 255, 255, 128});
+		else gameboy_screen_sprite.setColor(sf::Color::White);
 		window.draw(gameboy_screen_sprite);
-		window.draw(gameboy_logo_sprite);
+
+		if(show_gui) gui();
+		
         window.display();
     }
 	
@@ -361,13 +320,22 @@ int main(int argc, char* argv[])
 	delete[] tile_maps[1];
 }
 
-void open_debug_window()
+void help()
 {
-	if(window_debug.isOpen())
-		return;
-	window_debug.create(sf::VideoMode(1.25 * padding + 2 * 0.5 * screen_scale * (16 * 8 + 32 * 8), 
-		screen_scale * 0.5 * 32 * 8 + padding), 
-		"SenBoy - Debug");
+	std::cout << "------------------------------------------------------------" << std::endl
+			<< " SenBoy - Help" << std::endl
+			<< " Basic usage:" << std::endl
+			<< "  ./SenBoy \"path/to/rom\" [-options]" << std::endl
+			<< " Supported options:" << std::endl
+			<< "  -d \t\tStart in debug." << std::endl
+			<< "  -b \t\tSkip BIOS." << std::endl
+			<< "  -s \t\tDisable sound." << std::endl
+			//<< "  $m \"path\" \tSpecify a input movie file." << std::endl
+			//<< "  $ms \"path\" \tSpecify a output movie file." << std::endl
+			<< "  --dmg \tForce DMG mode." << std::endl
+			<< "  --cgb \tForce CGB mode." << std::endl
+			<< " See the README.txt for more and up-to-date informations." << std::endl
+			<< "------------------------------------------------------------" << std::endl;
 }
 
 void toggle_debug()
@@ -375,24 +343,141 @@ void toggle_debug()
 	debug = !debug;
 	elapsed_cycles = 0;
 	timing_clock.restart();
-	log_text.setString(debug ? "Debugging" : "Running");
+	log(debug ? "Debugging" : "Running");
+}
+
+std::experimental::filesystem::path explore(const std::experimental::filesystem::path& path, const std::vector<const char*>& extensions = {})
+{
+	namespace fs = std::experimental::filesystem;
+	fs::path return_path;
+	for(auto& p: fs::directory_iterator(path))
+	{
+		if(fs::is_directory(p))
+		{
+			if(ImGui::TreeNode(p.path().filename().string().c_str()))
+			{
+				return_path = explore(p.path(), extensions);
+				ImGui::TreePop();
+			}
+		} else {
+			auto ext = p.path().extension().string();
+			if(extensions.empty() || std::find(extensions.begin(), extensions.end(), ext) != extensions.end())
+				if(ImGui::SmallButton(p.path().filename().string().c_str()))
+					return_path = p.path();
+		}
+	}
+	return return_path;
+}
+
+void gui()
+{
+	ImGui::SFML::Update(delta_clock.restart());
+	
+	bool open_rom_popup = false;
+	if(ImGui::BeginMainMenuBar())
+	{
+		if(ImGui::BeginMenu("File"))
+		{
+			open_rom_popup = ImGui::MenuItem("Open ROM##menuitem");
+			ImGui::EndMenu();
+		}
+		if(ImGui::BeginMenu("Help"))
+		{
+			ImGui::EndMenu();
+		}
+						
+		ImGui::EndMainMenuBar();
+	}
+	
+	if(open_rom_popup) ImGui::OpenPopup("Open ROM");
+	if(ImGui::BeginPopup("Open ROM"))
+	{
+		namespace fs = std::experimental::filesystem;
+		static char root_path[256] = ".";
+		ImGui::InputText("Root", root_path, 256);
+		if(fs::is_directory(root_path))
+		{
+			auto p = explore(root_path, {".gb", ".gbc"});
+			if(!p.empty())
+			{
+				cartridge.save();
+				cartridge.load(p.string());
+				reset();
+				show_gui = false;
+				// @todo Not so sure about that...
+				ImGui::GetIO().WantCaptureKeyboard = ImGui::GetIO().WantTextInput = false;
+				ImGui::CloseCurrentPopup();
+			}
+		}
+		ImGui::EndPopup();
+	}
+	
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(gpu.ScreenWidth, 
+		gpu.ScreenHeight + 19)); // Why 19? You tell me... (Title bar ?)
+	ImGui::Begin("GameBoy", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse);
+	{
+		ImVec2 win_size = ImGui::GetWindowContentRegionMax();
+		win_size.x -= ImGui::GetWindowContentRegionMin().x;
+		win_size.y -= ImGui::GetWindowContentRegionMin().y;
+		float scale = std::min(win_size.x / gpu.ScreenWidth, win_size.y / gpu.ScreenHeight);
+		scale = std::max(scale, 1.0f);
+		gameboy_screen_sprite.setScale(scale, scale);
+		ImGui::Image(gameboy_screen_sprite);
+	}
+	ImGui::End();
+	ImGui::PopStyleVar(1);
+	
+	ImGui::SetNextWindowCollapsed(true, ImGuiSetCond_FirstUseEver);
+	ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+	{
+		if(ImGui::CollapsingHeader("CPU"))
+		{
+			ImGui::Text("%s: %s", "PC", Hexa(cpu.get_pc()).c_str());
+			ImGui::Text("%s: %s", "SP", Hexa(cpu.get_sp()).c_str());
+			ImGui::Text("%s: %s", "Instruction", cpu.get_disassembly().c_str());
+			ImGui::Text("%s: %s", "AF", Hexa(cpu.get_af()).c_str());
+			ImGui::Text("%s: %s", "BC", Hexa(cpu.get_bc()).c_str());
+			ImGui::Text("%s: %s", "DE", Hexa(cpu.get_de()).c_str());
+			ImGui::Text("%s: %s", "HL", Hexa(cpu.get_hl()).c_str());
+			ImGui::Value("Zero", cpu.check(LR35902::Flag::Zero));
+			ImGui::Value("Negative", cpu.check(LR35902::Flag::Negative));
+			ImGui::Value("HalfCarry", cpu.check(LR35902::Flag::HalfCarry));
+			ImGui::Value("Carry", cpu.check(LR35902::Flag::Carry));
+		}
+		if(ImGui::CollapsingHeader("GPU"))
+		{
+			ImGui::Text("%s: %s", "LY",   Hexa8(gpu.get_line()).c_str());
+			ImGui::Text("%s: %s", "LCDC", Hexa8(gpu.get_lcdc()).c_str());
+			ImGui::Text("%s: %s", "STAT", Hexa8(gpu.get_lcdstat()).c_str());
+			update_tiledata();
+			update_tilemaps();
+			ImGui::Text("Tile Data");
+			ImGui::Image(gameboy_tiledata_sprite[0]);
+			ImGui::SameLine();
+			ImGui::Image(gameboy_tiledata_sprite[1]);
+			ImGui::Text("Tile Maps");
+			ImGui::Image(gameboy_tilemap_sprite[0]);
+			ImGui::Image(gameboy_tilemap_sprite[1]);
+		}
+	}
+	ImGui::End();
+    
+	ImGui::Render();
 }
 
 void add_breakpoint()
 {
 	addr_t addr;
-	std::cout << "Adding breakpoint. Enter an address: " << std::endl;
+	log("Adding breakpoint. Enter an address: ");
 	std::cin >> std::hex >> addr;
 	cpu.add_breakpoint(addr);
-	std::stringstream ss;
-	ss << "Added a breakpoint at " << Hexa(addr) << ".";
-	log_text.setString(ss.str());
+	log("Added a breakpoint at ", Hexa(addr), ".");
 }
 
 void clear_breakpoints()
 {
 	cpu.clear_breakpoints();
-	log_text.setString("Cleared breakpoints.");
+	log("Cleared breakpoints.");
 }
 
 void advance_frame()
@@ -400,7 +485,7 @@ void advance_frame()
 	frame_by_frame = true;
 	step = true;
 	debug = true;
-	log_text.setString("Advancing one frame");
+	log("Advancing one frame");
 }
 
 void modify_volume(float v)
@@ -408,24 +493,29 @@ void modify_volume(float v)
 	float vol = snd_buffer.getVolume();
 	vol = std::max(0.0f, std::min(vol + v, 100.0f));
 	snd_buffer.setVolume(vol);
-	log_text.setString(std::string("Volume at ").append(std::to_string(vol)));
+	log("Volume at ", vol);
 }
 
 void handle_event(sf::Event event)
 {
-	if (event.type == sf::Event::Closed)
+	ImGui::SFML::ProcessEvent(event);
+
+	if(event.type == sf::Event::Closed)
 		window.close();
-	if (event.type == sf::Event::KeyPressed)
+	else if(event.type == sf::Event::Resized)
+		window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+	else if(event.type == sf::Event::KeyPressed && 
+		!(ImGui::GetIO().WantCaptureKeyboard || ImGui::GetIO().WantTextInput))
 	{
 		switch(event.key.code)
 		{
 			case sf::Keyboard::Escape: window.close(); break;
 			case sf::Keyboard::Space: step = true; break;
-			case sf::Keyboard::Return: toggle_debug(); break;
+			case sf::Keyboard::Return: if(event.key.alt) toggleFullscreen(); else show_gui = !show_gui; break;
 			case sf::Keyboard::BackSpace: reset(); break;
 			case sf::Keyboard::Add: modify_volume(10.0f); break;
 			case sf::Keyboard::Subtract: modify_volume(-10.0f); break;
-			case sf::Keyboard::D: open_debug_window(); break;
+			case sf::Keyboard::D: toggle_debug(); break;
 			case sf::Keyboard::B: add_breakpoint(); break;
 			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
@@ -433,7 +523,7 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::P: post_process = !post_process; break;
 			default: break;
 		}
-	} else if (event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
+	} else if(event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
 		switch(event.joystickButton.button)
 		{
 			case 0: mmu.key_down(MMU::Button, MMU::RightA); break;
@@ -444,7 +534,7 @@ void handle_event(sf::Event event)
 			case 5: toggle_speed(); break;
 			default: break;
 		}
-	} else if (event.type == sf::Event::JoystickButtonReleased) {
+	} else if(event.type == sf::Event::JoystickButtonReleased) {
 		switch(event.joystickButton.button)
 		{
 			case 5: toggle_speed(); break;
@@ -462,32 +552,12 @@ void handle_event(sf::Event event)
 	}
 }
 
-void handle_event_debug(sf::Event event)
-{
-	if (event.type == sf::Event::Closed)
-		window_debug.close();
-	if (event.type == sf::Event::KeyPressed)
-	{
-		switch(event.key.code)
-		{
-			case sf::Keyboard::Escape: window_debug.close(); break;
-			case sf::Keyboard::Space: step = true; break;
-			case sf::Keyboard::Return: toggle_debug(); break;
-			case sf::Keyboard::B: add_breakpoint(); break;
-			case sf::Keyboard::N: clear_breakpoints(); break;
-			case sf::Keyboard::M: toggle_speed(); break;
-			case sf::Keyboard::L: advance_frame(); break;
-			default: break;
-		}
-	}
-}
-
 void toggle_speed()
 {
 	real_speed = !real_speed;
 	elapsed_cycles = 0;
 	timing_clock.restart();
-	log_text.setString(real_speed ? "Running at real speed" : "Running as fast as possible");
+	log(real_speed ? "Running at real speed" : "Running as fast as possible");
 }
 
 void reset()
@@ -503,10 +573,53 @@ void reset()
 	gpu.reset();
 	elapsed_cycles = 0;
 	timing_clock.restart();
-	debug_text.setString("Reset");
+	log("Reset");
 	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
 	apu.end_frame(frame_cycles);
 	if(use_movie) movie.seekg(movie_start);
+}
+
+void load_movie(const char* movie_path)
+{
+	switch(movie_type)
+	{
+		case SBM:
+		{
+			movie.open(movie_path, std::ios::binary);
+			if(movie) {
+				movie_start = movie.tellg();
+			}
+			break;
+		}
+		case VBM:
+			movie.open(movie_path, std::ios::binary);
+			if(movie) {
+				// VBM
+				char tmp[4];
+				movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
+				movie.read(tmp, 4);
+				movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+				movie.seekg(movie_start);
+			}
+			break;
+		case BK2: // BK2 (Not the archive, just the Input Log)
+			movie.open(movie_path);
+			if(movie) {
+				movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+				movie_start = movie.tellg();
+			}
+			break;
+		default:
+			log("Error: Unknown movie type.");
+			break;
+	}
+	if(!movie)
+		log("Error: Unable to open movie file '", movie_path, "'.");
+	else {
+		use_movie = true;
+		use_bios = false;
+		log("Loaded movie file '", movie_path, "'. Starting in playback mode...");
+	}
 }
 
 // Get next input from the movie file.
@@ -556,51 +669,6 @@ void movie_save_frame()
 		if(mmu.callback_joy_down()) 	input |= 0x80;
 		movie_save << input;
 	}
-}
-
-std::string get_debug_text()
-{
-	std::stringstream dt;
-	dt << "PC: " << Hexa(cpu.get_pc());
-	dt << " SP: " << Hexa(cpu.get_sp());
-	dt << " | " << cpu.get_disassembly();
-	dt << " | OP: " << Hexa8(cpu.get_next_opcode()) << " ";
-	if(LR35902::instr_length[cpu.get_next_opcode()] > 1)
-		dt << Hexa8(cpu.get_next_operand0()) << " ";
-	if(LR35902::instr_length[cpu.get_next_opcode()] > 2)
-		dt << Hexa8(cpu.get_next_operand1());
-	dt << std::endl;
-	dt << "AF: " << Hexa(cpu.get_af());
-	dt << " BC: " << Hexa(cpu.get_bc());
-	dt << " DE: " << Hexa(cpu.get_de());
-	dt << " HL: " << Hexa(cpu.get_hl());
-	dt << std::endl;
-	dt << "LY: " << Hexa8(gpu.get_line());
-	dt << " LCDC: " << Hexa8(gpu.get_lcdc());
-	dt << " STAT: " << Hexa8(gpu.get_lcdstat());
-	if(cpu.check(LR35902::Flag::Zero)) dt << " Z";
-	if(cpu.check(LR35902::Flag::Negative)) dt << " N";
-	if(cpu.check(LR35902::Flag::HalfCarry)) dt << " HC";
-	if(cpu.check(LR35902::Flag::Carry)) dt << " C";
-	return dt.str();
-}
-
-std::string get_debug_log()
-{
-	std::stringstream dt;
-	dt << Hexa(cpu.get_pc());
-	dt << " " << cpu.get_disassembly();
-	dt << " " << Hexa8(cpu.get_next_opcode()) << " ";
-	if(LR35902::instr_length[cpu.get_next_opcode()] > 1)
-		dt << Hexa8(cpu.get_next_operand0()) << " ";
-	if(LR35902::instr_length[cpu.get_next_opcode()] > 2)
-		dt << Hexa8(cpu.get_next_operand1());
-	dt << " SP: " << Hexa(cpu.get_sp());
-	dt << " AF: " << Hexa(cpu.get_af());
-	dt << " BC: " << Hexa(cpu.get_bc());
-	dt << " DE: " << Hexa(cpu.get_de());
-	dt << " HL: " << Hexa(cpu.get_hl());
-	return dt.str();
 }
 
 void update_tiledata()
@@ -663,85 +731,31 @@ void update_tilemaps()
 	}
 }
 
-void setup_window()
+void toggleFullscreen()
 {
-	window.create(sf::VideoMode(
-		screen_scale * gpu.ScreenWidth + padding, 
-		screen_scale * gpu.ScreenHeight + padding), 
-		"SenBoy");
-	window.setVerticalSyncEnabled(false);
-	
-	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
-		std::cerr << "Error creating the screen texture!" << std::endl;
-	gameboy_screen_sprite.setTexture(gameboy_screen);
-	gameboy_screen_sprite.setPosition(padding / 2, 
-									padding / 2);
-	gameboy_screen_sprite.setScale(screen_scale, screen_scale);
-	
-	if(mmu.cgb_mode())
-		gameboy_logo_tex.loadFromFile(config::to_abs("data/gbc_logo.png"));
-	else
-		gameboy_logo_tex.loadFromFile(config::to_abs("data/gb_logo.png"));
-	gameboy_logo_sprite.setTexture(gameboy_logo_tex);
-	gameboy_logo_sprite.setPosition(padding / 2, 
-									padding / 2 + screen_scale * gpu.ScreenHeight);
-	gameboy_logo_sprite.setScale(screen_scale / 4.0, screen_scale / 4.0);
-	
-	if(!font.loadFromFile(config::to_abs("data/Hack-Regular.ttf")))
-		std::cerr << "Error loading the font!" << std::endl;
+	fullscreen =! fullscreen;
+	window.close();
+	setup_window();
 }
 
-void setup_debug_window()
+void setup_window()
 {
-	auto right = [&](const sf::Sprite& s) -> float { 
-		return s.getGlobalBounds().left + s.getGlobalBounds().width;
-	};
-	
-	for(int i = 0; i < 2; ++i)
-	{
-		if(!gameboy_tiledata[i].create(16 * 8, (8 * 3) * 8))
-			std::cerr << "Error creating the vram texture!" << std::endl;
-		gameboy_tiledata_sprite[i].setTexture(gameboy_tiledata[i]);
-		gameboy_tiledata_sprite[i].setScale(0.5 * screen_scale, 0.5 * screen_scale);
-		tile_data[i] = new color_t[(16 * 8) * ((8 * 3) * 8)];
-		std::memset(tile_data[i], 128, 4 * (16 * 8) * ((8 * 3) * 8));
-	}
-	gameboy_tiledata_sprite[0].setPosition(25, padding / 2);
-	gameboy_tiledata_sprite[1].setPosition(right(gameboy_tiledata_sprite[0]) + padding * 0.25,
-											gameboy_tiledata_sprite[0].getPosition().y);
-	
-	for(int i = 0; i < 2; ++i)
-	{
-		if(!gameboy_tilemap[i].create(32 * 8, 32 * 8))
-			std::cerr << "Error creating the vram texture!" << std::endl;
-		gameboy_tilemap_sprite[i].setTexture(gameboy_tilemap[i]);
-		gameboy_tilemap_sprite[i].setScale(0.5 * screen_scale, 0.5 * screen_scale);
-		tile_maps[i] = new color_t[32 * 8 * 32 * 8];
-		std::memset(tile_maps[i], 128, 32 * 8 * 32 * 8);
-	}
-	gameboy_tilemap_sprite[0].setPosition(right(gameboy_tiledata_sprite[1]) + padding * 0.25, 
-									gameboy_tiledata_sprite[0].getPosition().y);
-	gameboy_tilemap_sprite[1].setPosition(right(gameboy_tilemap_sprite[0]) + padding * 0.25, 
-									gameboy_tiledata_sprite[0].getPosition().y);
-	
-	debug_text.setFont(font);
-	debug_text.setCharacterSize(16);
-	debug_text.setPosition(5, 0);
-	
-	log_text.setFont(font);
-	log_text.setCharacterSize(16);
-	log_text.setPosition(5, window.getSize().y - padding * 0.5 + 5);
-	log_text.setString("Log");
+	if(fullscreen)
+		window.create(sf::VideoMode::getDesktopMode(), 
+			"SenBoy", sf::Style::None); // Borderless Fullscreen : Way easier.
+	else
+		window.create(sf::VideoMode(800, 600), "SenBoy");
+	window.setVerticalSyncEnabled(false);
+}
 
-	tiledata_text[0].setFont(font);
-	tiledata_text[0].setCharacterSize(16);
-	tiledata_text[0].setPosition(gameboy_tiledata_sprite[0].getGlobalBounds().left,
-		gameboy_tiledata_sprite[0].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
-	tiledata_text[0].setString("TileData (Bank 0)");
-	
-	tiledata_text[1].setFont(font);
-	tiledata_text[1].setCharacterSize(16);
-	tiledata_text[1].setPosition(gameboy_tiledata_sprite[1].getGlobalBounds().left,
-		gameboy_tiledata_sprite[1].getGlobalBounds().top + gameboy_tiledata_sprite[0].getGlobalBounds().height + 5);
-	tiledata_text[1].setString("TileData (Bank 1)");
+void log()
+{
+	std::cout << std::endl;
+}
+
+template<typename T, typename ...Args>
+void log(const T& msg, Args... args)
+{
+	std::cout << msg;
+	log(args...);
 }
