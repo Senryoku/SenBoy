@@ -665,6 +665,8 @@ void load_empty_rom()
 		header[0x100] = 0xC3; // JP 0x0100
 		header[0x101] = 0x00;
 		header[0x102] = 0x01;
+		// GBC Mode to get this sweeeeeet boot ROM
+		header[0x143] = 0x80;
 		
 		std::memcpy(header + 0x104, logo, 3 * 16);
 		cartridge.load_from_memory(header, 0x150);
