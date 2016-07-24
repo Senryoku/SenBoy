@@ -1,5 +1,6 @@
 #include "Cartridge.hpp"
 
+#include <cstring> // memset
 #include <sstream>
 #include <chrono>		// RTC
 #include <ctime>
@@ -44,7 +45,9 @@ void Cartridge::reset()
 	_ram_bank = 0;
 	_enable_ram = false;
 	_ram_size = 0;
-	_mode = 0;	
+	_ram.clear();
+	_mode = 0;
+	std::memset(_rtc_registers, 0, 5);
 }
 
 bool Cartridge::init()

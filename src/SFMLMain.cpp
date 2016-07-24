@@ -86,6 +86,7 @@ void handle_event(sf::Event event);
 void handle_event_debug(sf::Event event);
 void toggle_speed();
 void reset();
+void load_empty_rom();
 void modify_volume(float v);
 void load_movie(const char* movie_path);
 void get_input_from_movie();
@@ -101,37 +102,16 @@ int main(int argc, char* argv[])
 {
 	// Command Line Options
 	config::set_folder(argv[0]);
-	
-	if(argc == 1) help();
+
 	if(has_option(argc, argv, "-h")) { help(); return 0; }
 	
-	char* rom_path = get_file(argc, argv);
-	if(rom_path)
+	char* cli_rom_path = get_file(argc, argv);
+	if(cli_rom_path)
 	{
-		rom_path = rom_path;
-		cartridge.load(rom_path);
+		rom_path = cli_rom_path;
 	} else {
 		log("No ROM specified.");
 		show_gui = true;
-		
-		// Loads a empty ROM with a valid header
-		unsigned char header[0x150] = {0};
-		std::memcpy(header + 0x134, "SENBOY", 6); // Title
-		const unsigned char logo[3 * 16] = {
-			0x00, 0x00, 0x07, 0xc7, 0x09, 0x19, 0x0f, 0x8e, 0x04, 0x67, 0x06, 0x66, 0x0f, 0xcf, 0x08, 0xd9, 0x0f, 0x99, 0x03, 0xb9, 0x03, 0x3e, 0x00, 0x00, 
-			0x00, 0x00, 0x19, 0x70, 0xdd, 0x90, 0x88, 0xf0, 0x54, 0x40, 0xee, 0x60, 0xcc, 0xf0, 0xdd, 0x80, 0x99, 0xf0, 0x88, 0x00, 0xcc, 0xc0, 0x00, 0x00
-		};
-		// Checksum (useless actually)
-		char x = 0;
-		for(int i = 0x134; i < 0x14C; ++i) x = x - header[i] - 1;
-		header[0x14D] = x;
-		// Busy loop to keep the logo on screen
-		header[0x100] = 0xC3; // JP 0x0100
-		header[0x101] = 0x00;
-		header[0x102] = 0x01;
-		
-		std::memcpy(header + 0x104, logo, 3 * 16);
-		cartridge.load_from_memory(header, 0x150);
 	}
 	
 	if(has_option(argc, argv, "-d"))
@@ -214,6 +194,7 @@ int main(int argc, char* argv[])
 				do
 				{
 					cpu.execute();
+					
 					if(cpu.get_instr_cycles() == 0)
 						break;
 
@@ -231,7 +212,7 @@ int main(int argc, char* argv[])
 						break;
 					}
 				} while((!debug || frame_by_frame) && (!gpu.completed_frame() && cpu.frame_cycles <= 70224));
-				
+
 				frame_count++;
 			}
 			
@@ -350,7 +331,9 @@ std::experimental::filesystem::path explore(const std::experimental::filesystem:
 		{
 			if(ImGui::TreeNode(p.path().filename().string().c_str()))
 			{
-				return_path = explore(p.path(), extensions);
+				auto tmp_r = explore(p.path(), extensions);
+				if(!tmp_r.empty())
+					return_path = tmp_r;
 				ImGui::TreePop();
 			}
 		} else {
@@ -379,8 +362,11 @@ void gui()
 		{
 			open_rom_popup = ImGui::MenuItem("Open ROM");
 			//open_movie_popup = ImGui::MenuItem("Open Movie"); // @todo Debug then re-enable...
+			ImGui::Separator();
 			if(ImGui::MenuItem("Save"))
 				cartridge.save();
+			if(ImGui::MenuItem("Reset"))
+				reset();
 			if(ImGui::MenuItem("Exit"))
 				window.close();
 			ImGui::EndMenu();
@@ -434,7 +420,6 @@ void gui()
 		{
 			cartridge.save();
 			rom_path = p.string();
-			cartridge.load(p.string());
 			reset();
 			show_gui = false;
 			// @todo Not so sure about that...
@@ -486,6 +471,8 @@ void gui()
 	if(debug_window)
 	{
 		ImGui::Begin("Debug informations", &debug_window, ImGuiWindowFlags_NoCollapse);
+		ImGui::Value("Debugging", debug);
+		ImGui::Value("Stepping", step);
 		if(ImGui::CollapsingHeader("CPU"))
 		{
 			ImGui::Text("%s: %s", "PC", Hexa(cpu.get_pc()).c_str());
@@ -499,6 +486,7 @@ void gui()
 			ImGui::Value("Negative", cpu.check(LR35902::Flag::Negative));
 			ImGui::Value("HalfCarry", cpu.check(LR35902::Flag::HalfCarry));
 			ImGui::Value("Carry", cpu.check(LR35902::Flag::Carry));
+			ImGui::Value("Frame Cycles", cpu.frame_cycles);
 		}
 		if(ImGui::CollapsingHeader("GPU"))
 		{
@@ -514,6 +502,13 @@ void gui()
 			ImGui::Text("Tile Maps");
 			ImGui::Image(gameboy_tilemap_sprite[0]);
 			ImGui::Image(gameboy_tilemap_sprite[1]);
+		}
+		if(ImGui::CollapsingHeader("Memory"))
+		{
+			for(addr_t addr = 0; addr < 0x200; ++addr)
+			{
+				ImGui::Text("%#06x: %#04x", addr, mmu.read(addr));
+			}
 		}
 		ImGui::End();
 	}
@@ -618,14 +613,19 @@ void toggle_speed()
 
 void reset()
 {
+	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
+	apu.end_frame(frame_cycles);
 	apu.reset();
+	
 	snd_buffer.reset();
 	cpu.reset();
 	mmu.reset();
 	if(rom_path.empty())
 	{
+		load_empty_rom();
 		mmu.load_senboot();
 	} else {
+		cartridge.load(rom_path);
 		if(use_boot)
 		{
 			if(custom_boot)
@@ -636,13 +636,38 @@ void reset()
 			cpu.reset_cart();
 	}
 	gpu.reset();
+	
 	elapsed_cycles = 0;
 	timing_clock.restart();
-	log("Reset");
-	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
-	apu.end_frame(frame_cycles);
+	frame_count = 0;
+	
 	if(use_movie) movie.seekg(movie_start);
+	
 	set_input_callbacks();
+	
+	log("Reset");
+}
+	
+void load_empty_rom()
+{
+		// Loads a empty ROM with a valid header
+		unsigned char header[0x150] = {0};
+		std::memcpy(header + 0x134, "SENBOY", 6); // Title
+		const unsigned char logo[3 * 16] = {
+			0x00, 0x00, 0x07, 0xc7, 0x09, 0x19, 0x0f, 0x8e, 0x04, 0x67, 0x06, 0x66, 0x0f, 0xcf, 0x08, 0xd9, 0x0f, 0x99, 0x03, 0xb9, 0x03, 0x3e, 0x00, 0x00, 
+			0x00, 0x00, 0x19, 0x70, 0xdd, 0x90, 0x88, 0xf0, 0x54, 0x40, 0xee, 0x60, 0xcc, 0xf0, 0xdd, 0x80, 0x99, 0xf0, 0x88, 0x00, 0xcc, 0xc0, 0x00, 0x00
+		};
+		// Checksum (useless actually)
+		char x = 0;
+		for(int i = 0x134; i < 0x14C; ++i) x = x - header[i] - 1;
+		header[0x14D] = x;
+		// Busy loop to keep the logo on screen
+		header[0x100] = 0xC3; // JP 0x0100
+		header[0x101] = 0x00;
+		header[0x102] = 0x01;
+		
+		std::memcpy(header + 0x104, logo, 3 * 16);
+		cartridge.load_from_memory(header, 0x150);
 }
 
 void load_movie(const char* movie_path)

@@ -25,6 +25,8 @@ void LR35902::reset()
 	for(int i = 0; i < 7; ++i)
 		_r[i] = 0;
 	_f = 0;
+	
+	frame_cycles = 0;
 }
 
 void LR35902::reset_cart()
@@ -104,12 +106,12 @@ void LR35902::execute()
 	 * the program counter to stop counting for one
 	 * instruction on the GB,GBP, and SGB." 
 	 */
-	bool halt_bug = false;
+	//bool halt_bug = false;
 	if(_halt)
 	{
 		if(_mmu->read(MMU::IF) & _mmu->read(MMU::IE))
 		{
-			halt_bug = !_ime;
+			//halt_bug = !_ime;
 			_halt = false;
 		} else { 
 			add_cycles(4);
@@ -122,12 +124,14 @@ void LR35902::execute()
 	word_t opcode = read(_pc++);
 	add_cycles(instr_cycles[opcode]);
 	
+	/*
 	if(halt_bug && emulate_halt_bug)
 	{
 		halt_bug = false;
 		_pc--;
 	}
-
+	*/
+	
 	if(_mmu->hdma_cycles())
 		add_cycles(double_speed() ? 16 : 8);
 

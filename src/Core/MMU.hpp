@@ -166,8 +166,9 @@ private:
 	inline color_t get_color(const word_t (&pd)[8][8], word_t p, word_t c);
 	
     static const word_t gb_boot[256];
-    static const word_t sen_boot[256];
+    static const word_t sen_boot[256];	///< Custom DMG Boot ROM
     static const word_t gbc_boot[4096];
+    static const word_t senc_boot[4096];	///< Custom GBC Boot ROM
 };
 
 inline bool MMU::cgb_mode() const 

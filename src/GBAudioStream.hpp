@@ -62,6 +62,7 @@ public:
 	
 	void reset()
 	{
+		stop();
 		std::memset(_buffer, 0, buffer_size * sizeof(blip_sample_t));
 		_offset = 0;
 		_buff_end = 0;

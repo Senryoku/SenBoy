@@ -15,6 +15,9 @@ void GPU::reset()
 	get_line() = get_scroll_x() = get_scroll_y() = get_bgp() = get_lcdstat() = _cycles = 0;
 	get_lcdc() = 0x91;
 	get_lcdstat() = Mode::OAM;
+	
+	_cycles = 0;
+	_completed_frame = false;
 }
 
 void GPU::step(size_t cycles, bool render)
