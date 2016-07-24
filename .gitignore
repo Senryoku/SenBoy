@@ -64,3 +64,4 @@ data/Border.xcf
 src/LibRetro.cpp
 SenBoy 0.92.zip
 imgui.ini
+*.tmp

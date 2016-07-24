@@ -101,24 +101,32 @@ bool Cartridge::init()
 
 byte_t Cartridge::read(addr_t addr) const
 {
-	assert(addr >= 0x4000 || _data.size() > addr);
-			
 	if(addr < 0x4000) // ROM Bank 0
 	{
-		return _data[addr];
+		//assert(addr < _data.size());
+		if(addr < _data.size())
+			return _data[addr];
+		else
+			return 0;
 	} else if(addr < 0x8000) { // Switchable ROM Bank
 		if(isMBC1() || isMBC2() || isMBC3())
 		{
-			assert(addr + (static_cast<size_t>((rom_bank() & 0x7F) - 1) * 0x4000) < _data.size());
-			return _data[addr + ((rom_bank() & 0x7F) - 1) * 0x4000];
+			//assert(addr + (static_cast<size_t>((rom_bank() & 0x7F) - 1) * 0x4000) < _data.size());
+			if(addr + (static_cast<size_t>((rom_bank() & 0x7F) - 1) * 0x4000) < _data.size())
+				return _data[addr + ((rom_bank() & 0x7F) - 1) * 0x4000];
+			else
+				return 0;
 		} else if(isMBC5()) {
 			return _data[addr + ((rom_bank() & 0x1FF) - 1) * 0x4000];
 		}
 	} else if(addr >= 0xA000 && addr < 0xC000) { // Switchable RAM Bank
 		if(isMBC1() || isMBC5())
 		{
-			assert(static_cast<size_t>(ram_bank() * 0x2000 + (addr & 0x1FFF)) < _ram_size);
-			return _ram[ram_bank() * 0x2000 + (addr & 0x1FFF)];
+			// assert(static_cast<size_t>(ram_bank() * 0x2000 + (addr & 0x1FFF)) < _ram_size);
+			if(static_cast<size_t>(ram_bank() * 0x2000 + (addr & 0x1FFF)) < _ram_size)
+				return _ram[ram_bank() * 0x2000 + (addr & 0x1FFF)];
+			else
+				return 0;
 		} else if(isMBC3()) {
 			if(_ram_bank >= 0x8 && _ram_bank <= 0xC)
 				return _rtc_registers[_ram_bank - 0x8];

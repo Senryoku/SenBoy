@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_set>
+#include <vector>
 
 #include <gb_apu/Gb_Apu.h>
 
@@ -45,13 +45,16 @@ public:
 	inline addr_t get_hl() const { return (static_cast<addr_t>(_h) << 8) + _l; }
 	
 	inline std::string get_disassembly() const;
+	inline std::string get_disassembly(addr_t addr) const;
 	inline int get_next_opcode() const { return read(_pc); };
 	inline int get_next_operand0() const { return read(_pc + 1); };
 	inline int get_next_operand1() const { return read(_pc + 2); };
 	
-	inline bool reached_breakpoint() const { return _breakpoint;  };
-	inline void add_breakpoint(addr_t addr) { _breakpoints.insert(addr); };
-	inline void clear_breakpoints() { _breakpoints.clear(); };
+	bool reached_breakpoint() const;
+	void add_breakpoint(addr_t addr);
+	void rem_breakpoint(addr_t addr);
+	std::vector<addr_t>& get_breakpoints();
+	void clear_breakpoints();
 	
 	void execute();
 	
@@ -76,8 +79,8 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// Debug
 	
-	bool 						_breakpoint = false;
-	std::unordered_set<addr_t> 	_breakpoints;
+	bool 					_breakpoint = false;
+	std::vector<addr_t> 	_breakpoints;
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Registers
@@ -158,10 +161,15 @@ private:
 
 inline std::string LR35902::get_disassembly() const
 {
-	word_t op = read(_pc);
-	std::string r = (op == 0xCB) ? instr_cb_str[read(_pc + 1)] : instr_str[op];
+	return get_disassembly(_pc);
+}
+
+inline std::string LR35902::get_disassembly(addr_t addr) const
+{
+	word_t op = read(addr);
+	std::string r = (op == 0xCB) ? instr_cb_str[read(addr + 1)] : instr_str[op];
 	size_t length = (op == 0xCB) ? 2 : instr_length[op];
-	addr_t operand = (op == 0xCB) ? _pc + 2 : _pc + 1;
+	addr_t operand = (op == 0xCB) ? addr + 2 : addr + 1;
 	size_t p = std::string::npos;
 	if(length > 2)
 	{

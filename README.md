@@ -20,7 +20,7 @@ make
 ````
 ## Usage
 
-SenBoy now have a basic GUI! Yay! Bring it up (or hide it) by pressing Enter.
+SenBoy now have a basic GUI! Yay! Bring it up (or hide it) by pressing Escape or Enter.
 
 Pass a rom path via the command line to run it :
 ````

@@ -78,6 +78,31 @@ void LR35902::reset_cart()
 	write(0xFF50, word_t(0x01)); // Disable BIOS ROM
 }
 
+bool LR35902::reached_breakpoint() const
+{
+	return _breakpoint;
+}
+
+void LR35902::add_breakpoint(addr_t addr)
+{
+	_breakpoints.push_back(addr);
+}
+
+void LR35902::rem_breakpoint(addr_t addr)
+{
+	_breakpoints.erase(std::find(_breakpoints.begin(), _breakpoints.end(), addr));
+}
+
+std::vector<addr_t>& LR35902::get_breakpoints()
+{
+	return _breakpoints;
+}
+
+void LR35902::clear_breakpoints()
+{
+	_breakpoints.clear();
+}
+	
 void LR35902::execute()
 {
 	assert((_f & 0x0F) == 0);
@@ -418,5 +443,5 @@ void LR35902::execute()
 	
 	update_timing();
 	
-	_breakpoint = (_breakpoints.count(_pc) != 0);
+	_breakpoint = std::find(_breakpoints.begin(), _breakpoints.end(), _pc) != _breakpoints.end();
 }

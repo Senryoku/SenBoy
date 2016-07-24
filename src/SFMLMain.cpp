@@ -50,8 +50,8 @@ sf::Texture	gameboy_tiledata[2];
 sf::Sprite gameboy_tiledata_sprite[2];
 sf::Texture	gameboy_tilemap[2];
 sf::Sprite gameboy_tilemap_sprite[2];
-color_t* tile_data[2] = {nullptr, nullptr};
-color_t* tile_maps[2] = {nullptr, nullptr};
+std::unique_ptr<color_t[]> tile_data[2];
+std::unique_ptr<color_t[]> tile_maps[2];
 
 // Timing
 sf::Clock timing_clock;
@@ -87,6 +87,7 @@ void handle_event_debug(sf::Event event);
 void toggle_speed();
 void reset();
 void load_empty_rom();
+void clear_breakpoints();
 void modify_volume(float v);
 void load_movie(const char* movie_path);
 void get_input_from_movie();
@@ -150,24 +151,26 @@ int main(int argc, char* argv[])
     ImGui::SFML::Init(window);
 
 	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
-		std::cerr << "Error creating the screen texture!" << std::endl;
+		log("Error creating the screen texture!");
 	gameboy_screen_sprite.setTexture(gameboy_screen);
 	
 	for(int i = 0; i < 2; ++i)
 	{
-		if(!gameboy_tiledata[i].create(16 * 8, (8 * 3) * 8))
-			std::cerr << "Error creating the vram texture!" << std::endl;
+		const size_t s[2] = {16 * 8, (8 * 3) * 8};
+		if(!gameboy_tiledata[i].create(s[0], s[1]))
+			log("Error creating the vram texture!");
 		gameboy_tiledata_sprite[i].setTexture(gameboy_tiledata[i]);
 		
-		tile_data[i] = new color_t[(16 * 8) * ((8 * 3) * 8)];
-		std::memset(tile_data[i], 128, 4 * (16 * 8) * ((8 * 3) * 8));
+		tile_data[i].reset(new color_t[s[0] * s[1]]);
+		std::memset(tile_data[i].get(), 128, 4 * s[0] * s[1]);
 
-		if(!gameboy_tilemap[i].create(32 * 8, 32 * 8))
-			std::cerr << "Error creating the vram texture!" << std::endl;
+		const size_t s2 = 32 * 8;
+		if(!gameboy_tilemap[i].create(s2, s2))
+			log("Error creating the vram texture!");
 		gameboy_tilemap_sprite[i].setTexture(gameboy_tilemap[i]);
 		
-		tile_maps[i] = new color_t[32 * 8 * 32 * 8];
-		std::memset(tile_maps[i], 128, 32 * 8 * 32 * 8);
+		tile_maps[i].reset(new color_t[s2 * s2]);
+		std::memset(tile_maps[i].get(), 128, 4 * s2 * s2);
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -286,11 +289,6 @@ int main(int argc, char* argv[])
     }
 	
 	cartridge.save();
-	
-	delete[] tile_data[0];
-	delete[] tile_data[1];
-	delete[] tile_maps[0];
-	delete[] tile_maps[1];
 }
 
 void help()
@@ -367,7 +365,7 @@ void gui()
 				cartridge.save();
 			if(ImGui::MenuItem("Reset"))
 				reset();
-			if(ImGui::MenuItem("Exit", "Escape"))
+			if(ImGui::MenuItem("Exit", "Ctrl+Q"))
 				window.close();
 			ImGui::EndMenu();
 		}
@@ -380,6 +378,13 @@ void gui()
 				custom_boot = false;
 			if(ImGui::RadioButton("Custom", custom_boot))
 				custom_boot = true;
+			ImGui::EndMenu();
+		}
+		
+		if(ImGui::BeginMenu("Display"))
+		{
+			if(ImGui::MenuItem("Fullscreen", "Alt+Enter")) toggleFullscreen();
+			if(ImGui::MenuItem("Post-processing", "P")) post_process = !post_process;
 			ImGui::EndMenu();
 		}
 		
@@ -472,6 +477,14 @@ void gui()
 	{
 		ImGui::Begin("Debug informations", &debug_window, ImGuiWindowFlags_NoCollapse);
 		ImGui::Value("Debugging", debug);
+		if(ImGui::Button("Toggle Debugging (D)"))
+			debug = !debug;
+		if(debug)
+		{
+			ImGui::SameLine();
+			if(ImGui::Button("Step (Space)"))
+				step = true;
+		}
 		if(ImGui::CollapsingHeader("CPU"))
 		{
 			ImGui::Text("%s: %s", "PC", Hexa(cpu.get_pc()).c_str());
@@ -494,34 +507,69 @@ void gui()
 			ImGui::Text("%s: %s", "STAT", Hexa8(gpu.get_lcdstat()).c_str());
 			update_tiledata();
 			update_tilemaps();
+			
+			float win_size = ImGui::GetWindowContentRegionMax().x;
+			win_size -= ImGui::GetWindowContentRegionMin().x;
+			
 			ImGui::Text("Tile Data");
+			float scale = std::max(0.49f * win_size / gameboy_tiledata[0].getSize().x, 1.0f);
+			gameboy_tiledata_sprite[0].setScale(scale, scale);
+			gameboy_tiledata_sprite[1].setScale(scale, scale);
 			ImGui::Image(gameboy_tiledata_sprite[0]);
 			ImGui::SameLine();
 			ImGui::Image(gameboy_tiledata_sprite[1]);
+			
 			ImGui::Text("Tile Maps");
+			scale = std::max(win_size / gameboy_tilemap[0].getSize().x, 1.0f);
+			gameboy_tilemap_sprite[0].setScale(scale, scale);
+			gameboy_tilemap_sprite[1].setScale(scale, scale);
 			ImGui::Image(gameboy_tilemap_sprite[0]);
 			ImGui::Image(gameboy_tilemap_sprite[1]);
 		}
-		if(ImGui::CollapsingHeader("Memory"))
+		if(ImGui::CollapsingHeader("Breakpoints"))
 		{
-			for(addr_t addr = 0; addr < 0x200; ++addr)
+			static char addr_buff[32];
+			ImGui::InputText("##addr", addr_buff, 32, ImGuiInputTextFlags_CharsHexadecimal);
+			ImGui::SameLine();
+			if(ImGui::Button("Add breakpoint"))
 			{
-				ImGui::Text("%#06x: %#04x", addr, mmu.read(addr));
+				cpu.add_breakpoint(std::stoul(addr_buff, nullptr, 16));
 			}
+			
+			static int selected_breakpoint = 0;
+			static std::vector<std::string> labels;
+			ImGui::ListBox("Breakpoints", &selected_breakpoint,
+			[&] (void* data, int idx, const char** out_text) -> bool {
+				if(labels.size() < static_cast<size_t>(idx + 1))
+					labels.resize(idx + 1);
+				auto addr = cpu.get_breakpoints()[idx];
+				labels[idx] = Hexa(addr).str() + " (" + cpu.get_disassembly(addr) + ")";
+				out_text[0] = labels[idx].c_str();
+				return true;
+			}, nullptr, cpu.get_breakpoints().size());
+			
+			if(ImGui::Button("Remove breakpoint"))
+			{
+				cpu.get_breakpoints().erase(cpu.get_breakpoints().begin() + selected_breakpoint);
+				selected_breakpoint = 0;
+			}
+			
+			if(ImGui::Button("Clear breakpoints"))
+				clear_breakpoints();
+		}
+		if(ImGui::CollapsingHeader("Memory (WIP)"))
+		{
+			ImGui::BeginChild("Memory##view", ImVec2(0,400));
+			ImGuiListClipper clipper(0x9999);
+			while(clipper.Step())
+				for(addr_t addr = clipper.DisplayStart; addr < clipper.DisplayEnd; ++addr)
+					ImGui::Text("%#06x: %#04x (%s)", addr, mmu.read(addr), cpu.get_disassembly(addr).c_str());
+			ImGui::EndChild();
 		}
 		ImGui::End();
 	}
     
 	ImGui::Render();
-}
-
-void add_breakpoint()
-{
-	addr_t addr;
-	log("Adding breakpoint. Enter an address: ");
-	std::cin >> std::hex >> addr;
-	cpu.add_breakpoint(addr);
-	log("Added a breakpoint at ", Hexa(addr), ".");
 }
 
 void clear_breakpoints()
@@ -559,19 +607,19 @@ void handle_event(sf::Event event)
 	{
 		switch(event.key.code)
 		{
-			case sf::Keyboard::Escape: window.close(); break;
+			case sf::Keyboard::Escape: show_gui = !show_gui; break;
 			case sf::Keyboard::Space: step = true; break;
 			case sf::Keyboard::Return: if(event.key.alt) toggleFullscreen(); else show_gui = !show_gui; break;
 			case sf::Keyboard::BackSpace: reset(); break;
 			case sf::Keyboard::Add: modify_volume(10.0f); break;
 			case sf::Keyboard::Subtract: modify_volume(-10.0f); break;
 			case sf::Keyboard::D: toggle_debug(); break;
-			case sf::Keyboard::B: add_breakpoint(); break;
 			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
 			case sf::Keyboard::L: advance_frame(); break;
 			case sf::Keyboard::P: post_process = !post_process; break;
 			case sf::Keyboard::S: if(event.key.control) cartridge.save(); break;
+			case sf::Keyboard::Q: if(event.key.control) window.close(); break;
 			default: break;
 		}
 	} else if(event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
@@ -667,7 +715,7 @@ void load_empty_rom()
 	header[0x100] = 0xC3; // JP 0x0100
 	header[0x101] = 0x00;
 	header[0x102] = 0x01;
-	// GBC Mode to get this sweeeeeet boot ROM
+	// GBC Mode to get this sweeeeeet gbc boot ROM
 	header[0x143] = 0x80;
 	
 	std::memcpy(header + 0x104, logo, 3 * 16);
@@ -789,7 +837,7 @@ void update_tiledata()
 				}
 			}
 		}
-		gameboy_tiledata[tm].update(reinterpret_cast<uint8_t*>(tile_data[tm]));
+		gameboy_tiledata[tm].update(reinterpret_cast<uint8_t*>(tile_data[tm].get()));
 	}
 }
 
@@ -822,7 +870,7 @@ void update_tilemaps()
 				}
 			}
 		}
-		gameboy_tilemap[tm].update(reinterpret_cast<uint8_t*>(tile_maps[tm]));
+		gameboy_tilemap[tm].update(reinterpret_cast<uint8_t*>(tile_maps[tm].get()));
 	}
 }
 
