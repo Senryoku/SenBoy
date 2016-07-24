@@ -363,11 +363,11 @@ void gui()
 			open_rom_popup = ImGui::MenuItem("Open ROM");
 			//open_movie_popup = ImGui::MenuItem("Open Movie"); // @todo Debug then re-enable...
 			ImGui::Separator();
-			if(ImGui::MenuItem("Save"))
+			if(ImGui::MenuItem("Save", "Ctrl+S"))
 				cartridge.save();
 			if(ImGui::MenuItem("Reset"))
 				reset();
-			if(ImGui::MenuItem("Exit"))
+			if(ImGui::MenuItem("Exit", "Escape"))
 				window.close();
 			ImGui::EndMenu();
 		}
@@ -472,7 +472,6 @@ void gui()
 	{
 		ImGui::Begin("Debug informations", &debug_window, ImGuiWindowFlags_NoCollapse);
 		ImGui::Value("Debugging", debug);
-		ImGui::Value("Stepping", step);
 		if(ImGui::CollapsingHeader("CPU"))
 		{
 			ImGui::Text("%s: %s", "PC", Hexa(cpu.get_pc()).c_str());
@@ -572,6 +571,7 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::M: toggle_speed(); break;
 			case sf::Keyboard::L: advance_frame(); break;
 			case sf::Keyboard::P: post_process = !post_process; break;
+			case sf::Keyboard::S: if(event.key.control) cartridge.save(); break;
 			default: break;
 		}
 	} else if(event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
@@ -650,26 +650,28 @@ void reset()
 	
 void load_empty_rom()
 {
-		// Loads a empty ROM with a valid header
-		unsigned char header[0x150] = {0};
-		std::memcpy(header + 0x134, "SENBOY", 6); // Title
-		const unsigned char logo[3 * 16] = {
-			0x00, 0x00, 0x07, 0xc7, 0x09, 0x19, 0x0f, 0x8e, 0x04, 0x67, 0x06, 0x66, 0x0f, 0xcf, 0x08, 0xd9, 0x0f, 0x99, 0x03, 0xb9, 0x03, 0x3e, 0x00, 0x00, 
-			0x00, 0x00, 0x19, 0x70, 0xdd, 0x90, 0x88, 0xf0, 0x54, 0x40, 0xee, 0x60, 0xcc, 0xf0, 0xdd, 0x80, 0x99, 0xf0, 0x88, 0x00, 0xcc, 0xc0, 0x00, 0x00
-		};
-		// Checksum (useless actually)
-		char x = 0;
-		for(int i = 0x134; i < 0x14C; ++i) x = x - header[i] - 1;
-		header[0x14D] = x;
-		// Busy loop to keep the logo on screen
-		header[0x100] = 0xC3; // JP 0x0100
-		header[0x101] = 0x00;
-		header[0x102] = 0x01;
-		// GBC Mode to get this sweeeeeet boot ROM
-		header[0x143] = 0x80;
-		
-		std::memcpy(header + 0x104, logo, 3 * 16);
-		cartridge.load_from_memory(header, 0x150);
+	// Loads a empty ROM with a valid header
+	unsigned char header[0x150] = {0};
+	std::memcpy(header + 0x134, "SENBOY", 6); // Title
+	const unsigned char logo[3 * 16] = {
+		0x00, 0x00, 0x07, 0xc7, 0x09, 0x19, 0x0f, 0x8e, 0x04, 0x67, 0x06, 0x66, 0x0f, 0xcf, 0x08, 0xd9, 
+		0x0f, 0x99, 0x03, 0xb9, 0x03, 0x3e, 0x00, 0x00, 0x00, 0x00, 0x19, 0x70, 0xdd, 0x90, 0x88, 0xf0, 
+		0x54, 0x40, 0xee, 0x60, 0xcc, 0xf0, 0xdd, 0x80, 0x99, 0xf0, 0x88, 0x00, 0xcc, 0xc0, 0x00, 0x00
+	};
+	std::memcpy(header + 0x104, logo, 3 * 16);
+	// Checksum (useless actually)
+	char x = 0;
+	for(int i = 0x134; i < 0x14C; ++i) x = x - header[i] - 1;
+	header[0x14D] = x;
+	// Busy loop to keep the logo on screen
+	header[0x100] = 0xC3; // JP 0x0100
+	header[0x101] = 0x00;
+	header[0x102] = 0x01;
+	// GBC Mode to get this sweeeeeet boot ROM
+	header[0x143] = 0x80;
+	
+	std::memcpy(header + 0x104, logo, 3 * 16);
+	cartridge.load_from_memory(header, 0x150);
 }
 
 void load_movie(const char* movie_path)
