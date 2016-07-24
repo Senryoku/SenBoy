@@ -20,7 +20,7 @@ make
 ````
 ## Usage
 
-**SenBoy still lacks a proper GUI**.
+SenBoy now have a basic GUI! Yay! Bring it up (or hide it) by pressing Enter.
 
 Pass a rom path via the command line to run it :
 ````
@@ -66,11 +66,9 @@ NumPad -				| Volume Down
 
 ## TODO
 * Gameboy Color Mode
-  * Debugging (Crash in Pokemon Crystal?)
+  * Debugging (Crash in Pokemon Crystal? See Issues)
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
-* GPU debugging
-  * Check sprite priority/transparency
-  * ~~Check window position~~
+* Application debugging (See Issues)
 * (Other Mappers? What popular games uses other mappers than MBC1/3/5?)
 * (Constant coding style...)
 
