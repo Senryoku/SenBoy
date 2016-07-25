@@ -2,22 +2,6 @@ sudo: required
 dist: precise
 language: c++
 
-addons:
-  apt:
-    sources:
-    # add PPAs with more up-to-date toolchains
-    - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.6
-    - kalakris-cmake
-    packages:
-    # install toolchains
-    #- gcc-5
-    #- g++-5
-    - gcc-6
-    - g++-6
-    #- clang-3.6
-    - cmake
-
 matrix:
   include:
 #    - compiler: gcc
@@ -33,10 +17,12 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - kalakris-cmake
           packages:
             - g++-6
+            - cmake
       env: COMPILER=g++-6
-    - compiler: clang
+#    - compiler: clang
 #      addons:
 #        apt:
 #          sources:
@@ -51,6 +37,7 @@ before_install:
   - if [ $TRAVIS_OS_NAME == osx ]; then brew update && brew install sfml; fi
 
 script: 
+  - cmake --version
   - cmake .
   - make
   
