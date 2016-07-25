@@ -498,7 +498,7 @@ void gui()
 			ImGui::Value("Negative", cpu.check(LR35902::Flag::Negative));
 			ImGui::Value("HalfCarry", cpu.check(LR35902::Flag::HalfCarry));
 			ImGui::Value("Carry", cpu.check(LR35902::Flag::Carry));
-			ImGui::Value("Frame Cycles", cpu.frame_cycles);
+			ImGui::Value("Frame Cycles", static_cast<unsigned int>(cpu.frame_cycles));
 		}
 		if(ImGui::CollapsingHeader("GPU"))
 		{
