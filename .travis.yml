@@ -1,12 +1,48 @@
+sudo: required
+dist: precise
 language: c++
 
-os:
-  - linux
-  - osx
+addons:
+  apt:
+    sources:
+    # add PPAs with more up-to-date toolchains
+    - ubuntu-toolchain-r-test
+    - llvm-toolchain-precise-3.6
+    packages:
+    # install toolchains
+    - gcc-5
+    - g++-5
+    - gcc-6
+    - g++-6
+    - clang-3.6
 
-compiler:
-  - gcc
-  - clang
+matrix:
+  include:
+    - compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+      env: COMPILER=g++-5
+    - compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+      env: COMPILER=g++-6
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - clang-3.7
+      env: COMPILER=clang++-3.7
 
 before_install:
   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libsfml-dev; fi
@@ -15,3 +51,4 @@ before_install:
 script: 
   - cmake .
   - make
+  
