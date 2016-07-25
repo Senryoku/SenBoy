@@ -1,8 +1,10 @@
-# SenBoy
+# SenBoy [![Build Status](https://travis-ci.org/Senryoku/SenBoy.svg?branch=master)](https://travis-ci.org/Senryoku/SenBoy) 
 
 GameBoy (Color) emulator.
 
-Original Gameboy compatibility is pretty good, but Gameboy Color support is still far from perfect. This was developed as a side project and is by no means finished or polished. This version still lacks a proper GUI (you'll have to pass your ROM via the command line), however a web version compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
+Emulation still has a few quirks (see issues), but compatibility is pretty good. This was developed as a side project and is by no means finished or polished.
+
+A web version (of v0.92) compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
 
 ## Screenshots
 
@@ -12,7 +14,8 @@ Original Gameboy compatibility is pretty good, but Gameboy Color support is stil
 
 ## Compilation
 
-Compilation is only being tested on Windows (MinGW) with g++ 6.1.0, and occasionally on Ubuntu.
+You will need a fairly recent compiler, meaning with C++14 and std::experimental::filesystem support. Compilation is manually being tested on Windows (MinGW) with g++ 6.1.0, but Linux with g++5 or more should be fine (see Travis CI). I have no way to test OSX, so if you know how to setup a OSX compiler with these constrains on Travis, please tell me!
+
 You will need CMake and a copy of SFML 2.X (see Dependencies). On Windows, or if you used a non standard install path, you may want to set the CMake variables `CMAKE_PREFIX_PATH` to where are stored the SFML libraries and `SFML_INCLUDE_DIR` to the folder containing the SFML headers (using cmake-gui or the command line). Once this done, this should be enough:
 ````
 cmake .
@@ -51,18 +54,21 @@ Right			| Right Arrow
 
 When SenBoy is running, the following shortcuts are available:
 
-Key						| Action
-------------------------|--------
-Backspace				| Reset
-Enter					| Toggle Debugging (Halt Execution)
-Space					| Advance one instruction (in debug)
-L						| Advance one frame
-M						| Toggle Real Speed
-D						| Open debug window
-B						| Add a breakpoint (peek at your console)
-N						| Clear all breakpoints
-NumPad +				| Volume Up
-NumPad -				| Volume Down
+Key				| Action
+----------------|--------
+Escape/Ente		| Show/Hide GUI
+Backspace		| Reset
+Space			| Advance one instruction (in debug)
+M				| Toggle Real Speed
+D 				| Toggle Debugging (Halt Execution)
+L				| Advance one frame
+N				| Clear all breakpoints
+P 				| Toggle Post-process (nothing)
+NumPad +		| Volume Up
+NumPad -		| Volume Down
+Alt+Enter  	 	| Toggle Fullscreen
+Ctrl+S   		| Save (saves RAM to disk)
+Ctrl+Q   		| Quit
 
 ## TODO
 * Gameboy Color Mode
@@ -107,4 +113,3 @@ SenBoy is NOT sub-instruction accurate.
 ## Thanks
 * http://gbdev.gg8.se/ for their awesome wiki.
 * Shay 'Blargg' Green for his tests roms, his Gb_Snd_Emu library and all his contributions to the emulation scene!
-

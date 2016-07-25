@@ -2,10 +2,6 @@ sudo: required
 dist: trusty
 language: c++
 
-os:
-  - linux
-  - osx
-
 matrix:
   include:
     - compiler: gcc
