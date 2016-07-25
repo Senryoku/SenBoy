@@ -38,6 +38,6 @@ before_install:
 
 script: 
   - cmake --version
-  - cmake .
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .
   - make
   
