@@ -55,7 +55,7 @@ bool Cartridge::init()
 	reset();
 	if(!(isMBC1() || isMBC3() || isMBC5()))
 	{
-		std::cerr << "Error: Cartridge format 0x" << std::hex << getType()
+		std::cerr << "Error: Cartridge format " << Hexa8(getType())
 				<< " not supported!" << std::endl;
 		return false;
 	}
@@ -72,7 +72,7 @@ bool Cartridge::init()
 	{
 		case No: std::cout << " No Color GameBoy support." << std::endl; break;
 		case Partial: std::cout << " Partial Color GameBoy support." << std::endl; break;
-		case Only: std::cout << " Color GameBoy only ROM. Warning: These games are very likely to be broken!..." << std::endl; break;
+		case Only: std::cout << " Color GameBoy only ROM." << std::endl; break;
 	}
 
 	if(_ram_size == 0 && hasRAM())
@@ -137,8 +137,8 @@ byte_t Cartridge::read(addr_t addr) const
 		}
 	}
 
-	std::cerr << "Error: Wrong address queried to the Cartridge: 0x" << std::hex << addr << std::endl;
-	return _data[0x0000]; // Dummy
+	std::cerr << "Error: Wrong address queried to the Cartridge: " << Hexa(addr) << std::endl;
+	return 0;
 }
 
 void Cartridge::write_ram(addr_t addr, byte_t value)
