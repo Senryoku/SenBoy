@@ -305,7 +305,7 @@ void help()
 			<< "  ./SenBoy \"path/to/rom\" [-options]" << std::endl
 			<< " Supported options:" << std::endl
 			<< "  -d \t\tStart in debug." << std::endl
-			<< "  -b \t\tSkip BIOS." << std::endl
+			<< "  -b \t\tSkip Boot ROM." << std::endl
 			<< "  -s \t\tDisable sound." << std::endl
 			//<< "  $m \"path\" \tSpecify a input movie file." << std::endl
 			//<< "  $ms \"path\" \tSpecify a output movie file." << std::endl
@@ -474,7 +474,7 @@ void gui()
 		ImGuiListClipper clipper(logs.size());
 			while(clipper.Step())
 				for(int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
-					ImGui::Text(logs[i].c_str());
+					ImGui::Text("%s", logs[i].c_str());
 		ImGui::End();
 	}
 	
@@ -586,7 +586,7 @@ void gui()
 				for(addr_t addr = clipper.DisplayStart; addr < clipper.DisplayEnd; ++addr)
 					ImGui::Text("0x%04X: 0x%02X [%d] (%s)", addr, 
 						mmu.read(addr), 
-						cpu.instr_length[mmu.read(addr)], 
+						static_cast<int>(cpu.instr_length[mmu.read(addr)]), 
 						cpu.get_disassembly(addr).c_str());
 			ImGui::EndChild();
 		}
