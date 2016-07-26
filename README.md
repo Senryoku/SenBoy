@@ -14,7 +14,7 @@ A web version (of v0.92) compiled to javascript via emscripten is available at h
 
 ## Compilation
 
-You will need a fairly recent compiler, meaning with C++14 and std::experimental::filesystem support. Compilation is manually being tested on Windows (MinGW) with g++ 6.1.0, but Linux with g++5 or more should be fine (see Travis CI). I have no way to test OSX, so if you know how to setup a OSX compiler with these constrains on Travis, please tell me!
+You will need a fairly recent compiler, meaning with C++14 and std::experimental::filesystem support. Compilation is manually being tested on Windows (MinGW) with g++ 6.1.0, but Linux with g++5 or more should be fine (see Travis CI). I have no way to test OSX, so if you know how to setup a OSX compiler fulfilling these constraints on Travis, please tell me!
 
 You will need CMake and a copy of SFML 2.X (see Dependencies). On Windows, or if you used a non standard install path, you may want to set the CMake variables `CMAKE_PREFIX_PATH` to where are stored the SFML libraries and `SFML_INCLUDE_DIR` to the folder containing the SFML headers (using cmake-gui or the command line). Once this done, this should be enough:
 ````
