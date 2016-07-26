@@ -1,4 +1,6 @@
 #include <experimental/filesystem>
+#include <deque>
+#include <sstream>
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
@@ -28,6 +30,8 @@ bool real_speed = true;
 size_t sample_rate = 44100;	// Audio sample rate
 size_t frame_skip = 0;		// Increase for better performances.
 std::string rom_path("");
+std::deque<std::string> logs;
+std::ostringstream log_line;
 
 // Components of the emulated GameBoy
 Cartridge	cartridge;
@@ -172,6 +176,8 @@ int main(int argc, char* argv[])
 		tile_maps[i].reset(new color_t[s2 * s2]);
 		std::memset(tile_maps[i].get(), 128, 4 * s2 * s2);
 	}
+	
+	cartridge.Log = log<const std::string&>;
 
 	///////////////////////////////////////////////////////////////////////////
 	
@@ -348,6 +354,7 @@ void gui()
 {
 	ImGui::SFML::Update(delta_clock.restart());
 	
+	static bool log_window = false;
 	static bool gameboy_window = false;
 	static bool debug_window = false;
 	
@@ -370,10 +377,20 @@ void gui()
 			ImGui::EndMenu();
 		}
 		
-		if(ImGui::BeginMenu("Boot"))
+		if(ImGui::BeginMenu("Options"))
 		{
-			ImGui::Checkbox("Use Boot ROM", &use_boot);
+			if(ImGui::MenuItem("Fullscreen", "Alt+Enter")) toggleFullscreen();
+			if(ImGui::MenuItem("Post-processing", "P")) post_process = !post_process;
 			ImGui::Separator();
+			ImGui::Checkbox("Enable Sound", &with_sound);
+			float vol = snd_buffer.getVolume();
+			if(ImGui::SliderFloat("Volume", &vol, 0.f, 100.f, "%.0f"))
+			{
+				vol = std::max(0.0f, std::min(vol, 100.0f));
+				snd_buffer.setVolume(vol);
+			}
+			ImGui::Separator();
+			ImGui::Checkbox("Use Boot ROM", &use_boot);
 			if(ImGui::RadioButton("Original", !custom_boot))
 				custom_boot = false;
 			if(ImGui::RadioButton("Custom", custom_boot))
@@ -381,15 +398,9 @@ void gui()
 			ImGui::EndMenu();
 		}
 		
-		if(ImGui::BeginMenu("Display"))
-		{
-			if(ImGui::MenuItem("Fullscreen", "Alt+Enter")) toggleFullscreen();
-			if(ImGui::MenuItem("Post-processing", "P")) post_process = !post_process;
-			ImGui::EndMenu();
-		}
-		
 		if(ImGui::BeginMenu("Views"))
 		{
+			if(ImGui::MenuItem("Logs")) log_window = !log_window;
 			if(ImGui::MenuItem("GameBoy")) gameboy_window = !gameboy_window;
 			if(ImGui::MenuItem("Debug")) debug_window = !debug_window;
 			ImGui::EndMenu();
@@ -455,6 +466,16 @@ void gui()
 		if(ImGui::Button("Cancel"))
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
+	}
+	
+	if(log_window)
+	{
+		ImGui::Begin("Logs", &log_window);
+		ImGuiListClipper clipper(logs.size());
+			while(clipper.Step())
+				for(int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+					ImGui::Text(logs[i].c_str());
+		ImGui::End();
 	}
 	
 	if(gameboy_window)
@@ -563,7 +584,10 @@ void gui()
 			ImGuiListClipper clipper(0x9999);
 			while(clipper.Step())
 				for(addr_t addr = clipper.DisplayStart; addr < clipper.DisplayEnd; ++addr)
-					ImGui::Text("%#06x: %#04x (%s)", addr, mmu.read(addr), cpu.get_disassembly(addr).c_str());
+					ImGui::Text("0x%04X: 0x%02X [%d] (%s)", addr, 
+						mmu.read(addr), 
+						cpu.instr_length[mmu.read(addr)], 
+						cpu.get_disassembly(addr).c_str());
 			ImGui::EndChild();
 		}
 		ImGui::End();
@@ -887,7 +911,7 @@ void setup_window()
 		window.create(sf::VideoMode::getDesktopMode(), 
 			"SenBoy", sf::Style::None); // Borderless Fullscreen : Way easier.
 	else
-		window.create(sf::VideoMode(800, 600), "SenBoy");
+		window.create(sf::VideoMode(667, 600), "SenBoy");
 	window.setVerticalSyncEnabled(false);
 }
 
@@ -922,12 +946,16 @@ void set_input_callbacks()
 
 void log()
 {
-	std::cout << std::endl;
+	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	char mbstr[100];
+	std::strftime(mbstr, sizeof(mbstr), "%H:%M:%S", std::localtime(&now));
+	logs.push_back("[" + std::string(mbstr) + "] " + log_line.str());
+	log_line.str("");
 }
 
 template<typename T, typename ...Args>
 void log(const T& msg, Args... args)
 {
-	std::cout << msg;
+	log_line << msg;
 	log(args...);
 }

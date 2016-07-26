@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string>
-#include <iostream>
 #include <algorithm>
+#include <functional>
 #include <fstream>
 #include <vector>
 #include <cassert>
@@ -72,8 +72,11 @@ public:
 		Only		= 0xC0	// CGB only game
 	};
 	
+	using LogFunc = std::function<void(const std::string&)>;
+	LogFunc Log = LogFunc{};
+	
 	Cartridge() =default;
-	Cartridge(const std::string& path);
+	explicit Cartridge(const std::string& path);
 	~Cartridge() =default;
 
 	bool load(const std::string& path);

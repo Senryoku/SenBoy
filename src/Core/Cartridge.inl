@@ -5,7 +5,10 @@
 inline std::string Cartridge::getName() const
 {
 	if(_data.empty()) return "";
-	return std::string(_data.data() + Title, 15);
+	unsigned int size = 0;
+	while(_data[Title + size] != 0 && size < 15)
+		++size;
+	return std::string(_data.data() + Title, size);
 }
 
 inline Cartridge::Type Cartridge::getType() const

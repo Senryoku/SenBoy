@@ -20,14 +20,16 @@ bool Cartridge::load(const std::string& path)
 
 	if(!file)
 	{
-		std::cerr << "Error: '" << path << "' could not be opened." << std::endl;
+		if(Log)
+			Log("Error: '" + path + "' could not be opened.");
 		return false;
 	}
 	
 	_data.assign(std::istreambuf_iterator<byte_t>(file),
 				std::istreambuf_iterator<byte_t>());
-				
-	std::cout << "Loaded '" << path << "' : " << std::endl;
+			
+	if(Log)	
+		Log("Loaded '" + path + "'");
 	
 	return init();
 }
@@ -35,7 +37,8 @@ bool Cartridge::load(const std::string& path)
 bool Cartridge::load_from_memory(const unsigned char data[], size_t size)
 {
 	_data = std::vector<byte_t>(data, data + size);
-	std::cout << "Loaded a ROM from memory : " << std::endl;
+	if(Log)
+		Log("Loaded a ROM from memory");
 	return init();
 }
 
@@ -55,29 +58,33 @@ bool Cartridge::init()
 	reset();
 	if(!(isMBC1() || isMBC3() || isMBC5()))
 	{
-		std::cerr << "Error: Cartridge format " << Hexa8(getType())
-				<< " not supported!" << std::endl;
+		if(Log)
+			Log("Error: Cartridge format " + Hexa8(getType()).str() + " not supported!");
 		return false;
 	}
 
 	_ram_size = getRAMSize();
 	
-	std::cout << " Title: '" << getName() <<
-				"', Size: " << std::dec << _data.size() << "B (" << Hexa8(*(_data.data() + ROMSize)) <<
-				"), RAM Size: " << std::dec << _ram_size << "B (" << Hexa8(*(_data.data() + RAMSize)) <<
-				"), Type: " << Hexa8(getType()) <<
-				", Battery: " << (hasBattery() ? "Yes" : "No") << std::endl;
-				
-	switch(getCGBFlag())
+	if(Log)
 	{
-		case No: std::cout << " No Color GameBoy support." << std::endl; break;
-		case Partial: std::cout << " Partial Color GameBoy support." << std::endl; break;
-		case Only: std::cout << " Color GameBoy only ROM." << std::endl; break;
+		Log(" Title: '" + getName() +
+			"', Size: " + std::to_string(_data.size()) + "B (" + Hexa8(*(_data.data() + ROMSize)).str() +
+			"), RAM Size: " + std::to_string(_ram_size) + "B (" + Hexa8(*(_data.data() + RAMSize)).str() +
+			"), Type: " + Hexa8(getType()).str() +
+			", Battery: " + (hasBattery() ? "Yes" : "No"));
+
+		switch(getCGBFlag())
+		{
+			case No: Log(" No Color GameBoy support."); break;
+			case Partial: Log(" Partial Color GameBoy support."); break;
+			case Only: Log(" Color GameBoy only ROM."); break;
+		}
 	}
 
 	if(_ram_size == 0 && hasRAM())
 	{
-		std::cout << " Warning: ROM claim to have RAM without specifying size... Using 128kB." << std::endl;
+		if(Log)
+			Log(" Warning: ROM claim to have RAM without specifying size... Using 128kB.");
 		_ram_size = 128 * 1024;
 	}
 
@@ -86,11 +93,13 @@ bool Cartridge::init()
 		// Search for a saved RAM
 		if(hasBattery() && file_exists(save_path()))
 		{
-			std::cout << "Found a save file, loading it... ";
+			if(Log)
+				Log("Found a save file, loading it... ");
 			std::ifstream save(save_path(), std::ios::binary);
 			_ram.assign(std::istreambuf_iterator<byte_t>(save),
 						std::istreambuf_iterator<byte_t>());
-			std::cout << "Done." << std::endl;
+			if(Log)
+				Log("Done.");
 		} else {
 			_ram.clear();
 			_ram.resize(_ram_size, 0);
@@ -137,7 +146,7 @@ byte_t Cartridge::read(addr_t addr) const
 		}
 	}
 
-	std::cerr << "Error: Wrong address queried to the Cartridge: " << Hexa(addr) << std::endl;
+	Log("Error: Wrong address queried to the Cartridge: " + Hexa(addr).str());
 	return 0;
 }
 
@@ -228,7 +237,7 @@ void Cartridge::write(addr_t addr, byte_t value)
 				_rtc_registers[_ram_bank - 0x8] = value;
 		break;
 		default:
-			std::cerr << "Error: Write on Cartridge on 0x" << std::hex << addr << std::endl;
+			Log("Error: Write on Cartridge on " + Hexa(addr).str());
 		break;
 	}
 }
@@ -274,8 +283,10 @@ void Cartridge::save() const
 	if(!hasBattery())
 		return;
 
-	std::cout << "Saving RAM to '" << save_path() << "'... ";
+	if(Log)
+		Log("Saving RAM to '" + save_path() + "'... ");
 	std::ofstream save(save_path(), std::ios::binary | std::ios::trunc);
 	save.write(_ram.data(), _ram.size());
-	std::cout << "Done." << std::endl;
+	if(Log)
+		Log("Done.");
 }
