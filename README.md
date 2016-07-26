@@ -25,15 +25,15 @@ make
 
 SenBoy now have a basic GUI! Yay! Bring it up (or hide it) by pressing Escape or Enter.
 
-Pass a rom path via the command line to run it :
+You can also pass a rom path via the command line to run it :
 ````
 ./SenBoy path/to/the/rom [options]
 ````
 
 Option			| Effect
 ----------------|--------
--d				| Uses Debug Display (with tiles data)
--b				| Skip Boot ROM (May cause problems)
+-d				| Start in debug mode
+-b				| Skip Boot ROM
 -s				| Disable sound
 --dmg 			| Force execution in original GameBoy mode
 --cgb 			| Force execution in GameBoy Color mode
@@ -56,7 +56,7 @@ When SenBoy is running, the following shortcuts are available:
 
 Key				| Action
 ----------------|--------
-Escape/Ente		| Show/Hide GUI
+Escape/Enter	| Show/Hide GUI
 Backspace		| Reset
 Space			| Advance one instruction (in debug)
 M				| Toggle Real Speed
