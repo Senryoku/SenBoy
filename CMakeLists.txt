@@ -15,9 +15,12 @@ include_directories("${CMAKE_SOURCE_DIR}/ext/imgui-sfml")
 
 set(CMAKE_CXX_FLAGS			"${CMAKE_CXX_FLAGS} --std=c++14 -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2")
-set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O3 -Ofast")
+set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O2")
 
 set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs")
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
+	set(CMAKE_EXE_LINKER_FLAGS "-mwindows")
+endif()
 
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
