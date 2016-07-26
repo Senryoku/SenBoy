@@ -103,7 +103,8 @@ public:
 	callback_joy	callback_joy_b;
 	callback_joy	callback_joy_a;
 	
-	MMU(Cartridge& cartridge);
+	explicit MMU(Cartridge& cartridge);
+	MMU(const MMU&) =delete;
 	~MMU();
 	
 	void reset();

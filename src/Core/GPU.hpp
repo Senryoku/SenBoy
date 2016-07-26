@@ -63,7 +63,7 @@ public:
 		BGtoOAMPriority		= 0x80
 	};
 	
-	GPU(MMU& _mmu);
+	explicit GPU(MMU& _mmu);
 	~GPU() =default;
 	
 	void reset();
