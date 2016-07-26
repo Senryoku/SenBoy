@@ -5,7 +5,7 @@ struct HexaGen
 {
 	T		v;
 	
-	HexaGen(T _t) : v(_t) {}
+	explicit HexaGen(T _t) : v(_t) {}
 	
 	inline std::string str() const
 	{
@@ -17,11 +17,6 @@ struct HexaGen
 	inline operator std::string() const
 	{
 		return str();
-	}
-	
-	inline const char* c_str() const
-	{
-		return str().c_str();
 	}
 };
 

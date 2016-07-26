@@ -27,6 +27,9 @@ void LR35902::reset()
 	_f = 0;
 	
 	frame_cycles = 0;
+	_ime = true;
+	_stop = false;
+	_halt = false;
 }
 
 void LR35902::reset_cart()
