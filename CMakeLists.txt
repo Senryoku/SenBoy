@@ -6,7 +6,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 endif()
 
 set(SenBoy_VERSION_MAJOR 0)
-set(SenBoy_VERSION_MINOR 92)
+set(SenBoy_VERSION_MINOR 93)
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_SOURCE_DIR}/ext/Gb_Snd_Emu-0.1.4")
