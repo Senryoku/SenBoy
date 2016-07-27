@@ -15,9 +15,12 @@ include_directories("${CMAKE_SOURCE_DIR}/ext/imgui-sfml")
 
 set(CMAKE_CXX_FLAGS			"${CMAKE_CXX_FLAGS} --std=c++14 -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2")
-set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O2")
+set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O2 -s")
 
-set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs")
+# Statically link standard library
+set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs -static-libgcc -static-libstdc++")
+
+# Hide console on windows for release build
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
 	set(CMAKE_EXE_LINKER_FLAGS "-mwindows")
 endif()
@@ -69,16 +72,20 @@ if(NOT OPENGL_FOUND)
 endif(NOT OPENGL_FOUND)
 target_link_libraries(${EXECUTABLE_NAME} ${OPENGL_LIBRARIES})
 
+# Manually statically link pthreads
+target_link_libraries(${EXECUTABLE_NAME} -static -pthread)
+
 # Detect and add SFML
+set(SFML_STATIC_LIBRARIES ON CACHE BOOL "Statically link SFML")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 #Find any version 2.X of SFML
 #See the FindSFML.cmake file for additional details and instructions
 find_package(SFML 2 REQUIRED system window graphics audio)
 if(SFML_FOUND)
   include_directories(${SFML_INCLUDE_DIR})
-  target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES})
+  target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 endif()
-
+  
 # Install target
 install(TARGETS ${EXECUTABLE_NAME} DESTINATION bin)
 
