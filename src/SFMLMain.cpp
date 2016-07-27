@@ -552,9 +552,14 @@ void gui()
 			static char addr_buff[32];
 			ImGui::InputText("##addr", addr_buff, 32, ImGuiInputTextFlags_CharsHexadecimal);
 			ImGui::SameLine();
-			if(ImGui::Button("Add breakpoint"))
+			if(ImGui::Button("Add breakpoint") && strlen(addr_buff) > 0)
 			{
-				cpu.add_breakpoint(std::stoul(addr_buff, nullptr, 16));
+				try
+				{
+					cpu.add_breakpoint(std::stoul(addr_buff, nullptr, 16));
+				} catch(std::exception& e) {
+					log("Exception: '", e.what(), "', raised while adding a breakpoint.");
+				}
 			}
 			
 			static int selected_breakpoint = 0;
