@@ -569,11 +569,12 @@ void gui()
 				return true;
 			}, nullptr, cpu.get_breakpoints().size());
 			
-			if(ImGui::Button("Remove breakpoint"))
-			{
-				cpu.get_breakpoints().erase(cpu.get_breakpoints().begin() + selected_breakpoint);
-				selected_breakpoint = 0;
-			}
+			if(selected_breakpoint < static_cast<int>(cpu.get_breakpoints().size()))
+				if(ImGui::Button("Remove breakpoint"))
+				{
+					cpu.get_breakpoints().erase(cpu.get_breakpoints().begin() + selected_breakpoint);
+					selected_breakpoint = 0;
+				}
 			
 			if(ImGui::Button("Clear breakpoints"))
 				clear_breakpoints();
