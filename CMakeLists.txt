@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 2.6)
 project(SenBoy)
+set(SenBoy_VERSION_MAJOR 0)
+set(SenBoy_VERSION_MINOR 93)
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(SenBoy_VERSION_MAJOR 0)
-set(SenBoy_VERSION_MINOR 93)
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_SOURCE_DIR}/ext/Gb_Snd_Emu-0.1.4")
@@ -18,7 +20,10 @@ set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2")
 set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O2 -s")
 
 # Statically link standard library
-set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs -static-libgcc -static-libstdc++")
+set(STATIC_STD_LIBRARIES OFF CACHE BOOL "Statically link STD Libs")
+if(STATIC_STD_LIBRARIES)
+	set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs -static-libgcc -static-libstdc++")
+endif()
 
 # Hide console on windows for release build
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
@@ -72,12 +77,12 @@ if(NOT OPENGL_FOUND)
 endif(NOT OPENGL_FOUND)
 target_link_libraries(${EXECUTABLE_NAME} ${OPENGL_LIBRARIES})
 
-# Manually statically link pthreads
-target_link_libraries(${EXECUTABLE_NAME} -static -pthread)
-
 # Detect and add SFML
 set(SFML_STATIC_LIBRARIES OFF CACHE BOOL "Statically link SFML")
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
+# Manually statically link pthreads
+if(SFML_STATIC_LIBRARIES)
+	target_link_libraries(${EXECUTABLE_NAME} -static -pthread)
+endif()
 #Find any version 2.X of SFML
 #See the FindSFML.cmake file for additional details and instructions
 find_package(SFML 2 REQUIRED system window graphics audio)
