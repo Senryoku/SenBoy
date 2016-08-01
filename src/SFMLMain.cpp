@@ -691,6 +691,8 @@ void toggle_speed()
 
 void reset()
 {
+	cartridge.save();
+
 	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
 	apu.end_frame(frame_cycles);
 	apu.reset();
