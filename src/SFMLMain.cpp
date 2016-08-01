@@ -508,13 +508,13 @@ void gui()
 		}
 		if(ImGui::CollapsingHeader("CPU"))
 		{
-			ImGui::Text("%s: %s", "PC", Hexa(cpu.get_pc()).str().c_str());
-			ImGui::Text("%s: %s", "SP", Hexa(cpu.get_sp()).str().c_str());
+			ImGui::Text("%s: 0x%04X", "PC", cpu.get_pc());
+			ImGui::Text("%s: 0x%04X", "SP", cpu.get_sp());
 			ImGui::Text("%s: %s", "Instruction", cpu.get_disassembly().c_str());
-			ImGui::Text("%s: %s", "AF", Hexa(cpu.get_af()).str().c_str());
-			ImGui::Text("%s: %s", "BC", Hexa(cpu.get_bc()).str().c_str());
-			ImGui::Text("%s: %s", "DE", Hexa(cpu.get_de()).str().c_str());
-			ImGui::Text("%s: %s", "HL", Hexa(cpu.get_hl()).str().c_str());
+			ImGui::Text("%s: 0x%04X", "AF", cpu.get_af());
+			ImGui::Text("%s: 0x%04X", "BC", cpu.get_bc());
+			ImGui::Text("%s: 0x%04X", "DE", cpu.get_de());
+			ImGui::Text("%s: 0x%04X", "HL", cpu.get_hl());
 			ImGui::Value("Zero", cpu.check(LR35902::Flag::Zero));
 			ImGui::Value("Negative", cpu.check(LR35902::Flag::Negative));
 			ImGui::Value("HalfCarry", cpu.check(LR35902::Flag::HalfCarry));
@@ -523,9 +523,9 @@ void gui()
 		}
 		if(ImGui::CollapsingHeader("GPU"))
 		{
-			ImGui::Text("%s: %s", "LY",   Hexa8(gpu.get_line()).str().c_str());
-			ImGui::Text("%s: %s", "LCDC", Hexa8(gpu.get_lcdc()).str().c_str());
-			ImGui::Text("%s: %s", "STAT", Hexa8(gpu.get_lcdstat()).str().c_str());
+			ImGui::Text("%s: 0x%02X", "LY",   gpu.get_line());
+			ImGui::Text("%s: 0x%02X", "LCDC", gpu.get_lcdc());
+			ImGui::Text("%s: 0x%02X", "STAT", gpu.get_lcdstat());
 			update_tiledata();
 			update_tilemaps();
 			
