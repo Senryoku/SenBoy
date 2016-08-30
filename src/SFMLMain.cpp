@@ -428,6 +428,7 @@ void gui()
 	if(open_rom_popup) ImGui::OpenPopup("Open ROM");
 	if(ImGui::BeginPopup("Open ROM"))
 	{
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.0, 0.0, 0.0, 0.0});
 		namespace fs = std::experimental::filesystem;
 		static char root_path[256] = ".";
 		ImGui::InputText("Root", root_path, 256);
@@ -442,6 +443,7 @@ void gui()
 			ImGui::GetIO().WantCaptureKeyboard = ImGui::GetIO().WantTextInput = false;
 			ImGui::CloseCurrentPopup();
 		}
+		ImGui::PopStyleColor();
 		if(ImGui::Button("Cancel"))
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
