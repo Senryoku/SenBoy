@@ -12,8 +12,20 @@ struct color_t
 		word_t comp[4];
 	};
 	
-	color_t& operator=(const color_t& v) =default;
+	color_t() =default;
+	color_t(const color_t&) =default;
+	color_t(color_t&&) =default;
+	color_t& operator=(const color_t&) =default;
+	color_t& operator=(color_t&&) =default;
 	
+	explicit color_t(word_t w) :
+		r{w},
+		g{w},
+		b{w},
+		a{255}
+	{
+	}
+		
 	inline bool operator==(const color_t& v)
 	{
 		return r == v.r && g == v.g && b == v.b && a == v.a;

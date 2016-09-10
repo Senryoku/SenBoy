@@ -169,9 +169,9 @@ void LR35902::execute()
 	{
 		opcode = read(_pc++);
 		add_cycles(instr_cycles_cb[opcode]);
-		word_t x = opcode >> 6; // bits 6 & 7
-		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
-		word_t reg = extract_src_reg(opcode);
+		const word_t x = opcode >> 6; // bits 6 & 7
+		const word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
+		const word_t reg = extract_src_reg(opcode);
 		
 		if(reg < 7)
 		{
@@ -199,8 +199,8 @@ void LR35902::execute()
 				default: instr_nop(); break;
 			}
 		} else { // (HL)
-			addr_t addr = get_hl();
-			word_t value = read(get_hl());
+			const addr_t addr = get_hl();
+			const word_t value = read(addr);
 			switch(x)
 			{
 				case 0b00: // Shift & Rotate
@@ -226,8 +226,8 @@ void LR35902::execute()
 						
 		}
 	} else {
-		word_t x = opcode >> 6; // bits 6 & 7
-		word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
+		const word_t x = opcode >> 6; // bits 6 & 7
+		const word_t y = (opcode >> 3) & 0b111; // bits 5 - 3
 		
 		switch(x)
 		{
@@ -327,8 +327,8 @@ void LR35902::execute()
 			}
 			case 0b01: // LD on registers
 			{
-				word_t reg_src = extract_src_reg(opcode);
-				word_t reg_dst = extract_dst_reg(opcode);
+				const word_t reg_src = extract_src_reg(opcode);
+				const word_t reg_dst = extract_dst_reg(opcode);
 				if(reg_src > 6 && reg_dst > 6) // (HL), (HL) => HALT !
 					instr_halt();
 				else if(reg_dst > 6)
@@ -339,8 +339,8 @@ void LR35902::execute()
 			}
 			case 0b10: // ALU on registers
 			{ 
-				word_t reg_src = extract_src_reg(opcode);
-				word_t value = fetch_val(reg_src);
+				const word_t reg_src = extract_src_reg(opcode);
+				const word_t value = fetch_val(reg_src);
 				
 				switch((opcode >> 3) & 0b111)
 				{

@@ -120,12 +120,9 @@ struct Sprite
 		idx(_idx), x(_x), y(_y)
 	{}
 	
-	bool operator<(const Sprite& s) const
+	inline bool operator<(const Sprite& s) const
 	{
-		if(x < s.x)
-			return true;
-		else
-			return idx < s.idx;
+		return x < s.x || idx < s.idx;
 	}
 };
 	
@@ -260,13 +257,16 @@ void GPU::render_line()
 		std::list<Sprite> sprites;
 		for(word_t s = 0; s < 40; s++)
 		{
-			Sprite spr = {
-				s, 
-				_mmu->read(0xFE00 + s * 4 + 1) - 8, 
-				_mmu->read(0xFE00 + s * 4) - 16,
-			};
-			if(spr.y <= line && (spr.y + size) > line) // Visible on this scanline?
-				sprites.push_back(spr);
+			auto y = _mmu->read(0xFE00 + s * 4) - 16;
+			 // Visible on this scanline?
+			 // (Not testing x: On real hardware, 'out of bounds' sprites still counts towards 
+			 // the 10 sprites per scanline limit)
+			if(y <= line && (y + size) > line)
+				sprites.emplace_back(
+					s, 
+					_mmu->read(0xFE00 + s * 4 + 1) - 8, 
+					y
+				);
 		}
 		
 		// If CGB mode, prioriy is only idx, i.e. sprites are already sorted.
@@ -281,7 +281,7 @@ void GPU::render_line()
 		
 		bool bg_window_no_priority = _mmu->cgb_mode() && !(LCDC & BGDisplay); // (CGB Only: BG loses all priority)
 		
-		for(auto& s : sprites)
+		for(const auto& s : sprites)
 		{
 			// Visible on _screen?
 			if(s.x > -8 && s.x < ScreenWidth)
@@ -309,12 +309,9 @@ void GPU::render_line()
 					if(color != 0 && 						// Transparency
 						(bg_window_no_priority || over_bg)) // Priority
 					{
-						color_t c;
-						if(_mmu->cgb_mode())
-							c = _mmu->get_sprite_color((Opt & PaletteNumber), color);
-						else 
-							c = Colors[(palette >> (color << 1)) & 3];
-						_screen[to1D(s.x + x, line)] = c;
+						_screen[to1D(s.x + x, line)] = _mmu->cgb_mode() ?
+							_mmu->get_sprite_color((Opt & PaletteNumber), color) :
+							color_t{Colors[(palette >> (color << 1)) & 3]};
 					}
 				}
 			}

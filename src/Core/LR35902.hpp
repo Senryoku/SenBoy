@@ -193,10 +193,9 @@ inline std::string LR35902::get_disassembly(addr_t addr) const
 	
 inline word_t LR35902::read(addr_t addr) const
 {
-	if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
-		return _apu->read_register(frame_cycles, addr);
-	else
-		return _mmu->read(addr);
+	return Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr ?
+		_apu->read_register(frame_cycles, addr) :
+		_mmu->read(addr);
 }
 
 inline void LR35902::write(addr_t addr, word_t value)
@@ -227,7 +226,7 @@ inline void LR35902::update_timing()
 		_divider_register -= 256;
 		_mmu->rw(MMU::DIV)++;
 	}
-		
+
 	_timer_counter += _clock_instr_cycles;
 	word_t TAC = _mmu->read(MMU::TAC);
 	unsigned int tac_divisor = 1026;

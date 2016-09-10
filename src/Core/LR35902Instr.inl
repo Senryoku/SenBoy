@@ -175,7 +175,6 @@ inline void instr_daa()
 			tmp += 0x60;
 			carry = true;
 		}
-		//set(Flag::Carry, tmp > 0x5f);
 	} else {
 		if(check(Flag::HalfCarry))
 		{
@@ -391,12 +390,11 @@ inline void instr_rra()
 inline word_t instr_rl(word_t v)
 {
 	word_t t = v << 1;
-	if(check(Flag::Carry)) t = t | 1;
+	if(check(Flag::Carry)) t |= 1;
 	_f = 0;
 	set(Flag::Carry, v & 0x80);
-	v = t;
-	set(Flag::Zero, v == 0);
-	return v;
+	set(Flag::Zero, t == 0);
+	return t;
 }
 
 /**
@@ -412,10 +410,9 @@ inline word_t instr_rlc(word_t v)
 	_f = 0;
 	set(Flag::Carry, v & 0x80);
 	word_t t = v << 1;
-	if(v & 0x80) t = t | 1;
-	v = t;
-	set(Flag::Zero, v == 0);
-	return v;
+	if(v & 0x80) t |= 1;
+	set(Flag::Zero, t == 0);
+	return t;
 }
 
 /**
@@ -431,10 +428,9 @@ inline word_t instr_rrc(word_t v)
 	_f = 0;
 	set(Flag::Carry, v & 1);
 	word_t t = v >> 1;
-	if(v & 1) t = t | 0x80;
-	v = t;
-	set(Flag::Zero, v == 0);
-	return v;
+	if(v & 1) t |= 0x80;
+	set(Flag::Zero, t == 0);
+	return t;
 }
 
 /**
@@ -448,12 +444,11 @@ inline word_t instr_rrc(word_t v)
 inline word_t instr_rr(word_t v)
 {
 	word_t t = v >> 1;
-	if(check(Flag::Carry)) t = t | 0x80;
+	if(check(Flag::Carry)) t |= 0x80;
 	_f = 0;
 	set(Flag::Carry, v & 1);
-	v = t;
-	set(Flag::Zero, v == 0);
-	return v;
+	set(Flag::Zero, t == 0);
+	return t;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
