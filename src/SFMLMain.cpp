@@ -382,6 +382,9 @@ void gui()
 			if(ImGui::MenuItem("Fullscreen", "Alt+Enter")) toggleFullscreen();
 			if(ImGui::MenuItem("Post-processing", "P")) post_process = !post_process;
 			ImGui::Separator();
+			if(ImGui::MenuItem("Pause", "D")) debug = !debug;
+			if(ImGui::MenuItem("Real Speed", "M")) toggle_speed();
+			ImGui::Separator();
 			ImGui::Checkbox("Enable Sound", &with_sound);
 			float vol = snd_buffer.getVolume();
 			if(ImGui::SliderFloat("Volume", &vol, 0.f, 100.f, "%.0f"))
@@ -429,6 +432,7 @@ void gui()
 	if(ImGui::BeginPopup("Open ROM"))
 	{
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.0, 0.0, 0.0, 0.0});
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3647, 0.3607, 0.7176, 1.0});
 		namespace fs = std::experimental::filesystem;
 		static char root_path[256] = ".";
 		ImGui::InputText("Root", root_path, 256);
@@ -443,7 +447,7 @@ void gui()
 			ImGui::GetIO().WantCaptureKeyboard = ImGui::GetIO().WantTextInput = false;
 			ImGui::CloseCurrentPopup();
 		}
-		ImGui::PopStyleColor();
+		ImGui::PopStyleColor(2);
 		if(ImGui::Button("Cancel"))
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
