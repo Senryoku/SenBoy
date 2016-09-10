@@ -571,7 +571,7 @@ void gui()
 			static int selected_breakpoint = 0;
 			static std::vector<std::string> labels;
 			ImGui::ListBox("Breakpoints", &selected_breakpoint,
-			[&] (void* data, int idx, const char** out_text) -> bool {
+			[] (void* data, int idx, const char** out_text) -> bool {
 				if(labels.size() < static_cast<size_t>(idx + 1))
 					labels.resize(idx + 1);
 				auto addr = cpu.get_breakpoints()[idx];
