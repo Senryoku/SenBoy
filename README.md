@@ -4,13 +4,13 @@ GameBoy (Color) emulator.
 
 Emulation still has a few quirks (see issues), but compatibility is pretty good. This was developed as a side project and is by no means finished or polished.
 
-A web version (of v0.92) compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
+A web version (of v0.94) compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
 
 ## Screenshots
 
-<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Kirby_0.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Zelda_0.png" width=350 />
+<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Zelda_1.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Kirby_1.png" width=350 />
 
-<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_PokemonCrystal_0.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Debug_0.png" width=350 />
+<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_CustomBoot.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Debug_1.png" width=350 />
 
 ## Compilation
 
