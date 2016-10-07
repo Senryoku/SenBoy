@@ -199,7 +199,6 @@ int main(int argc, char* argv[])
 			sf::sleep(sf::seconds(diff));
 		if(!debug || step)
 		{
-			cpu.frame_cycles = 0;
 			for(size_t i = 0; i < frame_skip + 1; ++i)
 			{
 				get_input_from_movie();
@@ -251,10 +250,13 @@ int main(int argc, char* argv[])
 					if(!(snd_buffer.getStatus() == sf::SoundSource::Status::Playing)) snd_buffer.play();
 				}
 			}
+			// Must be done here, or any subsequent call to read could cause the APU to advance by one frame...
+			// (and violate some internal requirements of Gb_Apu (end_time > last_time))
+			cpu.frame_cycles = 0;
 			
 			if(post_process)
 			{
-				for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremly basic, LCDs don't work like this.
+				for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremely basic, LCDs don't work like this.
 					screen_buffer[i] = (1.0f - blend_speed) * screen_buffer[i] + blend_speed * gpu.get_screen()[i];
 				gameboy_screen.update(reinterpret_cast<const uint8_t*>(screen_buffer.get()));
 			} else {
@@ -533,9 +535,11 @@ void gui()
 		}
 		if(ImGui::CollapsingHeader("GPU"))
 		{
-			ImGui::Text("%s: 0x%02X", "LY",   gpu.get_line());
-			ImGui::Text("%s: 0x%02X", "LCDC", gpu.get_lcdc());
-			ImGui::Text("%s: 0x%02X", "STAT", gpu.get_lcdstat());
+			ImGui::Text("LY: 0x%02X, LCDC: 0x%02X, STAT: 0x%02X",
+				gpu.get_line(),
+				gpu.get_lcdc(),
+				gpu.get_lcdstat()
+			);
 			update_tiledata();
 			update_tilemaps();
 			
@@ -551,10 +555,11 @@ void gui()
 			ImGui::Image(gameboy_tiledata_sprite[1]);
 			
 			ImGui::Text("Tile Maps");
-			scale = std::max(win_size / gameboy_tilemap[0].getSize().x, 1.0f);
+			scale = std::max(0.49f * win_size / gameboy_tilemap[0].getSize().x, 1.0f);
 			gameboy_tilemap_sprite[0].setScale(scale, scale);
 			gameboy_tilemap_sprite[1].setScale(scale, scale);
 			ImGui::Image(gameboy_tilemap_sprite[0]);
+			ImGui::SameLine();
 			ImGui::Image(gameboy_tilemap_sprite[1]);
 		}
 		if(ImGui::CollapsingHeader("Breakpoints"))
@@ -594,16 +599,23 @@ void gui()
 			if(ImGui::Button("Clear breakpoints"))
 				clear_breakpoints();
 		}
-		if(ImGui::CollapsingHeader("Memory (WIP)"))
+		if(ImGui::CollapsingHeader("Memory"))
 		{
 			ImGui::BeginChild("Memory##view", ImVec2(0,400));
-			ImGuiListClipper clipper(0x9999);
+			ImGuiListClipper clipper(0x10000 / 0x8);
 			while(clipper.Step())
-				for(addr_t addr = clipper.DisplayStart; addr < clipper.DisplayEnd; ++addr)
-					ImGui::Text("0x%04X: 0x%02X [%d] (%s)", addr, 
-						mmu.read(addr), 
-						static_cast<int>(cpu.instr_length[mmu.read(addr)]), 
-						cpu.get_disassembly(addr).c_str());
+			{
+				addr_t addr = clipper.DisplayStart * 0x8;
+				for(int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+				{
+					ImGui::Text("0x%04X: %02X %02X %02X %02X   %02X %02X %02X %02X", 
+						addr, 
+						mmu.read(addr    ), mmu.read(addr + 1), mmu.read(addr + 2), mmu.read(addr + 3), 
+						mmu.read(addr + 4), mmu.read(addr + 5), mmu.read(addr + 6), mmu.read(addr + 7)
+					);
+					addr += 0x8;
+				}
+			}
 			ImGui::EndChild();
 		}
 		if(ImGui::CollapsingHeader("Analyser (WIP)"))

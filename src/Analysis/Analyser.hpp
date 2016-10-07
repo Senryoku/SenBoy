@@ -132,8 +132,13 @@ private:
 				case 0xEF: jump(0x0028); break;
 				case 0xF7: jump(0x0030); break;
 				case 0xFF: jump(0x0038); break;
+				// Unconditional returns
+				case 0xC9: [[fallthrough]]		// RET
+				case 0xD9:						// RETI
+					return;
 				case 0xE9: // JP (HL); Unconditional, 'runtime' jump don't know what to do with it for now (TODO)
 					return;
+				// RET NZ (0xC0), RET NC (0xD0), RET Z (0xC8), RET C (0xD8 Conditional returns, nothing to do.
 				default:
 					break;
 			}
