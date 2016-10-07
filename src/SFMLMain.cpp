@@ -15,6 +15,8 @@
 #include <Tools/CommandLine.hpp>
 #include <Tools/Config.hpp>
 
+#include <Analysis/Analyser.hpp>
+
 // Options
 bool fullscreen = false;
 bool post_process = false;
@@ -81,6 +83,8 @@ enum MovieType
 	SBM		// SenBoy Movie
 };
 MovieType	movie_type = SBM;
+
+Analyser analyser;
 
 void help();
 void toggleFullscreen();
@@ -225,10 +229,10 @@ int main(int argc, char* argv[])
 				frame_count++;
 			}
 			
+			size_t frame_cycles = cpu.frame_cycles;
+			bool stereo = apu.end_frame(frame_cycles);
 			if(with_sound)
 			{
-				size_t frame_cycles = cpu.frame_cycles;
-				bool stereo = apu.end_frame(frame_cycles);
 				gb_snd_buffer.end_frame(frame_cycles, stereo);
 				size_t samples_count = gb_snd_buffer.samples_avail();
 				if(samples_count > 0)
@@ -601,6 +605,49 @@ void gui()
 						static_cast<int>(cpu.instr_length[mmu.read(addr)]), 
 						cpu.get_disassembly(addr).c_str());
 			ImGui::EndChild();
+		}
+		if(ImGui::CollapsingHeader("Analyser (WIP)"))
+		{
+			if(ImGui::Button("Analyse"))
+			{
+				analyser.process(cartridge);
+			}
+			ImGui::SameLine();
+			ImGui::Text("Found %d instructions, generated %d labels.", analyser.instructions.size(), analyser.get_label_count());
+			if(!analyser.instructions.empty())
+			{
+				ImGui::BeginChild("Analysed Memory##view", ImVec2(0,400));
+				ImGuiListClipper clipper(analyser.instructions.size());
+				while(clipper.Step())
+				{
+					auto instr_it = analyser.instructions.begin();
+					for(int i = 0; i < clipper.DisplayStart; ++i)
+						++instr_it;
+					for(int idx = clipper.DisplayStart; idx < clipper.DisplayEnd; ++idx)
+					{
+						addr_t addr = *instr_it;
+						// If the disassembly wasn't part of the CPU class, we could
+						// have some addresses replaced with the corresponding label...
+						if(addr < analyser.labels.size() && analyser.labels[addr])
+							ImGui::Text("%s: 0x%04X 0x%02X [%d] %s", 
+								analyser.labels[addr].name.c_str(),
+								addr, 
+								mmu.read(addr), 
+								static_cast<int>(cpu.instr_length[mmu.read(addr)]), 
+								cpu.get_disassembly(addr).c_str()
+							);
+						else
+							ImGui::Text("      0x%04X 0x%02X [%d] %s", 
+								addr, 
+								mmu.read(addr), 
+								static_cast<int>(cpu.instr_length[mmu.read(addr)]), 
+								cpu.get_disassembly(addr).c_str()
+							);
+						++instr_it;
+					}
+				}
+				ImGui::EndChild();
+			}
 		}
 		ImGui::End();
 	}
