@@ -261,9 +261,23 @@ inline void	MMU::write(addr_t addr, word_t value)
 		_wram[0][addr - 0xC000] = value;
 	else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Switchable WRAM Banks
 		_wram[get_wram_bank()][addr - 0xD000] = value;
-	else if(addr == Register::STAT) // Bits 0, 1 & 2 are read only
+	else if(addr == Register::STAT) { // Bits 0, 1 & 2 are read only
+		// https://www.reddit.com/r/EmuDev/comments/56tqlb/emulating_road_rash_gb/
+		// http://www.devrs.com/gb/files/faqs.html#GBBugs
+		// In certain situations, writing to the STAT register ($ff41) seems to cause bit 1 of the 
+		// IF register ($ff0f) to be set (and thus cause interrupt $48 to occur, if it is enabled). 
+		// Due to programming bugs, at least two games (Roadrash, Legend of Zerd) insist on this 
+		// quirk, and are incompatible with the GBC.
+		// As far as has been figured out, the bug happens everytime ANYTHING (including 00) is 
+		// written to the STAT register ($ff41) while the gameboy is either in HBLANK or VBLANK mode.
+		// It doesn't seem to happen when the gameboy is in OAM or VRAM mode, or when the display 
+		// is disabled. (Info from Martin Korth.)
+		if(!cgb_mode() && (_mem[Register::LCDC] & 0x80)
+			&& ((_mem[Register::STAT] & 3) == 0 || (_mem[Register::STAT] & 3) == 1))
+			_mem[Register::IF] |= 0b10;
+			
 		_mem[Register::STAT] = (_mem[Register::STAT] & 7) | (value & 0xF8);
-	else if(addr == Register::LY) // LY reset when written to
+	} else if(addr == Register::LY) // LY reset when written to
 		_mem[Register::LY] = 0;
 	else if(addr == Register::DIV) // DIV reset when written to
 		_mem[DIV] = 0;
