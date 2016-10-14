@@ -253,7 +253,7 @@ inline void	MMU::write(addr_t addr, word_t value)
 {
 	if(addr < 0x8000) // Memory Banks management
 		_cartridge->write(addr, value);
-	else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
+	else if(cgb_mode() && read(VBK) != 0 && in_range(addr, 0x8000, 0xA000)) // Switchable VRAM
 		_vram_bank1[addr - 0x8000] = value;
 	else if(in_range(addr, 0xA000, 0xC000)) // External RAM
 		_cartridge->write(addr, value);
@@ -261,42 +261,57 @@ inline void	MMU::write(addr_t addr, word_t value)
 		_wram[0][addr - 0xC000] = value;
 	else if(in_range(addr, 0xD000, 0xE000) && cgb_mode()) // CGB Mode - Switchable WRAM Banks
 		_wram[get_wram_bank()][addr - 0xD000] = value;
-	else if(addr == Register::STAT) { // Bits 0, 1 & 2 are read only
-		// https://www.reddit.com/r/EmuDev/comments/56tqlb/emulating_road_rash_gb/
-		// http://www.devrs.com/gb/files/faqs.html#GBBugs
-		// In certain situations, writing to the STAT register ($ff41) seems to cause bit 1 of the 
-		// IF register ($ff0f) to be set (and thus cause interrupt $48 to occur, if it is enabled). 
-		// Due to programming bugs, at least two games (Roadrash, Legend of Zerd) insist on this 
-		// quirk, and are incompatible with the GBC.
-		// As far as has been figured out, the bug happens everytime ANYTHING (including 00) is 
-		// written to the STAT register ($ff41) while the gameboy is either in HBLANK or VBLANK mode.
-		// It doesn't seem to happen when the gameboy is in OAM or VRAM mode, or when the display 
-		// is disabled. (Info from Martin Korth.)
-		if(!cgb_mode() && (_mem[Register::LCDC] & 0x80)
-			&& one_of(_mem[Register::STAT] & 3, 0, 1))
-			_mem[Register::IF] |= 0b10;
-			
-		_mem[Register::STAT] = (_mem[Register::STAT] & 7) | (value & 0xF8);
-	} else if(addr == Register::LY) // LY reset when written to
-		_mem[Register::LY] = 0;
-	else if(addr == Register::DIV) // DIV reset when written to
-		_mem[DIV] = 0;
-	else if(addr == Register::DMA) // Initialize DMA transfer
-		init_dma(value);
-	else if(addr == Register::HDMA5) // Initialize Vram DMA transfer
-		init_vram_dma(value);
-	else if(addr == Register::BGPD) // Background Palette Data
-		write_bg_palette_data(value);
-	else if(addr == Register::OBPD) // Sprite Palette Data
-		write_sprite_palette_data(value);
-	else if(addr == Register::VBK) // VRAM Memory Bank (This fixes Oracle of Season...)
-		_mem[VBK] = value & 1;
-	else if(addr == Register::P1) // Joypad Register
-		update_joypad(value);
-	else if(addr == Register::KEY1) { // Double Speed - Switch
-		if(value & 0x01) _mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
-	} else
-		_mem[addr] = value;
+	else
+		switch(addr)
+		{
+		case Register::STAT: // Bits 0, 1 & 2 are read only
+			// https://www.reddit.com/r/EmuDev/comments/56tqlb/emulating_road_rash_gb/
+			// http://www.devrs.com/gb/files/faqs.html#GBBugs
+			// In certain situations, writing to the STAT register ($ff41) seems to cause bit 1 of the 
+			// IF register ($ff0f) to be set (and thus cause interrupt $48 to occur, if it is enabled). 
+			// Due to programming bugs, at least two games (Roadrash, Legend of Zerd) insist on this 
+			// quirk, and are incompatible with the GBC.
+			// As far as has been figured out, the bug happens everytime ANYTHING (including 00) is 
+			// written to the STAT register ($ff41) while the gameboy is either in HBLANK or VBLANK mode.
+			// It doesn't seem to happen when the gameboy is in OAM or VRAM mode, or when the display 
+			// is disabled. (Info from Martin Korth.)
+			if(!cgb_mode() && (_mem[Register::LCDC] & 0x80)
+				&& one_of(_mem[Register::STAT] & 3, 0, 1))
+				_mem[Register::IF] |= 0b10;
+				
+			_mem[Register::STAT] = (_mem[Register::STAT] & 7) | (value & 0xF8);
+			break;
+		case Register::LY: // LY reset when written to
+			_mem[Register::LY] = 0;
+			break;
+		case Register::DIV: // DIV reset when written to
+			_mem[DIV] = 0;
+			break;
+		case Register::DMA: // Initialize DMA transfer
+			init_dma(value);
+			break;
+		case Register::HDMA5: // Initialize Vram DMA transfer
+			init_vram_dma(value);
+			break;
+		case Register::BGPD: // Background Palette Data
+			write_bg_palette_data(value);
+			break;
+		case Register::OBPD: // Sprite Palette Data
+			write_sprite_palette_data(value);
+			break;
+		case Register::VBK: // VRAM Memory Bank (This fixes Oracle of Season...)
+			_mem[VBK] = value & 1;
+			break;
+		case Register::P1: // Joypad Register
+			update_joypad(value);
+			break;
+		case Register::KEY1: // Double Speed - Switch
+			if(value & 0x01) _mem[KEY1] = (_mem[KEY1] & 0x80) ? 0x00 : 0x80;
+			break;
+		default:
+			_mem[addr] = value;
+			break;
+		}
 }
 
 inline void	MMU::write16(addr_t addr, addr_t value)

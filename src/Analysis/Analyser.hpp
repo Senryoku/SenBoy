@@ -27,7 +27,12 @@ public:
 	{
 		clear();
 		labels.resize(c.getROMSize());
-		process(c, 0x100);
+		process(c, 0x0040);
+		process(c, 0x0048);
+		process(c, 0x0050);
+		process(c, 0x0058);
+		process(c, 0x0060);
+		process(c, 0x0100);
 	}
 	
 	void clear()
@@ -86,7 +91,7 @@ private:
 					process(c, jp_addr);
 				}
 			};
-			// TODO: Check if no jumps/calls instructions are missing.
+			
 			// TODO: Do something with rets? (marks 'functions')
 			switch(opcode)
 			{
