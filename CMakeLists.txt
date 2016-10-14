@@ -16,7 +16,7 @@ include_directories("${CMAKE_SOURCE_DIR}/ext/imgui")
 include_directories("${CMAKE_SOURCE_DIR}/ext/imgui-sfml")
 
 set(CMAKE_CXX_FLAGS			"${CMAKE_CXX_FLAGS} --std=c++14 -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2")
+set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -Og -gdwarf-2")
 set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O2 -s")
 
 # Statically link standard library
@@ -25,34 +25,36 @@ if(STATIC_STD_LIBRARIES)
 	set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs -static-libgcc -static-libstdc++")
 endif()
 
-# Hide console on windows for release build
-if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
-	set(CMAKE_EXE_LINKER_FLAGS "-mwindows")
-endif()
-
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
-set(EXT_SOURCES
+set(APU_SOURCES
 	ext/Gb_Snd_Emu-0.1.4/gb_apu/Multi_Buffer.cpp
 	ext/Gb_Snd_Emu-0.1.4/gb_apu/Blip_Buffer.cpp
 	ext/Gb_Snd_Emu-0.1.4/gb_apu/Gb_Oscs.cpp
 	ext/Gb_Snd_Emu-0.1.4/gb_apu/Gb_Apu.cpp
-	
+)
+set(IMGUI_SOURCES
 	ext/imgui/imgui.cpp
 	ext/imgui/imgui_draw.cpp
 	ext/imgui-sfml/imgui-SFML.cpp
 )
 set(SOURCES
-	${EXT_SOURCES}
+	${APU_SOURCES}
 	src/Tools/Config.cpp
 	src/Core/Cartridge.cpp
 	src/Core/MMU.cpp
 	src/Core/GPU.cpp
 	src/Core/LR35902InstrData.cpp
 	src/Core/LR35902.cpp
-	src/SFMLMain.cpp
 )
-add_executable(${EXECUTABLE_NAME} ${SOURCES})
+add_executable(${EXECUTABLE_NAME} ${SOURCES} ${IMGUI_SOURCES} src/SFMLMain.cpp)
+
+add_executable(CPUPerfTest ${SOURCES} test/CPUPerfTest.cpp)
+	
+# Hide console on windows for release build
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
+	target_link_libraries(${EXECUTABLE_NAME} "-mwindows")
+endif()
 
 # Remove warnings for external libraries
 set_source_files_properties(
