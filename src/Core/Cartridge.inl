@@ -39,39 +39,39 @@ inline bool Cartridge::isMBC5() const
 
 inline bool Cartridge::hasBattery() const
 {
-	return !_data.empty() && (
-		getType() == MBC1_RAM_BATTERY ||
-		getType() == MBC2_BATTERY ||
-		getType() == ROM_RAM_BATTERY ||
-		getType() == MMM01_RAM_BATTERY ||
-		getType() == MBC3_TIMER_BATTERY ||
-		getType() == MBC3_TIMER_RAM_BATTERY ||
-		getType() == MBC3_RAM_BATTERY ||
-		getType() == MBC4_RAM_BATTERY ||
-		getType() == MBC5_RAM_BATTERY ||
-		getType() == MBC5_RUMBLE_RAM_BATTERY ||
-		getType() == HuC1_RAM_BATTERY);
+	return !_data.empty() && one_of(getType(), 
+		MBC1_RAM_BATTERY, 
+		MBC2_BATTERY, 
+		ROM_RAM_BATTERY, 
+		MMM01_RAM_BATTERY, 
+		MBC3_TIMER_BATTERY, 
+		MBC3_TIMER_RAM_BATTERY,
+		MBC3_RAM_BATTERY,
+		MBC4_RAM_BATTERY,
+		MBC5_RAM_BATTERY,
+		MBC5_RUMBLE_RAM_BATTERY,
+		HuC1_RAM_BATTERY);
 }
 
 inline bool Cartridge::hasRAM() const
 {
-	return !_data.empty() && (
-		getType() == MBC1_RAM || 
-		getType() == MBC1_RAM_BATTERY || 
-		getType() == ROM_RAM || 			
-		getType() == ROM_RAM_BATTERY || 
-		getType() == MMM01_RAM	 || 
-		getType() == MMM01_RAM_BATTERY	 || 
-		getType() == MBC3_TIMER_RAM_BATTERY	 || 
-		getType() == MBC3_RAM || 
-		getType() == MBC3_RAM_BATTERY || 
-		getType() == MBC4_RAM || 
-		getType() == MBC4_RAM_BATTERY || 
-		getType() == MBC5_RAM || 
-		getType() == MBC5_RAM_BATTERY || 
-		getType() == MBC5_RUMBLE_RAM || 
-		getType() == MBC5_RUMBLE_RAM_BATTERY || 
-		getType() == HuC1_RAM_BATTERY);
+	return !_data.empty() && one_of(getType(),
+		MBC1_RAM, 
+		MBC1_RAM_BATTERY, 
+		ROM_RAM, 			
+		ROM_RAM_BATTERY, 
+		MMM01_RAM	, 
+		MMM01_RAM_BATTERY	, 
+		MBC3_TIMER_RAM_BATTERY	, 
+		MBC3_RAM, 
+		MBC3_RAM_BATTERY, 
+		MBC4_RAM, 
+		MBC4_RAM_BATTERY, 
+		MBC5_RAM, 
+		MBC5_RAM_BATTERY, 
+		MBC5_RUMBLE_RAM, 
+		MBC5_RUMBLE_RAM_BATTERY, 
+		HuC1_RAM_BATTERY);
 }
 
 inline size_t Cartridge::getROMSize() const

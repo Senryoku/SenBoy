@@ -180,19 +180,19 @@ inline bool MMU::cgb_mode() const
 
 inline word_t MMU::read(addr_t addr) const
 {
-	if((addr < 0x0100 || (addr >= 0x200 && addr < 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
+	if((addr < 0x0100 || in_range(addr, 0x200, 0x08FF)) && read(0xFF50) == 0x00) { // Internal ROM (~BIOS)
 		return _mem[addr];
 	} else if(addr < 0x8000) { // 2 * 16kB ROM Banks
 		return static_cast<word_t>(_cartridge->read(addr));
-	} else if(cgb_mode() && _mem[VBK] != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+	} else if(cgb_mode() && _mem[VBK] != 0 && in_range(addr, 0x8000, 0xA000)) { // Switchable VRAM
 		return _vram_bank1[addr - 0x8000];
-	} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
+	} else if(in_range(addr, 0xA000, 0xC000)) { // External RAM
 		return _cartridge->read(addr);
-	} else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) { // CGB Mode - Working RAM Bank 0
+	} else if(in_range(addr, 0xC000, 0xD000) && cgb_mode()) { // CGB Mode - Working RAM Bank 0
 		return _wram[0][addr - 0xC000];
-	} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
+	} else if(in_range(addr, 0xD000, 0xE000) && cgb_mode()) { // CGB Mode - Working RAM
 		return _wram[get_wram_bank()][addr - 0xD000];
-	} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
+	} else if(in_range(addr, 0xE000, 0xFE00)) { // Internal RAM mirror
 		return _mem[addr - 0x2000];
 	} else if(addr == BGPD) { // Background Palette Data
 		return read_bg_palette_data();
@@ -213,16 +213,16 @@ inline word_t& MMU::rw(addr_t addr)
 	if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
 		std::cout << "Error: Tried to r/w to " << Hexa(addr) << ", which is ROM! Use write instead." << std::endl;
 		return _mem[0x0100]; // Dummy value.
-	} else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) { // Switchable VRAM
+	} else if(cgb_mode() && read(VBK) != 0 && in_range(addr, 0x8000, 0xA000)) { // Switchable VRAM
 		return _vram_bank1[addr - 0x8000];
-	} else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) { // CGB Mode - Working RAM Bank 0
+	} else if(in_range(addr, 0xC000, 0xD000) && cgb_mode()) { // CGB Mode - Working RAM Bank 0
 		return _wram[0][addr - 0xC000];
-	} else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) { // CGB Mode - Working RAM
+	} else if(in_range(addr, 0xD000, 0xE000) && cgb_mode()) { // CGB Mode - Working RAM
 		return _wram[get_wram_bank()][addr - 0xD000];
-	} else if(addr >= 0xA000 && addr < 0xC000) { // External RAM
+	} else if(in_range(addr, 0xA000, 0xC000)) { // External RAM
 		std::cout << "Error: Tried to r/w to " << Hexa(addr) << ", which is ExternalRAM! Use write instead." << std::endl;
 		return _mem[0x0100];
-	} else if(addr >= 0xE000 && addr < 0xFE00) { // Internal RAM mirror
+	} else if(in_range(addr, 0xE000, 0xFE00)) { // Internal RAM mirror
 		return _mem[addr - 0x2000];
 	} else { // Internal RAM (or unused)
 		return _mem[addr];
@@ -255,11 +255,11 @@ inline void	MMU::write(addr_t addr, word_t value)
 		_cartridge->write(addr, value);
 	else if(cgb_mode() && read(VBK) != 0 && addr >= 0x8000 && addr < 0xA000) // Switchable VRAM
 		_vram_bank1[addr - 0x8000] = value;
-	else if(addr >= 0xA000 && addr < 0xC000) // External RAM
+	else if(in_range(addr, 0xA000, 0xC000)) // External RAM
 		_cartridge->write(addr, value);
-	else if(addr >= 0xC000 && addr < 0xD000 && cgb_mode()) // CGB Mode - Working RAM Bank 0
+	else if(in_range(addr, 0xC000, 0xD000) && cgb_mode()) // CGB Mode - Working RAM Bank 0
 		_wram[0][addr - 0xC000] = value;
-	else if(addr >= 0xD000 && addr < 0xE000 && cgb_mode()) // CGB Mode - Switchable WRAM Banks
+	else if(in_range(addr, 0xD000, 0xE000) && cgb_mode()) // CGB Mode - Switchable WRAM Banks
 		_wram[get_wram_bank()][addr - 0xD000] = value;
 	else if(addr == Register::STAT) { // Bits 0, 1 & 2 are read only
 		// https://www.reddit.com/r/EmuDev/comments/56tqlb/emulating_road_rash_gb/
@@ -273,7 +273,7 @@ inline void	MMU::write(addr_t addr, word_t value)
 		// It doesn't seem to happen when the gameboy is in OAM or VRAM mode, or when the display 
 		// is disabled. (Info from Martin Korth.)
 		if(!cgb_mode() && (_mem[Register::LCDC] & 0x80)
-			&& ((_mem[Register::STAT] & 3) == 0 || (_mem[Register::STAT] & 3) == 1))
+			&& one_of(_mem[Register::STAT] & 3, 0, 1))
 			_mem[Register::IF] |= 0b10;
 			
 		_mem[Register::STAT] = (_mem[Register::STAT] & 7) | (value & 0xF8);
