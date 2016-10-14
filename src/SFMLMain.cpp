@@ -770,7 +770,11 @@ void reset()
 		load_empty_rom();
 		mmu.load_senboot();
 	} else {
-		cartridge.load(rom_path);
+		if(!cartridge.load(rom_path))
+		{
+			log("Error loading '", rom_path, "', using an empty ROM instead.");
+			load_empty_rom();
+		}
 		if(use_boot)
 		{
 			if(custom_boot)
