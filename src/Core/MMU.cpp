@@ -78,15 +78,14 @@ bool MMU::load_boot(const std::string& path)
 
 void MMU::update_joypad(word_t value)
 {
-	//assert(value == Direction || value == Button);
-	_mem[P1] = ~value;
-	if(_mem[P1] & Direction)
+	_mem[P1] = value | 0x0F;
+	if((_mem[P1] & 0x30) == Direction)
 	{
 		if(callback_joy_up()) _mem[P1] &= ~UpSelect;
 		if(callback_joy_down()) _mem[P1] &= ~DownStart;
 		if(callback_joy_left()) _mem[P1] &= ~LeftB;
 		if(callback_joy_right()) _mem[P1] &= ~RightA;
-	} else if(_mem[P1] & Button) {
+	} else if((_mem[P1] & 0x30) == Button) {
 		if(callback_joy_select()) _mem[P1] &= ~UpSelect;
 		if(callback_joy_start()) _mem[P1] &= ~DownStart;
 		if(callback_joy_b()) _mem[P1] &= ~LeftB;

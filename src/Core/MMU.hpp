@@ -86,8 +86,8 @@ public:
 		LeftB		= 0x02,
 		UpSelect	= 0x04,
 		DownStart	= 0x08,
-		Direction	= 0x10,
-		Button		= 0x20
+		Button		= 0x10,
+		Direction	= 0x20
 	};
 	
 	bool force_dmg = false; ///< Force the execution as a simple GameBoy (DMG)

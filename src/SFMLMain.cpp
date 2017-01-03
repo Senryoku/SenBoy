@@ -535,10 +535,24 @@ void gui()
 		}
 		if(ImGui::CollapsingHeader("GPU"))
 		{
-			ImGui::Text("LY: 0x%02X, LCDC: 0x%02X, STAT: 0x%02X",
+			ImGui::Text("LY: 0x%02X, LCDC: 0x%02X, STAT: 0x%02X, Scroll: %d, %d",
 				gpu.get_line(),
 				gpu.get_lcdc(),
-				gpu.get_lcdstat()
+				gpu.get_lcdstat(),
+				gpu.get_scroll_x(),
+				gpu.get_scroll_y()
+			);
+			ImGui::Text("LCDC: BGDisplay %d, OBJDisplay %d, OBJSize %d, BGTileMapDisplaySelect %d",
+				gpu.get_lcdc() & GPU::BGDisplay,
+				gpu.get_lcdc() & GPU::OBJDisplay,
+				gpu.get_lcdc() & GPU::OBJSize,
+				gpu.get_lcdc() & GPU::BGTileMapDisplaySelect
+			);
+			ImGui::Text("      BGWindowsTileDataSelect %d, WindowDisplay %d, WindowsTileMapDisplaySelect %d, LCDDisplayEnable %d",
+				gpu.get_lcdc() & GPU::BGWindowsTileDataSelect,
+				gpu.get_lcdc() & GPU::WindowDisplay,
+				gpu.get_lcdc() & GPU::WindowsTileMapDisplaySelect,
+				gpu.get_lcdc() & GPU::LCDDisplayEnable
 			);
 			update_tiledata();
 			update_tilemaps();
