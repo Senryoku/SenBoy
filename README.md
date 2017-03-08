@@ -2,7 +2,7 @@
 
 GameBoy (Color) emulator.
 
-Emulation still has a few quirks (see issues), but compatibility is pretty good. This was developed as a side project and is by no means finished or polished.
+Emulation still has a few quirks (see issues), but [compatibility](https://github.com/Senryoku/SenBoy/wiki/Compatibility) is pretty good. This was developed as a side project and is by no means finished or polished.
 
 A web version (of v0.94) compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
 
