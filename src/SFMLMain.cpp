@@ -80,9 +80,13 @@ enum MovieType
 {
 	VBM,
 	BK2,
-	SBM		// SenBoy Movie
+	SBM,	// SenBoy Movie
+	Unknown
 };
-MovieType	movie_type = SBM;
+MovieType	movie_type = Unknown;
+
+bool input_per_frame = false; // Updates inputs only once per frame?
+char input_status;
 
 Analyser analyser;
 
@@ -98,7 +102,7 @@ void load_empty_rom();
 void clear_breakpoints();
 void modify_volume(float v);
 void load_movie(const char* movie_path);
-void get_input_from_movie();
+void get_frame_input();
 void movie_save_frame();
 void update_tiledata();
 void update_tilemaps();
@@ -201,7 +205,7 @@ int main(int argc, char* argv[])
 		{
 			for(size_t i = 0; i < frame_skip + 1; ++i)
 			{
-				get_input_from_movie();
+				get_frame_input();
 				movie_save_frame();
 				do
 				{
@@ -771,6 +775,21 @@ void toggle_speed()
 void reset()
 {
 	cartridge.save();
+	
+	if(use_movie)
+	{
+		use_boot = false;
+		movie.clear();
+		movie.seekg(movie_start);
+	}
+	
+	if(movie_save.is_open())
+	{
+		use_boot = false;
+		input_per_frame = true;
+		movie_save.clear();
+		movie_save.seekp(0);
+	}
 
 	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
 	apu.end_frame(frame_cycles);
@@ -804,8 +823,6 @@ void reset()
 	timing_clock.restart();
 	frame_count = 0;
 	
-	if(use_movie) movie.seekg(movie_start);
-	
 	set_input_callbacks();
 	
 	log("Reset");
@@ -835,98 +852,6 @@ void load_empty_rom()
 	
 	std::memcpy(header + 0x104, logo, 3 * 16);
 	cartridge.load_from_memory(header, 0x150);
-}
-
-void load_movie(const char* movie_path)
-{
-	switch(movie_type)
-	{
-		case SBM:
-		{
-			movie.open(movie_path, std::ios::binary);
-			if(movie) {
-				movie_start = movie.tellg();
-			}
-			break;
-		}
-		case VBM:
-			movie.open(movie_path, std::ios::binary);
-			if(movie) {
-				// VBM
-				char tmp[4];
-				movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
-				movie.read(tmp, 4);
-				movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
-				movie.seekg(movie_start);
-			}
-			break;
-		case BK2: // BK2 (Not the archive, just the Input Log)
-			movie.open(movie_path);
-			if(movie) {
-				movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-				movie_start = movie.tellg();
-			}
-			break;
-		default:
-			log("Error: Unknown movie type.");
-			break;
-	}
-	if(!movie)
-		log("Error: Unable to open movie file '", movie_path, "'.");
-	else {
-		use_movie = true;
-		use_boot = false;
-		log("Loaded movie file '", movie_path, "'. Starting in playback mode...");
-	}
-}
-
-// Get next input from the movie file.
-void get_input_from_movie()
-{
-	if(use_movie)
-	{
-		switch(movie_type)
-		{
-			case SBM:
-				movie.read(playback, 1);
-				break;
-			case VBM:
-				movie.read(playback, 2);
-				break;
-			case BK2:
-			{
-				char line[13];
-				movie.getline(line, 13);
-				playback[0] = 0;
-				if(line[1] != '.') playback[0] |= 0x40; // Up
-				if(line[2] != '.') playback[0] |= 0x80; // Down
-				if(line[3] != '.') playback[0] |= 0x20; // Left
-				if(line[4] != '.') playback[0] |= 0x10; // Right
-				if(line[5] != '.') playback[0] |= 0x08; // Start
-				if(line[6] != '.') playback[0] |= 0x04; // Select
-				if(line[7] != '.') playback[0] |= 0x02; // B
-				if(line[8] != '.') playback[0] |= 0x01; // A
-				break;
-			}
-		}
-	}
-}
-
-void movie_save_frame()
-{
-	if(movie_save)
-	{
-		word_t input = 0;
-		if(mmu.callback_joy_a()) 		input |= 0x01;
-		if(mmu.callback_joy_b()) 		input |= 0x02;
-		if(mmu.callback_joy_select()) 	input |= 0x04;
-		if(mmu.callback_joy_start()) 	input |= 0x08;
-		if(mmu.callback_joy_right()) 	input |= 0x10;
-		if(mmu.callback_joy_left()) 	input |= 0x20;
-		if(mmu.callback_joy_up()) 		input |= 0x40;
-		if(mmu.callback_joy_down()) 	input |= 0x80;
-		movie_save << input;
-	}
 }
 
 void update_tiledata()
@@ -1006,23 +931,77 @@ void setup_window()
 	window.setVerticalSyncEnabled(false);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Inputs
+
+bool input_up()
+{
+	for(int i = 0; i < sf::Joystick::Count; ++i) 
+		if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) 
+			return true; 
+	return sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
+}
+
+bool input_down()
+{
+	for(int i = 0; i < sf::Joystick::Count; ++i) 
+		if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) 
+			return true; 
+	return sf::Keyboard::isKeyPressed(sf::Keyboard::Down);
+}
+
+bool input_right()
+{
+	for(int i = 0; i < sf::Joystick::Count; ++i) 
+		if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) 
+			return true; 
+	return sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
+}
+
+bool input_left()
+{
+	for(int i = 0; i < sf::Joystick::Count; ++i) 
+		if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) 
+			return true; 
+	return sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
+}
+
+bool callback_button(auto button, auto key) 
+{ 
+	for(int i = 0; i < sf::Joystick::Count; ++i) 
+		if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, button)) return true; 
+	return sf::Keyboard::isKeyPressed(key);
+}
+
+bool input_a()      { return callback_button(0, sf::Keyboard::F); }
+bool input_b()      { return callback_button(1, sf::Keyboard::G); }
+bool input_select() { return callback_button(6, sf::Keyboard::H); }
+bool input_start()  { return callback_button(7, sf::Keyboard::J); }
+
 void set_input_callbacks()
 {
 	if(!use_movie)
 	{
-		mmu.callback_joy_up =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Up); };
-		mmu.callback_joy_down =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::Y) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Down); };
-		mmu.callback_joy_right =	[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) > 50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Right); };
-		mmu.callback_joy_left =		[&] () -> bool { for(int i = 0; i < sf::Joystick::Count; ++i) if(sf::Joystick::isConnected(i) && sf::Joystick::getAxisPosition(i, sf::Joystick::X) < -50) return true; return sf::Keyboard::isKeyPressed(sf::Keyboard::Left); };
-		auto lambda_button = [&] (auto joy, auto key) -> bool { 
-			for(int i = 0; i < sf::Joystick::Count; ++i) 
-				if(sf::Joystick::isConnected(i) && sf::Joystick::isButtonPressed(i, joy)) return true; 
-			return sf::Keyboard::isKeyPressed(key);
-		};
-		mmu.callback_joy_a =		std::bind(lambda_button, 0, sf::Keyboard::F);
-		mmu.callback_joy_b = 		std::bind(lambda_button, 1, sf::Keyboard::G);
-		mmu.callback_joy_select =	std::bind(lambda_button, 6, sf::Keyboard::H);
-		mmu.callback_joy_start =	std::bind(lambda_button, 7, sf::Keyboard::J);
+		if(input_per_frame)
+		{
+			mmu.callback_joy_a = 		[&] () -> bool { return input_status & 0x01; };
+			mmu.callback_joy_b = 		[&] () -> bool { return input_status & 0x02; };
+			mmu.callback_joy_select = 	[&] () -> bool { return input_status & 0x04; };
+			mmu.callback_joy_start = 	[&] () -> bool { return input_status & 0x08; };
+			mmu.callback_joy_right = 	[&] () -> bool { return input_status & 0x10; };
+			mmu.callback_joy_left = 	[&] () -> bool { return input_status & 0x20; };
+			mmu.callback_joy_up = 		[&] () -> bool { return input_status & 0x40; };
+			mmu.callback_joy_down = 	[&] () -> bool { return input_status & 0x80; };
+		} else {
+			mmu.callback_joy_a      = input_a;
+			mmu.callback_joy_b      = input_b;
+			mmu.callback_joy_select = input_select;
+			mmu.callback_joy_start  = input_start;
+			mmu.callback_joy_right  = input_right;
+			mmu.callback_joy_left   = input_left;
+			mmu.callback_joy_up     = input_up;
+			mmu.callback_joy_down   = input_down;
+		}
 	} else {
 		mmu.callback_joy_a = 		[&] () -> bool { return playback[0] & 0x01; };
 		mmu.callback_joy_b = 		[&] () -> bool { return playback[0] & 0x02; };
@@ -1034,6 +1013,128 @@ void set_input_callbacks()
 		mmu.callback_joy_down = 	[&] () -> bool { return playback[0] & 0x80; };
 	}
 }
+
+// Get next input for the frame (movie playback or movie saving).
+void get_frame_input()
+{
+	if(use_movie)
+	{
+		switch(movie_type)
+		{
+			case SBM:
+				movie.read(playback, 1);
+				break;
+			case VBM:
+				movie.read(playback, 2);
+				break;
+			case BK2:
+			{
+				char line[13];
+				movie.getline(line, 13);
+				playback[0] = 0;
+				if(line[1] != '.') playback[0] |= 0x40; // Up
+				if(line[2] != '.') playback[0] |= 0x80; // Down
+				if(line[3] != '.') playback[0] |= 0x20; // Left
+				if(line[4] != '.') playback[0] |= 0x10; // Right
+				if(line[5] != '.') playback[0] |= 0x08; // Start
+				if(line[6] != '.') playback[0] |= 0x04; // Select
+				if(line[7] != '.') playback[0] |= 0x02; // B
+				if(line[8] != '.') playback[0] |= 0x01; // A
+				break;
+			}
+			default: break;
+		}
+	} else if(input_per_frame) {
+		// TODO: This should be handled with events, but I'm f*cking lazy.
+		input_status = 0;
+		if(input_a()) 		input_status |= 0x01;
+		if(input_b()) 		input_status |= 0x02;
+		if(input_select()) 	input_status |= 0x04;
+		if(input_start()) 	input_status |= 0x08;
+		if(input_right()) 	input_status |= 0x10;
+		if(input_left()) 	input_status |= 0x20;
+		if(input_up()) 		input_status |= 0x40;
+		if(input_down()) 	input_status |= 0x80;
+	}
+}
+
+void load_movie(const char* movie_path)
+{
+	log("Loading movie ", movie_path, "...");
+	
+	// Terrible way of detecting the movie type
+	if(strlen(movie_path) > 3)
+		switch(movie_path[strlen(movie_path) - 3])
+		{
+			case 's': movie_type = SBM; break;
+			case 'v': movie_type = VBM; break;
+			case 't':
+			case 'b': movie_type = BK2; break;
+		}
+
+	switch(movie_type)
+	{
+		case SBM:
+		{
+			log("  Movie type detected: SBM");
+			movie.open(movie_path, std::ios::binary);
+			if(movie) {
+				movie_start = movie.tellg();
+			}
+			break;
+		}
+		case VBM:
+			log("  Movie type detected: VBM");
+			movie.open(movie_path, std::ios::binary);
+			if(movie)
+			{
+				char tmp[4];
+				movie.read(tmp, 4);
+				if(tmp[0] == 'V' && tmp[1] == 'B' && tmp[2] == 'M' && tmp[3] == '\x1a')
+				{
+					movie.seekg(0x015);
+					movie.read(tmp, 1);
+					if(tmp[0] != 1)
+						log("  Warning: Multiple controllers in use: ", tmp[0], ".");
+					movie.seekg(0x03C); // Start of the inputs, 4bytes unsigned int little endian
+					movie.read(tmp, 4);
+					movie_start = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+					movie.seekg(movie_start);
+				} else {
+					log("  Invalid file signature.");
+					movie.close();
+				}
+			}
+			break;
+		case BK2: // BK2 (Not the archive, just the Input Log)
+			log("  Movie type detected: BK2");
+			movie.open(movie_path);
+			if(movie) {
+				movie.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+				movie_start = movie.tellg();
+			}
+			break;
+		case Unknown:
+		default:
+			log("Error: Unknown movie type.");
+			break;
+	}
+	if(!movie)
+		log("Error: Unable to open movie file '", movie_path, "'.");
+	else {
+		use_movie = true;
+		use_boot = false;
+		log("Loaded movie file '", movie_path, "'. Starting in playback mode...");
+	}
+}
+
+void movie_save_frame()
+{
+	if(movie_save)
+		movie_save.write(&input_status, 1);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void log()
 {
