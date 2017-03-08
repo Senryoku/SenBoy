@@ -29,6 +29,7 @@ bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
 bool frame_by_frame = true;
 bool real_speed = true;
+float max_speed_factor = 0.f;
 size_t sample_rate = 44100;	// Audio sample rate
 size_t frame_skip = 0;		// Increase for better performances.
 std::string rom_path("");
@@ -197,10 +198,21 @@ int main(int argc, char* argv[])
         while(window.pollEvent(event))
 			handle_event(event);
 		
-		double gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
-		double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
-		if(real_speed && !debug && diff > 0)
-			sf::sleep(sf::seconds(diff));
+		if(!debug)
+		{
+			if(real_speed)
+			{
+				double gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
+				double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
+				if(diff > 0)
+					sf::sleep(sf::seconds(diff));
+			} else if(max_speed_factor > 0) {
+				double gameboy_time = double(elapsed_cycles) / cpu.ClockRate / max_speed_factor;
+				double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
+				sf::sleep(sf::seconds(diff));
+			}
+		}
+		
 		if(!debug || step)
 		{
 			for(size_t i = 0; i < frame_skip + 1; ++i)
@@ -389,13 +401,27 @@ void gui()
 		
 		if(ImGui::BeginMenu("Options"))
 		{
-			if(ImGui::MenuItem("Fullscreen", "Alt+Enter")) toggleFullscreen();
-			if(ImGui::MenuItem("Post-processing", "P")) post_process = !post_process;
+			bool tmp_fs = fullscreen;
+			if(ImGui::MenuItem("Fullscreen", "Alt+Enter", &tmp_fs))
+				toggleFullscreen();
+			ImGui::MenuItem("Post-processing", "P", &post_process);
 			ImGui::Separator();
-			if(ImGui::MenuItem("Pause", "D")) debug = !debug;
-			if(ImGui::MenuItem("Real Speed", "M")) toggle_speed();
+			ImGui::MenuItem("Pause", "D", &debug);
+			bool tmp_rs = real_speed;
+			if(ImGui::MenuItem("Real Speed", "M", &tmp_rs))
+				toggle_speed();
+			if(ImGui::SliderFloat("Max Speed Factor", &max_speed_factor, 0.f, 5.0f, "%.1f"))
+			{
+				if(max_speed_factor < 0)
+					max_speed_factor = 0;
+				if(!real_speed)
+				{
+					elapsed_cycles = 0;
+					timing_clock.restart();
+				}
+			}
 			ImGui::Separator();
-			ImGui::Checkbox("Enable Sound", &with_sound);
+			ImGui::MenuItem("Enable Sound", "", &with_sound);
 			float vol = snd_buffer.getVolume();
 			if(ImGui::SliderFloat("Volume", &vol, 0.f, 100.f, "%.0f"))
 			{
@@ -403,7 +429,7 @@ void gui()
 				snd_buffer.setVolume(vol);
 			}
 			ImGui::Separator();
-			ImGui::Checkbox("Use Boot ROM", &use_boot);
+			ImGui::MenuItem("Use Boot ROM", "", &use_boot);
 			if(ImGui::RadioButton("Original", !custom_boot))
 				custom_boot = false;
 			if(ImGui::RadioButton("Custom", custom_boot))
