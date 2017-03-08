@@ -16,10 +16,10 @@ public:
 	
 	enum Flag : word_t
 	{
-		Zero = 0x80,		///< Last result was 0x00
-		Negative = 0x40,	///< Last operation was a substraction
-		HalfCarry = 0x20,	///< Last result was > 0x0F
-		Carry = 0x10		///< Last result was > 0xFF or < 0x00
+		Zero      = 0x80,		///< Last result was 0x00
+		Negative  = 0x40,	    ///< Last operation was a substraction
+		HalfCarry = 0x20,	    ///< Last result was > 0x0F
+		Carry     = 0x10		///< Last result was > 0xFF or < 0x00
 	};
 
 	size_t  frame_cycles = 0;
@@ -140,10 +140,10 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	// Cycles management
 	
-	unsigned int	_clock_cycles = 0;			///< Clock cycles since reset
-	unsigned int	_clock_instr_cycles = 0;	///< Clock cycles of the last instruction
-	unsigned int	_divider_register = 0;		///< Cycles not yet counted in DIV
-	unsigned int	_timer_counter = 0;			///< Cycles not yet counted in TIMA
+	unsigned int _clock_cycles = 0;			///< Clock cycles since reset
+	unsigned int _clock_instr_cycles = 0;	///< Clock cycles of the last instruction
+	unsigned int _divider_register = 0;		///< Cycles not yet counted in DIV
+	unsigned int _timer_counter = 0;		///< Cycles not yet counted in TIMA
 	
 	inline void add_cycles(unsigned int c);
 	
@@ -218,6 +218,8 @@ inline void LR35902::exec_interrupt(MMU::InterruptFlag i, addr_t addr)
 
 inline void LR35902::update_timing()
 {
+	_clock_cycles += _clock_instr_cycles;
+	
 	// Updates at 16384Hz, which is ClockRate / 256. (Affected by double speed mode)
 	_divider_register += _clock_instr_cycles;
 	if(_divider_register >= 256)
@@ -233,12 +235,13 @@ inline void LR35902::update_timing()
 	if(TAC & 0b100) // Is TIMA timer enabled?
 	{
 		_timer_counter += _clock_instr_cycles;
-		unsigned int tac_divisor = 1026; // case 0b00
+		unsigned int tac_divisor = 1024;
 		switch(TAC & 0b11) 
 		{
-			case 0b01: tac_divisor = 16; break;
-			case 0b10: tac_divisor = 64; break;
-			case 0b11: tac_divisor = 256;break;
+			case 0b00: tac_divisor = 1024; break;
+			case 0b01: tac_divisor = 16;   break;
+			case 0b10: tac_divisor = 64;   break;
+			case 0b11: tac_divisor = 256;  break;
 		}
 		while(_timer_counter >= tac_divisor)
 		{
