@@ -200,17 +200,14 @@ int main(int argc, char* argv[])
 		
 		if(!debug)
 		{
+			double gameboy_time = 0;
 			if(real_speed)
-			{
-				double gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
-				double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
-				if(diff > 0)
-					sf::sleep(sf::seconds(diff));
-			} else if(max_speed_factor > 0) {
-				double gameboy_time = double(elapsed_cycles) / cpu.ClockRate / max_speed_factor;
-				double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
+				gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
+			else if(max_speed_factor > 0)
+				gameboy_time = double(elapsed_cycles) / cpu.ClockRate / max_speed_factor;
+			double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
+			if(diff > 0)
 				sf::sleep(sf::seconds(diff));
-			}
 		}
 		
 		if(!debug || step)
