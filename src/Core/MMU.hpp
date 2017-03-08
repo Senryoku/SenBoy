@@ -285,7 +285,7 @@ inline void	MMU::write(addr_t addr, word_t value)
 			_mem[Register::LY] = 0;
 			break;
 		case Register::DIV: // DIV reset when written to
-			_mem[DIV] = 0;
+			_mem[Register::DIV] = 0;
 			break;
 		case Register::DMA: // Initialize DMA transfer
 			init_dma(value);

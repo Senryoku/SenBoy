@@ -216,33 +216,41 @@ inline void LR35902::exec_interrupt(MMU::InterruptFlag i, addr_t addr)
 	_halt = false;
 }
 
-
 inline void LR35902::update_timing()
 {
-	// Updates at 16384Hz, which is ClockRate / 256.
+	// Updates at 16384Hz, which is ClockRate / 256. (Affected by double speed mode)
 	_divider_register += _clock_instr_cycles;
 	if(_divider_register >= 256)
 	{
 		_divider_register -= 256;
 		_mmu->rw(MMU::DIV)++;
 	}
-
-	_timer_counter += _clock_instr_cycles;
-	word_t TAC = _mmu->read(MMU::TAC);
-	unsigned int tac_divisor = 1026;
-	if((TAC & 0b11) == 0b01) tac_divisor = 16;
-	if((TAC & 0b11) == 0b10) tac_divisor = 64;
-	if((TAC & 0b11) == 0b11) tac_divisor = 256;
-	while((TAC & 0b100) && _timer_counter >= tac_divisor)
+	
+	// TAC: Timer Control
+	// Bit 2   : Timer Enable
+	// Bit 1-0 : Select clock diviser (16 to 1024)
+	const word_t TAC = _mmu->read(MMU::TAC);
+	if(TAC & 0b100) // Is TIMA timer enabled?
 	{
-		_timer_counter -= tac_divisor;
-		if(_mmu->read(MMU::TIMA) != 0xFF)
+		_timer_counter += _clock_instr_cycles;
+		unsigned int tac_divisor = 1026; // case 0b00
+		switch(TAC & 0b11) 
 		{
-			_mmu->rw(MMU::TIMA)++;
-		} else {
-			_mmu->rw(MMU::TIMA) = _mmu->read(MMU::TMA);
-			// Interrupt
-			_mmu->rw(MMU::IF) |= MMU::TimerOverflow;
+			case 0b01: tac_divisor = 16; break;
+			case 0b10: tac_divisor = 64; break;
+			case 0b11: tac_divisor = 256;break;
+		}
+		while(_timer_counter >= tac_divisor)
+		{
+			_timer_counter -= tac_divisor;
+			if(_mmu->read(MMU::TIMA) != 0xFF)
+			{
+				_mmu->rw(MMU::TIMA)++;
+			} else {
+				_mmu->rw(MMU::TIMA) = _mmu->read(MMU::TMA);
+				// Request the timer interrupt
+				_mmu->rw(MMU::IF) |= MMU::TimerOverflow;
+			}
 		}
 	}
 }

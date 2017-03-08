@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
 			
 			if(post_process)
 			{
-				for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremely basic, LCDs don't work like this.
+				for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremely basic, LCDs doesn't work like this.
 					screen_buffer[i] = (1.0f - blend_speed) * screen_buffer[i] + blend_speed * gpu.get_screen()[i];
 				gameboy_screen.update(reinterpret_cast<const uint8_t*>(screen_buffer.get()));
 			} else {
