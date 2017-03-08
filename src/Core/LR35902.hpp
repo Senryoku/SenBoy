@@ -243,7 +243,7 @@ inline void LR35902::update_timing()
 			case 0b10: tac_divisor = 64;   break;
 			case 0b11: tac_divisor = 256;  break;
 		}
-		while(_timer_counter >= tac_divisor)
+		if(_timer_counter >= tac_divisor)
 		{
 			_timer_counter -= tac_divisor;
 			if(_mmu->read(MMU::TIMA) != 0xFF)
@@ -260,21 +260,22 @@ inline void LR35902::update_timing()
 
 inline void LR35902::check_interrupts()
 {
-	word_t IF = _mmu->read(MMU::IF);
-	word_t IE = _mmu->read(MMU::IE);
+	const word_t IF = _mmu->read(MMU::IF);
+	const word_t IE = _mmu->read(MMU::IE);
+	auto waiting = [&] (MMU::InterruptFlag f) { return (IE & f) && (IF & f); };
 	if(IF & IE) // An enabled interrupt is waiting
 	{
 		// Check each interrupt in order of priority.
 		// If requested and enabled, push current PC, jump and clear flag.
-		if(IF & MMU::VBlank) {
+		if(waiting(MMU::VBlank)) {
 			exec_interrupt(MMU::VBlank, 0x0040);
-		} else if(IF & MMU::LCDSTAT) {
+		} else if(waiting(MMU::LCDSTAT)) {
 			exec_interrupt(MMU::LCDSTAT, 0x0048);
-		} else if(IF & MMU::TimerOverflow) {
+		} else if(waiting(MMU::TimerOverflow)) {
 			exec_interrupt(MMU::TimerOverflow, 0x0050);
-		} else if(IF & MMU::TransferComplete) {
+		} else if(waiting(MMU::TransferComplete)) {
 			exec_interrupt(MMU::TransferComplete, 0x0058);
-		} else if(IF & MMU::Transition) {
+		} else if(waiting(MMU::Transition)) {
 			exec_interrupt(MMU::Transition, 0x0060);
 		}
 	}
