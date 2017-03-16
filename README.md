@@ -51,6 +51,9 @@ Up				| Up Arrow
 Down			| Down Arrow
 Left			| Left Arrow
 Right			| Right Arrow
+----------------|--------------
+Turbo A			| V, X on Gamepad
+Turbo B			| B, Y on Gamepad
 
 When SenBoy is running, the following shortcuts are available:
 

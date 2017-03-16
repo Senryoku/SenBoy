@@ -996,8 +996,28 @@ bool callback_button(auto button, auto key)
 	return sf::Keyboard::isKeyPressed(key);
 }
 
-bool input_a()      { return callback_button(0, sf::Keyboard::F); }
-bool input_b()      { return callback_button(1, sf::Keyboard::G); }
+bool input_a()
+{
+	static bool turbo = false;
+	if(callback_button(2, sf::Keyboard::V))
+	{
+		turbo = !turbo;
+		return turbo;
+	}
+	return callback_button(0, sf::Keyboard::F);
+}
+
+bool input_b()
+{
+	static bool turbo = false;
+	if(callback_button(3, sf::Keyboard::B))
+	{
+		turbo = !turbo;
+		return turbo;
+	}
+	return callback_button(1, sf::Keyboard::G);
+}
+
 bool input_select() { return callback_button(6, sf::Keyboard::H); }
 bool input_start()  { return callback_button(7, sf::Keyboard::J); }
 
