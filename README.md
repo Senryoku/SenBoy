@@ -4,7 +4,7 @@ GameBoy (Color) emulator.
 
 Emulation still has a few quirks (see issues), but [compatibility](https://github.com/Senryoku/SenBoy/wiki/Compatibility) is pretty good. This was developed as a side project and is by no means finished or polished.
 
-A web version (of v0.94) compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
+A web version (of 9008d9f679005bfa690076703999d9bd3d20eebd) compiled to javascript via emscripten is available at http://senryoku.github.io/SenBoyWeb/. 
 
 ## Screenshots
 
@@ -51,7 +51,6 @@ Up				| Up Arrow
 Down			| Down Arrow
 Left			| Left Arrow
 Right			| Right Arrow
-----------------|--------------
 Turbo A			| V, X on Gamepad
 Turbo B			| B, Y on Gamepad
 
@@ -63,6 +62,7 @@ Escape/Enter	| Show/Hide GUI
 Backspace		| Reset
 Space			| Advance one instruction (in debug)
 M				| Toggle Real Speed
+RB (Joystick)   | Unlock framerate (hold)
 D 				| Toggle Debugging (Halt Execution)
 L				| Advance one frame
 N				| Clear all breakpoints
@@ -75,7 +75,6 @@ Ctrl+Q   		| Quit
 
 ## TODO
 * Gameboy Color Mode
-  * Debugging (Crash in Pokemon Crystal? See Issues)
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
 * Application debugging (See Issues)
 * (Other Mappers? What popular games uses other mappers than MBC1/3/5?)

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(SenBoy)
-set(SenBoy_VERSION_MAJOR 0)
-set(SenBoy_VERSION_MINOR 93)
+set(SenBoy_VERSION_MAJOR 1)
+set(SenBoy_VERSION_MINOR 0)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 
