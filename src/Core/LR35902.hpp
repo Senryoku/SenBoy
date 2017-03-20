@@ -243,7 +243,7 @@ inline void LR35902::update_timing()
 			case 0b10: tac_divisor = 64;   break;
 			case 0b11: tac_divisor = 256;  break;
 		}
-		if(_timer_counter >= tac_divisor)
+		while(_timer_counter >= tac_divisor)
 		{
 			_timer_counter -= tac_divisor;
 			if(_mmu->read(MMU::TIMA) != 0xFF)
