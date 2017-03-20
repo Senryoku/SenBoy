@@ -48,21 +48,14 @@ CMakeFiles/*
 CMakeCache.txt
 cmake_install.cmake
 Makefile
-data/bios.bin
-data/bios.gb
 Makefile
 *~
 saves/*.sav
 movies/
-data/gbc_bios.bin
 gb/*
 gbc/*
-data/97d3585f6b5e7b5730f9cb1ab5f31192.34250.png
-data/Game_Boy_Color_(logo).svg
-data/gb_logo.xcf
-data/Border.xcf
+data/*
 src/LibRetro.cpp
-SenBoy 0.92.zip
 imgui.ini
 *.tmp
-SenBoy 0.93.zip
+releases/*
