@@ -262,22 +262,21 @@ inline void LR35902::check_interrupts()
 {
 	const word_t IF = _mmu->read(MMU::IF);
 	const word_t IE = _mmu->read(MMU::IE);
-	auto waiting = [&] (MMU::InterruptFlag f) { return (IE & f) && (IF & f); };
-	if(IF & IE) // An enabled interrupt is waiting
+	const word_t WaitingInt = IE & IF;
+	if(WaitingInt) // An enabled interrupt is waiting
 	{
 		// Check each interrupt in order of priority.
 		// If requested and enabled, push current PC, jump and clear flag.
-		if(waiting(MMU::VBlank)) {
+		if(WaitingInt & MMU::VBlank)
 			exec_interrupt(MMU::VBlank, 0x0040);
-		} else if(waiting(MMU::LCDSTAT)) {
+		else if(WaitingInt & MMU::LCDSTAT)
 			exec_interrupt(MMU::LCDSTAT, 0x0048);
-		} else if(waiting(MMU::TimerOverflow)) {
+		else if(WaitingInt & MMU::TimerOverflow)
 			exec_interrupt(MMU::TimerOverflow, 0x0050);
-		} else if(waiting(MMU::TransferComplete)) {
+		else if(WaitingInt & MMU::TransferComplete)
 			exec_interrupt(MMU::TransferComplete, 0x0058);
-		} else if(waiting(MMU::Transition)) {
+		else if(WaitingInt & MMU::Transition)
 			exec_interrupt(MMU::Transition, 0x0060);
-		}
 	}
 }
 
