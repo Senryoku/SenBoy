@@ -123,7 +123,7 @@ private:
 	
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
-	inline void set(Flag m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
+	inline void set(Flag m, bool b = true)   { _f = b ? (_f | m) : (_f & ~m); }
 	inline void set(word_t m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
 	
 	// APU Intercept

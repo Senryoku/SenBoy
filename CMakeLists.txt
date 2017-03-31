@@ -80,6 +80,7 @@ endif(NOT OPENGL_FOUND)
 target_link_libraries(${EXECUTABLE_NAME} ${OPENGL_LIBRARIES})
 
 # Detect and add SFML
+set(SFML_ROOT "D:/Source/_Others/SFML" CACHE PATH "SFML root folder")
 set(SFML_STATIC_LIBRARIES OFF CACHE BOOL "Statically link SFML")
 # Manually statically link pthreads
 if(SFML_STATIC_LIBRARIES)

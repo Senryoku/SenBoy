@@ -319,7 +319,7 @@ void LR35902::execute()
 						case 0x2F: instr_cpl(); break;
 						case 0x3F: instr_ccf(); break;
 						default:
-							std::cerr << "Unknown opcode: 0x" << std::hex << (int) opcode << std::endl;
+							std::cerr << "Unknown opcode: " << Hexa8(opcode) << std::endl;
 							break;
 					}
 				}
@@ -433,8 +433,7 @@ void LR35902::execute()
 						case 0xEE: instr_xor(read(_pc++)); break;
 						case 0xFE: instr_cp(read(_pc++)); break;
 						default:
-							instr_nop();
-							std::cerr << "Unknown opcode: 0x" << std::hex << (int) opcode << std::endl;
+							std::cerr << "Unknown opcode: " << Hexa(opcode) << std::endl;
 							break;
 					}
 				}
