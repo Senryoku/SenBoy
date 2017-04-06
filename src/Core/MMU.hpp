@@ -111,7 +111,7 @@ public:
 	
 	inline word_t read(addr_t addr) const;
 	inline word_t read(Register reg) const;
-	inline word_t& rw(Register reg);
+	inline word_t& rw_reg(Register reg);
 	inline word_t read_vram(word_t bank, addr_t addr);
 	inline addr_t read16(addr_t addr);
 	
@@ -130,7 +130,7 @@ public:
 	/// Loads a custom boot room
 	void load_senboot();
 	
-	inline void key_down(word_t type, word_t key) { rw(IF) |= Transition; }
+	inline void key_down(word_t type, word_t key) { rw_reg(IF) |= Transition; }
 	inline void key_up(word_t type, word_t key) {}
 	
 	/// CGB Only - Check if a HDMA transfer is pending (should be called once during each HBlank)
@@ -144,7 +144,6 @@ private:
 	word_t*		_wram[8];		///< Switchable bank of working RAM (CGB Only)
 	word_t*		_vram_bank1;	///< VRAM Bank 1 (Bank 0 is in _mem)
 	
-	inline word_t& rw(addr_t addr);
 	void init_dma(word_t val);
 	void update_joypad(word_t value);
 	
@@ -180,27 +179,46 @@ inline bool MMU::cgb_mode() const
 
 inline word_t MMU::read(addr_t addr) const
 {
-	if((addr < 0x0100 || in_range(addr, 0x200, 0x08FF)) && read(0xFF50) == 0x00) // Internal ROM (~BIOS)
-		return _mem[addr];
-	else if(addr < 0x8000)												 	// 2 * 16kB ROM Banks
-		return static_cast<word_t>(_cartridge->read(addr));
-	else if(cgb_mode() && _mem[VBK] != 0 && in_range(addr, 0x8000, 0xA000))	// Switchable VRAM
-		return _vram_bank1[addr - 0x8000];
-	else if(in_range(addr, 0xA000, 0xC000))									// External RAM
-		return _cartridge->read(addr);
-	else if(in_range(addr, 0xC000, 0xD000) && cgb_mode())					// CGB Mode - Working RAM Bank 0
-		return _wram[0][addr - 0xC000];
-	else if(in_range(addr, 0xD000, 0xE000) && cgb_mode())					// CGB Mode - Working RAM
-		return _wram[get_wram_bank()][addr - 0xD000];
-	else if(in_range(addr, 0xE000, 0xFE00))									// Internal RAM mirror
-		return _mem[addr - 0x2000];
-	else if(addr == BGPD)													// Background Palette Data
-		return read_bg_palette_data();
-	else if(addr == OBPD)													// Sprite Palette Data
-		return read_sprite_palette_data();
-	else																	// Internal RAM (or unused)
-		return _mem[addr];
+	switch(addr & 0xF000)
+	{
+		case 0x0000:
+			if((addr < 0x0100 || in_range(addr, 0x200, 0x08FF)) && read(0xFF50) == 0x00) // Internal ROM (~BIOS)
+				return _mem[addr];
+		case 0x1000:
+		case 0x2000:
+		case 0x3000:
+		case 0x4000:
+		case 0x5000:
+		case 0x6000:
+		case 0x7000:										 	                         // 2 * 16kB ROM Banks
+			return static_cast<word_t>(_cartridge->read(addr));                          // 0x0000 - 0x8000
+		case 0x8000:
+		case 0x9000:
+			if(cgb_mode() && _mem[VBK] != 0)	                                         // Switchable VRAM
+				return _vram_bank1[addr - 0x8000];
+			break;
+		case 0xA000:
+		case 0xB000:								                                     // External RAM
+			return _cartridge->read(addr);
+		case 0xC000:	
+			if(cgb_mode())					                                             // CGB Mode - Working RAM Bank 0
+				return _wram[0][addr - 0xC000];
+			break;
+		case 0xD000:		
+			if(cgb_mode())					                                             // CGB Mode - Working RAM
+				return _wram[get_wram_bank()][addr - 0xD000];
+			break;
+		case 0xE000:
+		case 0xF000:
+			if(addr < 0xFE00)								                             // Internal RAM mirror
+				return _mem[addr - 0x2000];
+			if(addr == BGPD)													         // Background Palette Data
+				return read_bg_palette_data();
+			if(addr == OBPD)													         // Sprite Palette Data
+				return read_sprite_palette_data();
+	}
 	
+	return _mem[addr];                                                                   // Internal RAM (or unused)
 }
 
 inline word_t MMU::read(Register reg) const
@@ -208,28 +226,7 @@ inline word_t MMU::read(Register reg) const
 	return _mem[reg];
 }
 
-inline word_t& MMU::rw(addr_t addr)
-{
-	if(addr < 0x8000) { // 2 * 16kB ROM Banks - Not writable !
-		std::cerr << "Error: Tried to r/w to " << Hexa(addr) << ", which is ROM! Use write instead." << std::endl;
-		return _mem[0x0100]; // Dummy value.
-	} else if(cgb_mode() && read(VBK) != 0 && in_range(addr, 0x8000, 0xA000)) { // Switchable VRAM
-		return _vram_bank1[addr - 0x8000];
-	} else if(in_range(addr, 0xC000, 0xD000) && cgb_mode()) { // CGB Mode - Working RAM Bank 0
-		return _wram[0][addr - 0xC000];
-	} else if(in_range(addr, 0xD000, 0xE000) && cgb_mode()) { // CGB Mode - Working RAM
-		return _wram[get_wram_bank()][addr - 0xD000];
-	} else if(in_range(addr, 0xA000, 0xC000)) { // External RAM
-		std::cerr << "Error: Tried to r/w to " << Hexa(addr) << ", which is ExternalRAM! Use write instead." << std::endl;
-		return _mem[0x0100];
-	} else if(in_range(addr, 0xE000, 0xFE00)) { // Internal RAM mirror
-		return _mem[addr - 0x2000];
-	} else { // Internal RAM (or unused)
-		return _mem[addr];
-	}
-}
-
-inline word_t& MMU::rw(Register reg)
+inline word_t& MMU::rw_reg(Register reg)
 {
 	return _mem[reg];
 }
@@ -251,17 +248,42 @@ inline addr_t MMU::read16(addr_t addr)
 
 inline void	MMU::write(addr_t addr, word_t value)
 {
-	if(addr < 0x8000) // Memory Banks management
+	switch(addr & 0xF000)
+	{
+	case 0x0000:
+	case 0x1000:
+	case 0x2000:
+	case 0x3000:
+	case 0x4000:
+	case 0x5000:
+	case 0x6000:
+	case 0x7000: // Memory Banks management (0x0000-0x8000)
 		_cartridge->write(addr, value);
-	else if(cgb_mode() && read(VBK) != 0 && in_range(addr, 0x8000, 0xA000)) // Switchable VRAM
-		_vram_bank1[addr - 0x8000] = value;
-	else if(in_range(addr, 0xA000, 0xC000)) // External RAM
+		break;
+	case 0x8000:
+	case 0x9000: // Switchable VRAM
+		if(cgb_mode() && read(VBK) != 0) 
+			_vram_bank1[addr - 0x8000] = value;
+		else 
+			_mem[addr] = value;
+		break;
+	case 0xA000:
+	case 0xB000: // External RAM
 		_cartridge->write(addr, value);
-	else if(in_range(addr, 0xC000, 0xD000) && cgb_mode()) // CGB Mode - Working RAM Bank 0
-		_wram[0][addr - 0xC000] = value;
-	else if(in_range(addr, 0xD000, 0xE000) && cgb_mode()) // CGB Mode - Switchable WRAM Banks
-		_wram[get_wram_bank()][addr - 0xD000] = value;
-	else
+		break;
+	case 0xC000: // CGB Mode - Working RAM Bank 0
+		if(cgb_mode()) 
+			_wram[0][addr - 0xC000] = value;
+		else 
+			_mem[addr] = value;
+		break;
+	case 0xD000: // CGB Mode - Switchable WRAM Banks
+		if(cgb_mode()) 
+			_wram[get_wram_bank()][addr - 0xD000] = value;
+		else 
+			_mem[addr] = value;
+		break;
+	case 0xF000:
 		switch(addr)
 		{
 		case Register::STAT: // Bits 0, 1 & 2 are read only
@@ -312,6 +334,10 @@ inline void	MMU::write(addr_t addr, word_t value)
 			_mem[addr] = value;
 			break;
 		}
+		break;
+	default:
+		_mem[addr] = value;
+	}
 }
 
 inline void	MMU::write16(addr_t addr, addr_t value)

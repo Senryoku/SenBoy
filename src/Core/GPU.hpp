@@ -9,9 +9,9 @@
 class GPU
 {
 public:
-	const word_t ScreenWidth = 160;
-	const word_t ScreenHeight = 144;
-	const word_t Colors[4] = {255, 192, 96, 0};
+	static constexpr word_t ScreenWidth = 160;
+	static constexpr word_t ScreenHeight = 144;
+	static constexpr word_t Colors[4] = {255, 192, 96, 0};
 	
 	enum Mode : word_t
 	{
@@ -82,13 +82,13 @@ public:
 	inline word_t get_bg_color(word_t val) const { return Colors[(get_bgp() >> (val << 1)) & 3]; }
 	
 	inline const color_t* get_screen() const { return _screen.get(); }
-	inline word_t& get_scroll_x() const { return _mmu->rw(MMU::Register::SCX); }
-	inline word_t& get_scroll_y() const { return _mmu->rw(MMU::Register::SCY); }
-	inline word_t& get_bgp() const { return _mmu->rw(MMU::Register::BGP); }
-	inline word_t& get_lcdc() const { return _mmu->rw(MMU::Register::LCDC); }
-	inline word_t& get_lcdstat() const { return _mmu->rw(MMU::Register::STAT); }
-	inline word_t& get_line() const { return _mmu->rw(MMU::Register::LY); }
-	inline word_t& get_lyc() const { return _mmu->rw(MMU::Register::LYC); }
+	inline word_t& get_scroll_x()      const { return _mmu->rw_reg(MMU::Register::SCX); }
+	inline word_t& get_scroll_y()      const { return _mmu->rw_reg(MMU::Register::SCY); }
+	inline word_t& get_bgp()           const { return _mmu->rw_reg(MMU::Register::BGP); }
+	inline word_t& get_lcdc()          const { return _mmu->rw_reg(MMU::Register::LCDC); }
+	inline word_t& get_lcdstat()       const { return _mmu->rw_reg(MMU::Register::STAT); }
+	inline word_t& get_line()          const { return _mmu->rw_reg(MMU::Register::LY); }
+	inline word_t& get_lyc()           const { return _mmu->rw_reg(MMU::Register::LYC); }
 	
 private:
 	MMU* const					_mmu;
@@ -137,5 +137,5 @@ inline void GPU::palette_translation(word_t l, word_t h, word_t& r0, word_t& r1)
 inline void GPU::exec_stat_interrupt(LCDStatus m)
 {
 	if((get_lcdstat() & m))
-		_mmu->rw(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
+		_mmu->rw_reg(MMU::Register::IF) |= MMU::InterruptFlag::LCDSTAT;
 }

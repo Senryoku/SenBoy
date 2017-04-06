@@ -23,7 +23,6 @@ public:
 	};
 
 	size_t  frame_cycles = 0;
-	bool 	emulate_halt_bug = false; ///< @todo Debug
 	
 	LR35902(MMU& _mmu, Gb_Apu& _apu);
 	~LR35902() =default;
@@ -212,7 +211,7 @@ inline void LR35902::exec_interrupt(MMU::InterruptFlag i, addr_t addr)
 	_pc = addr;
 	_ime = false;
 	add_cycles(20);
-	_mmu->rw(MMU::IF) &= ~i;
+	_mmu->rw_reg(MMU::IF) &= ~i;
 	_halt = false;
 }
 
@@ -225,7 +224,7 @@ inline void LR35902::update_timing()
 	if(_divider_register >= 256)
 	{
 		_divider_register -= 256;
-		_mmu->rw(MMU::DIV)++;
+		++_mmu->rw_reg(MMU::DIV);
 	}
 	
 	// TAC: Timer Control
@@ -248,11 +247,11 @@ inline void LR35902::update_timing()
 			_timer_counter -= tac_divisor;
 			if(_mmu->read(MMU::TIMA) != 0xFF)
 			{
-				_mmu->rw(MMU::TIMA)++;
+				++_mmu->rw_reg(MMU::TIMA);
 			} else {
-				_mmu->rw(MMU::TIMA) = _mmu->read(MMU::TMA);
+				_mmu->rw_reg(MMU::TIMA) = _mmu->read(MMU::TMA);
 				// Request the timer interrupt
-				_mmu->rw(MMU::IF) |= MMU::TimerOverflow;
+				_mmu->rw_reg(MMU::IF) |= MMU::TimerOverflow;
 			}
 		}
 	}

@@ -2,6 +2,8 @@
 
 #include <list>
 
+constexpr word_t GPU::Colors[4];
+
 GPU::GPU(MMU& mmu) :
 	_mmu(&mmu),
 	_screen(new color_t[ScreenWidth * ScreenHeight])
@@ -59,7 +61,7 @@ void GPU::update_mode(bool render)
 			if(_cycles >= 204)
 			{
 				_cycles -= 204;
-				get_line()++;
+				++get_line();
 				if(get_line() < ScreenHeight)
 				{
 					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::OAM;
@@ -73,11 +75,11 @@ void GPU::update_mode(bool render)
 		case Mode::VBlank:
 		{
 			static bool fired_interrupt = false;
-			if(!fired_interrupt) { _mmu->rw(MMU::IF) |= MMU::VBlank; fired_interrupt = true; }
+			if(!fired_interrupt) { _mmu->rw_reg(MMU::IF) |= MMU::VBlank; fired_interrupt = true; }
 			if(_cycles >= 456)
 			{
 				_cycles -= 456;
-				get_line()++;
+				++get_line();
 				if(get_line() == 153) {
 					get_line() = 0; // 456 cycles at line 0 (instead of 153)
 				} else if(get_line() == 1) {
