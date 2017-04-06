@@ -29,6 +29,7 @@ bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
 bool frame_by_frame = true;
 bool real_speed = true;
+bool vsync = false;
 float max_speed_factor = 0.f;
 size_t sample_rate = 44100;	// Audio sample rate
 size_t frame_skip = 0;		// Increase for better performances.
@@ -92,12 +93,13 @@ char input_status;
 Analyser analyser;
 
 void help();
-void toggleFullscreen();
+void toggle_fullscreen();
 void setup_window();
 void gui();
 void handle_event(sf::Event event);
 void handle_event_debug(sf::Event event);
 void toggle_speed();
+void toggle_vsync();
 void reset();
 void load_empty_rom();
 void clear_breakpoints();
@@ -198,7 +200,9 @@ int main(int argc, char* argv[])
         while(window.pollEvent(event))
 			handle_event(event);
 		
-		if(!debug)
+		// Limits the speed to max_speed_factor when not using real_speed
+		// or to real_speed when not using vsync
+		if(!debug && (!real_speed || (real_speed && !vsync)))
 		{
 			double gameboy_time = 0;
 			if(real_speed)
@@ -209,7 +213,7 @@ int main(int argc, char* argv[])
 			if(diff > 0)
 				sf::sleep(sf::seconds(diff));
 		}
-		
+
 		if(!debug || step)
 		{
 			for(size_t i = 0; i < frame_skip + 1; ++i)
@@ -400,13 +404,16 @@ void gui()
 		{
 			bool tmp_fs = fullscreen;
 			if(ImGui::MenuItem("Fullscreen", "Alt+Enter", &tmp_fs))
-				toggleFullscreen();
+				toggle_fullscreen();
 			ImGui::MenuItem("Post-processing", "P", &post_process);
 			ImGui::Separator();
 			ImGui::MenuItem("Pause", "D", &debug);
 			bool tmp_rs = real_speed;
 			if(ImGui::MenuItem("Real Speed", "M", &tmp_rs))
 				toggle_speed();
+			bool tmp_vs = vsync;
+			if(ImGui::MenuItem("VSync", "V", &tmp_vs))
+				toggle_vsync();
 			if(ImGui::SliderFloat("Max Speed Factor", &max_speed_factor, 0.f, 5.0f, "%.1f"))
 			{
 				if(max_speed_factor < 0)
@@ -745,13 +752,14 @@ void handle_event(sf::Event event)
 		{
 			case sf::Keyboard::Escape: show_gui = !show_gui; break;
 			case sf::Keyboard::Space: step = true; break;
-			case sf::Keyboard::Return: if(event.key.alt) toggleFullscreen(); else show_gui = !show_gui; break;
+			case sf::Keyboard::Return: if(event.key.alt) toggle_fullscreen(); else show_gui = !show_gui; break;
 			case sf::Keyboard::BackSpace: reset(); break;
 			case sf::Keyboard::Add: modify_volume(10.0f); break;
 			case sf::Keyboard::Subtract: modify_volume(-10.0f); break;
 			case sf::Keyboard::D: toggle_debug(); break;
 			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
+			case sf::Keyboard::V: toggle_vsync(); break;
 			case sf::Keyboard::L: advance_frame(); break;
 			case sf::Keyboard::P: post_process = !post_process; break;
 			case sf::Keyboard::S: if(event.key.control) cartridge.save(); break;
@@ -787,12 +795,27 @@ void handle_event(sf::Event event)
 	}
 }
 
+void update_vsync()
+{
+	if(real_speed)
+		window.setVerticalSyncEnabled(vsync);
+	else
+	    window.setVerticalSyncEnabled(false);
+}
+
+void toggle_vsync()
+{
+	vsync = !vsync;
+	update_vsync();
+}
+
 void toggle_speed()
 {
 	real_speed = !real_speed;
+	update_vsync();
+
 	elapsed_cycles = 0;
 	timing_clock.restart();
-	log(real_speed ? "Running at real speed" : "Running as fast as possible");
 }
 
 void reset()
@@ -937,7 +960,7 @@ void update_tilemaps()
 	}
 }
 
-void toggleFullscreen()
+void toggle_fullscreen()
 {
 	fullscreen =! fullscreen;
 	window.close();
@@ -951,7 +974,7 @@ void setup_window()
 			"SenBoy", sf::Style::None); // Borderless Fullscreen : Way easier.
 	else
 		window.create(sf::VideoMode(667, 600), "SenBoy");
-	window.setVerticalSyncEnabled(false);
+	window.setVerticalSyncEnabled(vsync);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

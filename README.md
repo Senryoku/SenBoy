@@ -62,6 +62,7 @@ Escape/Enter	| Show/Hide GUI
 Backspace		| Reset
 Space			| Advance one instruction (in debug)
 M				| Toggle Real Speed
+V				| Toggle VSync (less precise but more stable timing solution, will only work correctly with a 60Hz refresh rate)
 RB (Joystick)   | Unlock framerate (hold)
 D 				| Toggle Debugging (Halt Execution)
 L				| Advance one frame
