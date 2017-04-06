@@ -75,7 +75,7 @@ public:
 		LCDSTAT				= 0x02,	// LCD Stat
 		TimerOverflow		= 0x04,	// Timer
 		TransferComplete	= 0x08,	// Serial
-		Transition			= 0x10,	// Joypad
+		Transition			= 0x10,	// Joypad (TODO: Emulate these interrupts? (rarely used))
 		All					= 0xFF
 	};
 	
@@ -131,7 +131,6 @@ public:
 	void load_senboot();
 	
 	inline void key_down(word_t type, word_t key) { rw_reg(IF) |= Transition; }
-	inline void key_up(word_t type, word_t key) {}
 	
 	/// CGB Only - Check if a HDMA transfer is pending (should be called once during each HBlank)
 	void check_hdma();

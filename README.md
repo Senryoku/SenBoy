@@ -75,6 +75,7 @@ Ctrl+S   		| Save (saves RAM to disk)
 Ctrl+Q   		| Quit
 
 ## TODO
+* Joypad interrupts: These are rarely used so I pretty much forgot to fix my implementation. What games uses them?
 * Gameboy Color Mode
   * DMG Games in CGB mode (Correct compatibility mode; some sprites disappears)
 * Application debugging (See Issues)

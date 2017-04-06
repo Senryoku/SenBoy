@@ -766,14 +766,9 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::Q: if(event.key.control) window.close(); break;
 			default: break;
 		}
-	} else if(event.type == sf::Event::JoystickButtonPressed) { // Joypad Interrupt
+	} else if(event.type == sf::Event::JoystickButtonPressed) {
 		switch(event.joystickButton.button)
 		{
-			case 0: mmu.key_down(MMU::Button, MMU::RightA); break;
-			case 2:
-			case 1: mmu.key_down(MMU::Button, MMU::LeftB); break;
-			case 6: mmu.key_down(MMU::Button, MMU::UpSelect); break;
-			case 7: mmu.key_down(MMU::Button, MMU::DownStart); break;
 			case 5: toggle_speed(); break;
 			default: break;
 		}
@@ -782,15 +777,6 @@ void handle_event(sf::Event event)
 		{
 			case 5: toggle_speed(); break;
 			default: break;
-		}
-	} else if (event.type == sf::Event::JoystickMoved) { // Joypad Interrupt
-		if (event.joystickMove.axis == sf::Joystick::X)
-		{
-			if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::RightA);
-			else if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::LeftB);
-		} else if (event.joystickMove.axis == sf::Joystick::Y) {
-			if(event.joystickMove.position > 50) mmu.key_down(MMU::Direction, MMU::UpSelect);
-			else if(event.joystickMove.position < -50) mmu.key_down(MMU::Direction, MMU::DownStart);
 		}
 	}
 }
