@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
 				if(diff > 0)
 					sf::sleep(sf::seconds(diff));
 			} else if(timing == BusyLoop) {
-				while(gameboy_time - timing_clock.getElapsedTime().asSeconds() > 0);
+				while(gameboy_time > timing_clock.getElapsedTime().asSeconds());
 			}
 		}
 
@@ -797,10 +797,7 @@ void handle_event(sf::Event event)
 
 void update_vsync()
 {
-	if(real_speed)
-		window.setVerticalSyncEnabled(timing == VSync ? true : false);
-	else
-	    window.setVerticalSyncEnabled(false);
+	window.setVerticalSyncEnabled(real_speed && timing == VSync);
 }
 
 void toggle_speed()
