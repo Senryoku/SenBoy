@@ -17,6 +17,13 @@
 
 #include <Analysis/Analyser.hpp>
 
+enum TimingMethod : int
+{
+	Sleep,
+	VSync,
+	BusyLoop
+};
+
 // Options
 bool fullscreen = false;
 bool post_process = false;
@@ -29,7 +36,7 @@ bool debug = false;			// Pause execution
 bool step = false;			// Step to next instruction (in debug)
 bool frame_by_frame = true;
 bool real_speed = true;
-bool vsync = false;
+int timing = BusyLoop;
 float max_speed_factor = 0.f;
 size_t sample_rate = 44100;	// Audio sample rate
 size_t frame_skip = 0;		// Increase for better performances.
@@ -99,7 +106,7 @@ void gui();
 void handle_event(sf::Event event);
 void handle_event_debug(sf::Event event);
 void toggle_speed();
-void toggle_vsync();
+void update_vsync();
 void reset();
 void load_empty_rom();
 void clear_breakpoints();
@@ -202,16 +209,21 @@ int main(int argc, char* argv[])
 		
 		// Limits the speed to max_speed_factor when not using real_speed
 		// or to real_speed when not using vsync
-		if(!debug && (!real_speed || (real_speed && !vsync)))
+		if(!debug && (!real_speed || (real_speed && timing != VSync)))
 		{
 			double gameboy_time = 0;
 			if(real_speed)
 				gameboy_time = double(elapsed_cycles) / cpu.ClockRate;
 			else if(max_speed_factor > 0)
 				gameboy_time = double(elapsed_cycles) / cpu.ClockRate / max_speed_factor;
-			double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
-			if(diff > 0)
-				sf::sleep(sf::seconds(diff));
+			if(timing == Sleep)
+			{
+				double diff = gameboy_time - timing_clock.getElapsedTime().asSeconds();
+				if(diff > 0)
+					sf::sleep(sf::seconds(diff));
+			} else if(timing == BusyLoop) {
+				while(gameboy_time - timing_clock.getElapsedTime().asSeconds() > 0);
+			}
 		}
 
 		if(!debug || step)
@@ -411,9 +423,12 @@ void gui()
 			bool tmp_rs = real_speed;
 			if(ImGui::MenuItem("Real Speed", "M", &tmp_rs))
 				toggle_speed();
-			bool tmp_vs = vsync;
-			if(ImGui::MenuItem("VSync", "V", &tmp_vs))
-				toggle_vsync();
+			if(ImGui::RadioButton("Fast (Sleep)", &timing, Sleep))
+				update_vsync();
+			if(ImGui::RadioButton("Stable (VSync)", &timing, VSync))
+				update_vsync();
+			if(ImGui::RadioButton("Precise (Busy Loop)", &timing, BusyLoop))
+				update_vsync();
 			if(ImGui::SliderFloat("Max Speed Factor", &max_speed_factor, 0.f, 5.0f, "%.1f"))
 			{
 				if(max_speed_factor < 0)
@@ -759,7 +774,6 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::D: toggle_debug(); break;
 			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
-			case sf::Keyboard::V: toggle_vsync(); break;
 			case sf::Keyboard::L: advance_frame(); break;
 			case sf::Keyboard::P: post_process = !post_process; break;
 			case sf::Keyboard::S: if(event.key.control) cartridge.save(); break;
@@ -784,15 +798,9 @@ void handle_event(sf::Event event)
 void update_vsync()
 {
 	if(real_speed)
-		window.setVerticalSyncEnabled(vsync);
+		window.setVerticalSyncEnabled(timing == VSync ? true : false);
 	else
 	    window.setVerticalSyncEnabled(false);
-}
-
-void toggle_vsync()
-{
-	vsync = !vsync;
-	update_vsync();
 }
 
 void toggle_speed()
@@ -960,7 +968,7 @@ void setup_window()
 			"SenBoy", sf::Style::None); // Borderless Fullscreen : Way easier.
 	else
 		window.create(sf::VideoMode(667, 600), "SenBoy");
-	window.setVerticalSyncEnabled(vsync);
+	update_vsync();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
