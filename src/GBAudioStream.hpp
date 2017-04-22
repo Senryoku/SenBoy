@@ -69,6 +69,9 @@ public:
 		_buff_max = buffer_size;
 	}
 	
+	const blip_sample_t* get_buffer() const { return _buffer; }
+	blip_sample_t*       get_buffer()       { return _buffer; }
+	
 private:
 	virtual bool onGetData(Chunk& data)
     {

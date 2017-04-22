@@ -664,6 +664,11 @@ void gui()
 		}
 		if(ImGui::CollapsingHeader("Memory"))
 		{
+			auto printable_ascii = [](char c) -> char {
+				if(c >= 32 && c < 128)
+					return c;
+				return '.';
+			};
 			ImGui::BeginChild("Memory##view", ImVec2(0,400));
 			ImGuiListClipper clipper(0x10000 / 0x8);
 			while(clipper.Step())
@@ -671,10 +676,14 @@ void gui()
 				addr_t addr = clipper.DisplayStart * 0x8;
 				for(int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
 				{
-					ImGui::Text("0x%04X: %02X %02X %02X %02X   %02X %02X %02X %02X", 
+					ImGui::Text("0x%04X: %02X %02X %02X %02X   %02X %02X %02X %02X   %c%c%c%c%c%c%c%c", 
 						addr, 
 						mmu.read(addr    ), mmu.read(addr + 1), mmu.read(addr + 2), mmu.read(addr + 3), 
-						mmu.read(addr + 4), mmu.read(addr + 5), mmu.read(addr + 6), mmu.read(addr + 7)
+						mmu.read(addr + 4), mmu.read(addr + 5), mmu.read(addr + 6), mmu.read(addr + 7),
+						printable_ascii(mmu.read(addr    )), printable_ascii(mmu.read(addr + 1)), 
+						printable_ascii(mmu.read(addr + 2)), printable_ascii(mmu.read(addr + 3)), 
+						printable_ascii(mmu.read(addr + 4)), printable_ascii(mmu.read(addr + 5)), 
+						printable_ascii(mmu.read(addr + 6)), printable_ascii(mmu.read(addr + 7))
 					);
 					addr += 0x8;
 				}
@@ -722,6 +731,15 @@ void gui()
 					}
 				}
 				ImGui::EndChild();
+			}
+		}
+		if(ImGui::CollapsingHeader("Sound"))
+		{
+			if(snd_buffer.get_buffer() != nullptr)
+			{
+				ImGui::PlotHistogram("Visualizer", [] (void* data, int idx) { 
+					return static_cast<float>(static_cast<blip_sample_t*>(data)[idx]); 
+				}, snd_buffer.get_buffer(), snd_buffer.buffer_size, 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(0, 100));
 			}
 		}
 		ImGui::End();
