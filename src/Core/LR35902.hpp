@@ -192,14 +192,14 @@ inline std::string LR35902::get_disassembly(addr_t addr) const
 	
 inline word_t LR35902::read(addr_t addr) const
 {
-	return Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr ?
+	return in_range(addr, Gb_Apu::start_addr, Gb_Apu::end_addr) ?
 		_apu->read_register(frame_cycles, addr) :
 		_mmu->read(addr);
 }
 
 inline void LR35902::write(addr_t addr, word_t value)
 {
-	if(Gb_Apu::start_addr <= addr && addr <= Gb_Apu::end_addr)
+	if(in_range(addr, Gb_Apu::start_addr, Gb_Apu::end_addr))
 		_apu->write_register(frame_cycles, addr, value);
 	else
 		_mmu->write(addr, value);
