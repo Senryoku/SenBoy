@@ -495,13 +495,13 @@ void gui()
 		if(root_path_str.size() > root_path_buf.size())
 			root_path_buf.resize(root_path_str.size() * 2);
 		std::copy(root_path_str.c_str(), root_path_str.c_str() + root_path_str.length() + 1, root_path_buf.begin());
-		if(ImGui::InputText("Root", root_path_buf.data(), 256))
+		if(ImGui::InputText("", root_path_buf.data(), 256))
 		{
 			fs::path tmp{root_path_buf.data()};	
 			std::error_code error;
 			auto canon = fs::canonical(tmp, error);
 			if(!error)
-				root_path.assign(canon);
+				root_path = canon;
 		}
 		ImGui::SameLine();
 		if(ImGui::Button("Parent"))
