@@ -489,8 +489,27 @@ void gui()
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.0, 0.0, 0.0, 0.0});
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3647, 0.3607, 0.7176, 1.0});
 		namespace fs = std::experimental::filesystem;
-		static char root_path[256] = ".";
-		ImGui::InputText("Root", root_path, 256);
+		static fs::path root_path{"."};
+		static std::vector<char> root_path_buf(256);
+		std::string root_path_str(root_path.string());
+		if(root_path_str.size() > root_path_buf.size())
+			root_path_buf.resize(root_path_str.size() * 2);
+		std::copy(root_path_str.c_str(), root_path_str.c_str() + root_path_str.length() + 1, root_path_buf.begin());
+		if(ImGui::InputText("Root", root_path_buf.data(), 256))
+		{
+			fs::path tmp{root_path_buf.data()};	
+			std::error_code error;
+			auto canon = fs::canonical(tmp, error);
+			if(!error)
+				root_path.assign(canon);
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("Parent"))
+			root_path = root_path.parent_path();
+		std::error_code error;
+		auto canon = fs::canonical(root_path, error);
+		if(!error)
+			root_path = canon;
 		auto p = explore(root_path, {".gb", ".gbc"});
 		if(!p.empty())
 		{
