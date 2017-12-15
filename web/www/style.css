@@ -1,0 +1,315 @@
+body
+{
+	font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+	
+	margin: auto;
+	text-align: center;
+	background-color: black;
+	color: white;
+	font-family: arial;
+	margin: 0;
+	padding: none;
+}
+
+h1
+{
+	font-size: 3em;
+	padding: 0em;
+	margin: 0.15em;
+}
+
+a
+{
+	color: #A0A0A0;
+	text-decoration: none;
+}
+
+a:hover
+{
+	color: #FFFFFF;
+}
+
+#global_container
+{
+	width: 1200px;
+	background: #191919;
+	display: block;
+	margin: auto;
+	padding: 1em;
+	
+	border-width: 1px;
+	border-style: solid;
+	border-color: #A0A0A0;
+	
+	border-radius: 8px;
+}
+
+.emscripten {
+	padding-right: 0;
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+}
+
+div.emscripten { text-align: center; }     
+ 
+div.emscripten_border {
+	border: 0px;
+	width: 100%;
+}
+
+#canvas_container
+{
+	width: 500px;
+	float:left;
+}
+
+/* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+canvas.emscripten {
+	width: 500px;
+	border: 0px none;
+	margin: auto;
+}
+
+.spinner {
+	height: 30px;
+	width: 30px;
+	margin: 0;
+	margin-top: 20px;
+	margin-left: 20px;
+	display: inline-block;
+	vertical-align: top;
+
+	-webkit-animation: rotation .8s linear infinite;
+	-moz-animation: rotation .8s linear infinite;
+	-o-animation: rotation .8s linear infinite;
+	animation: rotation 0.8s linear infinite;
+
+	border-left: 5px solid rgb(235, 235, 235);
+	border-right: 5px solid rgb(235, 235, 235);
+	border-bottom: 5px solid rgb(235, 235, 235);
+	border-top: 5px solid rgb(120, 120, 120);
+
+	border-radius: 100%;
+	background-color: rgb(189, 215, 46);
+}
+
+@-webkit-keyframes rotation {
+	from {-webkit-transform: rotate(0deg);}
+	to {-webkit-transform: rotate(360deg);}
+}
+@-moz-keyframes rotation {
+	from {-moz-transform: rotate(0deg);}
+	to {-moz-transform: rotate(360deg);}
+}
+@-o-keyframes rotation {
+	from {-o-transform: rotate(0deg);}
+	to {-o-transform: rotate(360deg);}
+}
+@keyframes rotation {
+	from {transform: rotate(0deg);}
+	to {transform: rotate(360deg);}
+}
+
+#status {
+	display: inline-block;
+	vertical-align: top;
+	margin-top: 30px;
+	margin-left: 20px;
+	font-weight: bold;
+	color: rgb(120, 120, 120);
+}
+
+#progress {
+	height: 20px;
+	width: 30px;
+}
+
+#header {
+}
+
+#InfoLeft {
+	position: relative;
+	float: left;
+	text-align: left;
+	width: calc(50% - 250px);
+	height: 500px;
+}
+
+#InfoLeft p
+{
+	padding-right: 25px;
+}
+
+#InfoRight {
+	position: relative;
+	float: right;
+	text-align: right;
+	width: calc(50% - 250px);
+	height: 500px;
+}
+
+#InfoRight p
+{
+	padding-left: 25px;
+}
+
+#controls {
+}
+
+#controls span
+{
+	margin-right: 5px;
+	margin-left: 5px;
+}
+
+#output {
+	width: 100%;
+	height: 200px;
+	max-width: 100%;
+	
+	border-left: 0px;
+	border-right: 0px;
+	display: block;
+	background-color: black;
+	color: white;
+	font-family: 'Lucida Console', Monaco, monospace;
+	outline: none;
+}
+
+.collapse
+{
+	max-height: 300px;
+	opacity: 1;
+	transition: opacity 0.5s, max-height 0.5s ease;
+}
+
+.collapse + input
+{
+	opacity: 0;
+	max-height: 0;
+	overflow: hidden;
+	transition: opacity 0.5s, max-height 0.5s ease;
+}
+
+.collapse + input + *
+{
+	opacity: 0;
+	max-height: 0;
+	overflow: hidden;
+	transition: opacity 0.5s, max-height 0.5s ease;
+}
+
+.collapse + input:checked + *
+{
+	max-height: 300px;
+	opacity: 1;
+	transition: opacity 0.5s, max-height 0.5s ease;
+}
+
+hr
+{
+	border: 0;
+	height: 1px;
+	margin: 150px;
+	margin-top: 10px;
+	margin-bottom: 0px;
+	background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(160, 160, 160, 0.75), rgba(0, 0, 0, 0));
+}
+
+input[type="checkbox"] {
+	transform:scale(2, 2);
+	margin-right: 0.5em;
+}
+
+input[type="button"] {
+    margin: 0 0.25em;
+    padding: 0.5em 1em;
+    display: inline;
+    background: #707070;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    text-shadow: 1px 1px #666;
+}
+
+input[type="button"]:hover {
+    background: #999;
+}
+
+select + input[type="button"] {
+    padding: 1px 5px;
+}
+
+.hidden
+{
+	display:none;
+}
+
+#gameboy {
+	width: 100%;
+	height: 100%;
+	
+	position: relative;
+	vertical-align:middle;
+}
+
+.fullscreen_inputs {
+	display: none;
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.fullscreen_inputs input[type="button"] {
+	padding: 0;
+	font-size: 2em;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+input[type="button"].dir {
+	border-radius: 0px;
+    -moz-border-radius: 0px;
+    -webkit-border-radius: 0px;
+	width: 2.5em;
+	height: 2.5em;
+	margin-left: 1.25em;
+	margin-right: 1.25em;
+}
+
+input[type="button"].gbbutton {
+    border-radius: 1.5em;
+    -moz-border-radius: 1.5em;
+    -webkit-border-radius: 1.5em;
+	width: 3em;
+	height: 3em;
+	margin-left: 1em;
+	margin-top: 2em;
+}
+
+input[type="button"].startselect {
+	margin-left: 1em;
+	width: 4em;
+	height: 1.5em;
+    border-radius: 1em;
+    -moz-border-radius: 1em;
+    -webkit-border-radius: 1em;
+}
+
+.fullscreen_inputs.input_left {
+	left: 2em;
+}
+
+.fullscreen_inputs.input_right {
+	right: 2em;
+}
+
+.fullscreen_inputs.input_bottom {
+	top: auto;
+	bottom: 2em;
+}

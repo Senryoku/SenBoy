@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>SenBoyWeb</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+  <body>
+	<h1>SenBoyWeb</h1>
+	<div id="global_container">
+	<span id='controls'>
+		<span>
+			<select id="dropdown-roms">
+				<option value="roms/cpu_instrs.gb">CPU Tests</option>
+				<option value="roms/GB Tic-Tac-Toe (PD) [a1].gb">GB Tic-Tac-Toe</option>
+				<option value="roms/pocket.gb">Pocket Demo</option>
+				<option value="roms/James Bond Demo (PD).gb">James Bond Demo</option>
+				<option value="roms/Witness, The (PD) [M].gb">The Witness</option>
+			</select>
+			<input type="button" id="server-roms" value="Load ROM">
+		</span>
+		<span><input type="button" id="load-rom" value="Upload ROM"><input class="hidden" type="file" id="file-input"></span>
+		<span><input type="button" id="sound-control" value="Toggle Sound"></span>
+		<!--<span><input type="button" id="toggle-bios" value="Toggle BootROM"></span>-->
+		<span><input type="button" id="save-ram" value="Save"></span>
+		<!--<span><input class="button" type="button" value="Fullscreen" onclick="Module.requestFullScreen(false, false)" id="Fullscreen"></span>-->
+		<span><input class="button" type="button" value="Fullscreen" id="Fullscreen"></span>
+		<span><label><input type="checkbox" value="onscreen_inputs" id="onscreen_inputs">OnScreen Inputs</label></span>
+		</span>
+	</span>
+	<hr />
+	<script type='text/javascript' src='js/loadrom.js'></script>
+	<script type='text/javascript' src='js/soundcontrol.js'></script>
+	<script type='text/javascript' src='js/bios.js'></script>
+	<script type='text/javascript' src='js/save.js'></script>
+
+    <div class="emscripten">
+		<div class="spinner" id='spinner'></div>
+		<div class="emscripten" id="status">Downloading...</div>
+		<progress value="0" max="100" id="progress" hidden=1></progress>
+    </div>
+    
+	<div class="emscripten_border">
+		<div id="InfoLeft">
+			<p>
+				Load a GameBoy or GameBoy Color ROM from the dropdown list with "Load ROM" or from your own computer with "Upload ROM".<br />
+				Enjoy!
+			</p>
+			
+			<div>
+				Controls:<br /> 
+				Go fullscreen on mobile to display onscreen buttons.<br />
+				On desktop, gamepad (standard bindings) or keyboard with:
+				<ul><li>E : A</li><li>R : B</li><li>T : Select</li><li>Y : Start</li><li>Arrows : DPad</ul>
+			</div>
+		</div>
+		<div id="canvas_container">
+			<div id="gameboy">
+				<div class="fullscreen_inputs input_left">
+					<input type="button" class="gbinput dir" id="Gameboy_Up_full" style="border-radius: 0.5em 0.5em 0 0;"
+						ontouchstart="simulateKeyEvent('keydown', 38, 0)" ontouchend="simulateKeyEvent('keyup', 38, 0)"
+						onmousedown="simulateKeyEvent('keydown', 38, 0)" onmouseup="simulateKeyEvent('keyup', 38, 0)" value="&#9650;">
+					<br />
+					<input type="button" class="gbinput dir" id="Gameboy_Left_full" style="border-radius: 0.5em 0 0 0.5em;"
+						ontouchstart="simulateKeyEvent('keydown', 37, 0)" ontouchend="simulateKeyEvent('keyup', 37, 0)"
+						onmousedown="simulateKeyEvent('keydown', 37, 0)" onmouseup="simulateKeyEvent('keyup', 37, 0)" value="&#9668;">
+					<input type="button" class="gbinput dir" id="Gameboy_Right_full" style="border-radius: 0 0.5em 0.5em 0;"
+						ontouchstart="simulateKeyEvent('keydown', 39, 0)" ontouchend="simulateKeyEvent('keyup', 39, 0)"
+						onmousedown="simulateKeyEvent('keydown', 39, 0)" onmouseup="simulateKeyEvent('keyup', 39, 0)" value="&#9658;">
+					<br />
+					<input type="button" class="gbinput dir" id="Gameboy_Down_full" style="border-radius: 0 0 0.5em 0.5em;"
+						ontouchstart="simulateKeyEvent('keydown', 40, 0)" ontouchend="simulateKeyEvent('keyup', 40, 0)"
+						onmousedown="simulateKeyEvent('keydown', 40, 0)" onmouseup="simulateKeyEvent('keyup', 40, 0)" value="&#9660;">
+				</div>
+				
+				<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+			
+				<div class="fullscreen_inputs input_right">
+					<input type="button" class="button gbinput gbbutton" id="Gameboy_B_full"
+						ontouchstart="simulateKeyEvent('keydown', 82, 'R')" ontouchend="simulateKeyEvent('keyup', 82, 'R')"
+						 onmousedown="simulateKeyEvent('keydown', 82, 'R')" onmouseup="simulateKeyEvent('keyup', 82, 'R')" value="B">
+					<input type="button" class="button gbinput gbbutton" id="Gameboy_A_full"
+						ontouchstart="simulateKeyEvent('keydown', 69, 'E')" ontouchend="simulateKeyEvent('keyup', 69, 'E')"
+						 onmousedown="simulateKeyEvent('keydown', 69, 'E')" onmouseup="simulateKeyEvent('keyup', 69, 'E')" value="A">
+				</div>
+				<div class="fullscreen_inputs input_right input_bottom">
+					<input type="button" class="gbinput startselect" id="Gameboy_Select_full" 
+						ontouchstart="simulateKeyEvent('keydown', 84, 'T')" ontouchend="simulateKeyEvent('keyup', 84, 'T')"
+						onmousedown="simulateKeyEvent('keydown', 84, 'T')" onmouseup="simulateKeyEvent('keyup', 84, 'T')" value="Select">
+					<input type="button" class="gbinput startselect" id="Gameboy_Start_full" 
+						ontouchstart="simulateKeyEvent('keydown', 89, 'Y')" ontouchend="simulateKeyEvent('keyup', 89, 'Y')"
+						onmousedown="simulateKeyEvent('keydown', 89, 'Y')" onmouseup="simulateKeyEvent('keyup', 89, 'Y')" value="Start">
+				</div>
+			</div>
+		</div>
+		<div id="InfoRight">
+			<p>
+				GameBoy emulator by <a href="http://senryoku.github.io">Senryoku</a>
+			</p>
+			<p>
+				Written in C++ and compiled to javascript via Emscripten. Based on <a href="https://github.com/Senryoku/SenBoy">SenBoy</a> v1.0.
+				Port is far from perfect, it was merely a way to get some experience with emscripten.
+				More informations: <a href="https://github.com/Senryoku/SenBoy">GitHub</a>
+			</p>
+			
+			<p>
+				Use the <a onclick="save_ram()">Save</a> button before closing this page to ensure that your progress is correctly saved!<br />
+				<small>(Note: This only emulates the save capabilities of the loaded cartridge. It will behave as if you turned off your console, this is not a complete save state.)</small>
+			</p>
+		</div>
+		<div style="clear:both;"></div>
+    </div>
+	<label class="collapse" for="_1">➤ Display console</label>
+	<input id="_1" type="checkbox">
+    <textarea id="output" rows="8"></textarea>
+
+    <script type='text/javascript'>
+		function is_touch_device() {
+			return (('ontouchstart' in window)
+				|| (navigator.MaxTouchPoints > 0)
+				|| (navigator.msMaxTouchPoints > 0));
+		}
+		
+      var statusElement = document.getElementById('status');
+      var progressElement = document.getElementById('progress');
+      var spinnerElement = document.getElementById('spinner');
+	  
+	  window.onblur = function () { stop_sound() };
+	  window.onfocus = function () { check_sound() };
+	  
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          var element = document.getElementById('output');
+          if (element) element.value = ''; // clear browser cache
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight; // focus on bottom
+            }
+          };
+        })(),
+        printErr: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          if (0) { // XXX disabled for safety typeof dump == 'function') {
+            dump(text + '\n'); // fast, straight to the real console
+          } else {
+            console.error(text);
+          }
+        },
+        canvas: (function() {
+          var canvas = document.getElementById('canvas');
+	  
+          // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+          // application robust, you may want to override this behavior before shipping!
+          // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+          canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+          return canvas;
+        })(),
+        setStatus: function(text) {
+          if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+          if (text === Module.setStatus.text) return;
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          var now = Date.now();
+          if (m && now - Date.now() < 30) return; // if this is a progress update, skip it if too soon
+          if (m) {
+            text = m[1];
+            progressElement.value = parseInt(m[2])*100;
+            progressElement.max = parseInt(m[4])*100;
+            progressElement.hidden = false;
+            spinnerElement.hidden = false;
+          } else {
+            progressElement.value = null;
+            progressElement.max = null;
+            progressElement.hidden = true;
+            if (!text) spinnerElement.style.display = 'none';
+          }
+          statusElement.innerHTML = text;
+        },
+        totalDependencies: 0,
+        monitorRunDependencies: function(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        }
+      };
+      Module.setStatus('Downloading...');
+      window.onerror = function(event) {
+        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
+        Module.setStatus('Exception thrown, see JavaScript console');
+        spinnerElement.style.display = 'none';
+        Module.setStatus = function(text) {
+          if (text) Module.printErr('[post-exception status] ' + text);
+        };
+      };
+	  
+		function simulateKeyEvent(eventType, keyCode, charCode) {
+			var e = document.createEventObject ? document.createEventObject() : document.createEvent("Events");
+			if (e.initEvent) e.initEvent(eventType, true, true);
+
+			e.keyCode = keyCode;
+			e.which = keyCode;
+			e.charCode = charCode;
+
+			// Dispatch directly to Emscripten's html5.h API (use this if page uses emscripten/html5.h event handling):
+			if (typeof JSEvents !== 'undefined' && JSEvents.eventHandlers && JSEvents.eventHandlers.length > 0) {
+				for(var i = 0; i < JSEvents.eventHandlers.length; ++i) {
+					if ((JSEvents.eventHandlers[i].target == Module['canvas'] || JSEvents.eventHandlers[i].target == window)
+						&& JSEvents.eventHandlers[i].eventTypeString == eventType) {
+						JSEvents.eventHandlers[i].handlerFunc(e);
+					}
+				}
+			} else {
+				// Dispatch to browser for real (use this if page uses SDL or something else for event handling):
+				Module['canvas'].dispatchEvent ? Module['canvas'].dispatchEvent(e) : Module['canvas'].fireEvent("on" + eventType, e);
+			}
+			//console.log("Simulate " + eventType + " " + keyCode); 
+		}
+		
+		// https://github.com/sindresorhus/screenfull.js/
+		(function () {
+			'use strict';
+
+			var isCommonjs = typeof module !== 'undefined' && module.exports;
+			var keyboardAllowed = typeof Element !== 'undefined' && 'ALLOW_KEYBOARD_INPUT' in Element;
+
+			var fn = (function () {
+				var val;
+				var valLength;
+
+				var fnMap = [
+					[
+						'requestFullscreen',
+						'exitFullscreen',
+						'fullscreenElement',
+						'fullscreenEnabled',
+						'fullscreenchange',
+						'fullscreenerror'
+					],
+					// new WebKit
+					[
+						'webkitRequestFullscreen',
+						'webkitExitFullscreen',
+						'webkitFullscreenElement',
+						'webkitFullscreenEnabled',
+						'webkitfullscreenchange',
+						'webkitfullscreenerror'
+
+					],
+					// old WebKit (Safari 5.1)
+					[
+						'webkitRequestFullScreen',
+						'webkitCancelFullScreen',
+						'webkitCurrentFullScreenElement',
+						'webkitCancelFullScreen',
+						'webkitfullscreenchange',
+						'webkitfullscreenerror'
+
+					],
+					[
+						'mozRequestFullScreen',
+						'mozCancelFullScreen',
+						'mozFullScreenElement',
+						'mozFullScreenEnabled',
+						'mozfullscreenchange',
+						'mozfullscreenerror'
+					],
+					[
+						'msRequestFullscreen',
+						'msExitFullscreen',
+						'msFullscreenElement',
+						'msFullscreenEnabled',
+						'MSFullscreenChange',
+						'MSFullscreenError'
+					]
+				];
+
+				var i = 0;
+				var l = fnMap.length;
+				var ret = {};
+
+				for (; i < l; i++) {
+					val = fnMap[i];
+					if (val && val[1] in document) {
+						for (i = 0, valLength = val.length; i < valLength; i++) {
+							ret[fnMap[0][i]] = val[i];
+						}
+						return ret;
+					}
+				}
+
+				return false;
+			})();
+
+			var screenfull = {
+				request: function (elem) {
+					var request = fn.requestFullscreen;
+
+					elem = elem || document.documentElement;
+
+					// Work around Safari 5.1 bug: reports support for
+					// keyboard in fullscreen even though it doesn't.
+					// Browser sniffing, since the alternative with
+					// setTimeout is even worse.
+					if (/5\.1[\.\d]* Safari/.test(navigator.userAgent)) {
+						elem[request]();
+					} else {
+						elem[request](keyboardAllowed && Element.ALLOW_KEYBOARD_INPUT);
+					}
+				},
+				exit: function () {
+					document[fn.exitFullscreen]();
+				},
+				toggle: function (elem) {
+					if (this.isFullscreen) {
+						this.exit();
+					} else {
+						this.request(elem);
+					}
+				},
+				raw: fn
+			};
+
+			if (!fn) {
+				if (isCommonjs) {
+					module.exports = false;
+				} else {
+					window.screenfull = false;
+				}
+
+				return;
+			}
+
+			Object.defineProperties(screenfull, {
+				isFullscreen: {
+					get: function () {
+						return Boolean(document[fn.fullscreenElement]);
+					}
+				},
+				element: {
+					enumerable: true,
+					get: function () {
+						return document[fn.fullscreenElement];
+					}
+				},
+				enabled: {
+					enumerable: true,
+					get: function () {
+						// Coerce to boolean in case of old WebKit
+						return Boolean(document[fn.fullscreenEnabled]);
+					}
+				}
+			});
+
+			if (isCommonjs) {
+				module.exports = screenfull;
+			} else {
+				window.screenfull = screenfull;
+			}
+		})();
+	
+		const fullscreen_elem = document.getElementById('gameboy');
+		const canvas = document.getElementById('canvas');
+
+		document.getElementById('Fullscreen').addEventListener('click', () => {
+			if (screenfull.enabled) {
+				screenfull.request(fullscreen_elem);
+			}
+		});
+		
+		// Prevents double tap (zoom) on mobile.
+		var tapedTwice = false;
+		function tapHandler(event) {
+			if(!tapedTwice) {
+				tapedTwice = true;
+				setTimeout( function() { tapedTwice = false; }, 300 );
+				return false;
+			}
+			event.preventDefault();
+		}
+ 
+		var fullscreen_inputs = document.getElementsByClassName("fullscreen_inputs");
+		var fullscreen_gbinputs = document.getElementsByClassName("gbinput");
+		var use_onscreen_inputs = document.getElementById("onscreen_inputs");
+		use_onscreen_inputs.checked = is_touch_device();
+
+		if (screenfull.enabled) {
+			document.addEventListener(screenfull.raw.fullscreenchange, () => {
+				console.log(screenfull.isFullscreen ? 'Going Fullscreen' : 'Leaving Fullscreen');
+				canvas.style.width = screenfull.isFullscreen ? "auto" : "500px";
+				canvas.style.height = screenfull.isFullscreen ? "100%" : "auto";
+				
+				if(use_onscreen_inputs.checked)
+				{
+					for (i = 0; i < fullscreen_inputs.length; i++) {
+						fullscreen_inputs[i].style.display = screenfull.isFullscreen ? "block" : "none";
+					}
+					
+					if(screenfull.isFullscreen) {
+						fullscreen_elem.addEventListener("touchstart", tapHandler);
+						
+						document.addEventListener('touchstart',handle_touchstart, false);
+						document.addEventListener('touchmove', handle_touchmove, false);
+						document.addEventListener('touchend', handle_touchend, false);
+					} else {
+						fullscreen_elem.removeEventListener("touchstart", tapHandler);
+						
+						document.removeEventListener('touchstart',handle_touchstart, false);
+						document.removeEventListener('touchmove', handle_touchmove, false);
+						document.removeEventListener('touchend', handle_touchend, false);
+					}
+				}
+				
+				if(!screenfull.isFullscreen)
+					save_ram();
+			});
+		}
+		
+		// Handles switching between buttons without lifting fingers
+		var touched_element = null;
+		
+		function handle_touchstart(event) {
+			//event.preventDefault();
+			var touch = event.touches[0];
+			var over = document.elementFromPoint(touch.pageX, touch.pageY);
+			if(Array.indexOf(fullscreen_gbinputs, over) != -1)
+			{
+				touched_element = over;
+			}
+		}
+		
+		function handle_touchmove(event) {
+			//event.preventDefault();
+			var touch = event.touches[0];
+			var over = document.elementFromPoint(touch.pageX,touch.pageY);
+			if (touched_element != null && touched_element !== over) {
+				var e = document.createEvent('TouchEvent');
+				e.initTouchEvent("touchend", true, true, window, 1, false, false, false, false, null, null, null);
+				touched_element.dispatchEvent(e);
+				touched_element = null;
+			}
+				
+			if(touched_element !== over && Array.indexOf(fullscreen_gbinputs, over) != -1)
+			{
+				var start = document.createEvent('TouchEvent');
+				start.initTouchEvent("touchstart", true, true, window, 1, false, false, false, false, event.touches, null, null);
+				over.dispatchEvent(start)
+			}
+		}
+		
+		function handle_touchend(event) {
+			if(touched_element !== null && touched_element)
+			{
+				var tmp = touched_element;
+				touched_element = null;
+				var e = document.createEvent('TouchEvent');
+				e.initTouchEvent("touchend", true, true, window, 1, false, false, false, false, null, null, null);
+				tmp.dispatchEvent(e);
+			}
+		}
+    </script>
+    <script>
+
+        (function() {
+          var memoryInitializer = 'index.html.mem';
+          if (typeof Module['locateFile'] === 'function') {
+            memoryInitializer = Module['locateFile'](memoryInitializer);
+          } else if (Module['memoryInitializerPrefixURL']) {
+            memoryInitializer = Module['memoryInitializerPrefixURL'] + memoryInitializer;
+          }
+          var xhr = Module['memoryInitializerRequest'] = new XMLHttpRequest();
+          xhr.open('GET', memoryInitializer, true);
+          xhr.responseType = 'arraybuffer';
+          xhr.send(null);
+        })();
+
+        var script = document.createElement('script');
+        script.src = "index.js";
+        document.body.appendChild(script);
+	</script>
+  </body>
+</html>
