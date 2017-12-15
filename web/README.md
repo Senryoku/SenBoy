@@ -9,4 +9,4 @@ Try it there:
 * http://senryoku.github.io/SenBoyWeb/
 * http://senryoku.github.io/SenBoyWasm/
 
-The ROM file contains Public Domain roms (not my own work), packed using an emscripten tool (but I can't remember the exact details tbh).
+The www/roms folder contains Public Domain roms (not my own work), referenced in the ROM file (but I can't remember the exact details tbh).
