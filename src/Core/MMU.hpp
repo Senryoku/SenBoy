@@ -183,21 +183,21 @@ inline word_t MMU::read(addr_t addr) const
 	case 0x0000:
 		if((addr < 0x0100 || in_range(addr, 0x200, 0x08FF)) && read(0xFF50) == 0x00) // Internal ROM (~BIOS)
 			return _mem[addr];
-		[[fallthrough]] // Other adresses in this range are redirected to the cartridge
-	case 0x1000: [[fallthrough]]
-	case 0x2000: [[fallthrough]]
-	case 0x3000: [[fallthrough]]
-	case 0x4000: [[fallthrough]]
-	case 0x5000: [[fallthrough]]
-	case 0x6000: [[fallthrough]]
+		[[fallthrough]]; // Other adresses in this range are redirected to the cartridge
+	case 0x1000: [[fallthrough]];
+	case 0x2000: [[fallthrough]];
+	case 0x3000: [[fallthrough]];
+	case 0x4000: [[fallthrough]];
+	case 0x5000: [[fallthrough]];
+	case 0x6000: [[fallthrough]];
 	case 0x7000:    									 	                         // 2 * 16kB ROM Banks
 		return static_cast<word_t>(_cartridge->read(addr));                          // 0x0000 - 0x8000
-	case 0x8000: [[fallthrough]]
+	case 0x8000: [[fallthrough]];
 	case 0x9000:
 		if(cgb_mode() && _mem[VBK] != 0)	                                         // Switchable VRAM
 			return _vram_bank1[addr - 0x8000];
 		break;
-	case 0xA000: [[fallthrough]]
+	case 0xA000: [[fallthrough]];
 	case 0xB000:								                                     // External RAM
 		return _cartridge->read(addr);
 	case 0xC000:	
@@ -208,7 +208,7 @@ inline word_t MMU::read(addr_t addr) const
 		if(cgb_mode())					                                             // CGB Mode - Working RAM
 			return _wram[get_wram_bank()][addr - 0xD000];
 		break;
-	case 0xE000: [[fallthrough]]
+	case 0xE000: [[fallthrough]];
 	case 0xF000:
 		if(addr < 0xFE00)								                             // Internal RAM mirror
 			return _mem[addr - 0x2000];
@@ -250,24 +250,24 @@ inline void	MMU::write(addr_t addr, word_t value)
 {
 	switch(addr & 0xF000)
 	{
-	case 0x0000: [[fallthrough]]
-	case 0x1000: [[fallthrough]]
-	case 0x2000: [[fallthrough]]
-	case 0x3000: [[fallthrough]]
-	case 0x4000: [[fallthrough]]
-	case 0x5000: [[fallthrough]]
-	case 0x6000: [[fallthrough]]
+	case 0x0000: [[fallthrough]];
+	case 0x1000: [[fallthrough]];
+	case 0x2000: [[fallthrough]];
+	case 0x3000: [[fallthrough]];
+	case 0x4000: [[fallthrough]];
+	case 0x5000: [[fallthrough]];
+	case 0x6000: [[fallthrough]];
 	case 0x7000: // Memory Banks management (0x0000-0x8000)
 		_cartridge->write(addr, value);
 		break;
-	case 0x8000: [[fallthrough]]
+	case 0x8000: [[fallthrough]];
 	case 0x9000: // Switchable VRAM
 		if(cgb_mode() && read(VBK) != 0) 
 			_vram_bank1[addr - 0x8000] = value;
 		else 
 			_mem[addr] = value;
 		break;
-	case 0xA000: [[fallthrough]]
+	case 0xA000: [[fallthrough]];
 	case 0xB000: // External RAM
 		_cartridge->write(addr, value);
 		break;
