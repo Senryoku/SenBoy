@@ -59,3 +59,4 @@ src/LibRetro.cpp
 imgui.ini
 *.tmp
 releases/*
+build/*
