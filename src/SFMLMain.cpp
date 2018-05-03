@@ -17,6 +17,8 @@
 
 #include <Analysis/Analyser.hpp>
 
+#include <miniz.h>
+
 enum TimingMethod : int
 {
 	Sleep,
@@ -510,7 +512,7 @@ void gui()
 		auto canon = fs::canonical(root_path, error);
 		if(!error)
 			root_path = canon;
-		auto p = explore(root_path, {".gb", ".gbc"});
+		auto p = explore(root_path, {".gb", ".gbc", ".zip"});
 		if(!p.empty())
 		{
 			cartridge.save();
@@ -877,11 +879,68 @@ void reset()
 		load_empty_rom();
 		mmu.load_senboot();
 	} else {
-		if(!cartridge.load(rom_path))
-		{
-			log("Error loading '", rom_path, "', using an empty ROM instead.");
-			load_empty_rom();
+		// Extract file extension
+		auto period_pos = rom_path.find_last_of('.');
+		std::string ext;
+		if(period_pos != std::string::npos)
+			ext = rom_path.substr(rom_path.find_last_of('.') + 1, rom_path.size());
+		// Seems to be a zip archive
+		if(period_pos != std::string::npos && ext == "zip") {
+			log("Exploring '", rom_path, "'...");
+			mz_zip_archive zip_archive;
+			memset(&zip_archive, 0, sizeof(zip_archive));
+			auto status = mz_zip_reader_init_file(&zip_archive, rom_path.c_str(), 0);
+			if (!status)
+			{
+				log("Error reading '", rom_path, "' zip archive (code: ", status, "), using an empty ROM instead.");
+				load_empty_rom();
+			} else {
+				bool loaded = false;
+				// Search the files in the archive for a suitable ROM
+				for(int i = 0; i < static_cast<int>(mz_zip_reader_get_num_files(&zip_archive)); ++i)
+				{
+					mz_zip_archive_file_stat file_stat;
+					// Get file name
+					if(!mz_zip_reader_file_stat(&zip_archive, i, &file_stat))
+						continue;
+					std::string filename{file_stat.m_filename};
+					auto period_pos = filename.find_last_of('.');
+					std::string ext;
+					if(period_pos != std::string::npos)
+						ext = filename.substr(filename.find_last_of('.') + 1, filename.size());
+					if(ext == "gb" || ext == "gbc")
+					{
+						log("ROM Found! Unzipping '", filename, "'...");
+						std::vector<char> buffer(file_stat.m_uncomp_size);
+						if(!mz_zip_reader_extract_file_to_mem(&zip_archive, file_stat.m_filename, buffer.data(), file_stat.m_uncomp_size, 0))
+						{
+							log("Error extracting file (mz_zip_reader_extract_file_to_mem).");
+						} else {
+							if(!cartridge.load_from_memory(reinterpret_cast<unsigned char*>(buffer.data()), buffer.size())) 
+							{
+								log("Error loading '", filename, "' from '", rom_path, "', continuing...");
+							} else {
+								loaded = true;
+								break;
+							}
+						}
+					}
+				}
+				if(!loaded)
+				{
+					log("No suitable ROM found in '", rom_path, "', loading an empty ROM instead...");
+					load_empty_rom();
+				}
+			}
+			mz_zip_reader_end(&zip_archive);
+		} else { // Directly load the file into memory
+			if(!cartridge.load(rom_path))
+			{
+				log("Error loading '", rom_path, "', using an empty ROM instead.");
+				load_empty_rom();
+			}
 		}
+		
 		if(use_boot)
 		{
 			if(custom_boot)

@@ -14,6 +14,7 @@ include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_SOURCE_DIR}/ext/Gb_Snd_Emu-0.1.4")
 include_directories("${CMAKE_SOURCE_DIR}/ext/imgui")
 include_directories("${CMAKE_SOURCE_DIR}/ext/imgui-sfml")
+include_directories("${CMAKE_SOURCE_DIR}/ext/miniz")
 
 set(CMAKE_CXX_FLAGS			"${CMAKE_CXX_FLAGS} --std=c++14 -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -Og -gdwarf-2")
@@ -38,6 +39,9 @@ set(IMGUI_SOURCES
 	ext/imgui/imgui_draw.cpp
 	ext/imgui-sfml/imgui-SFML.cpp
 )
+set(MINIZ_SOURCES
+	ext/miniz/miniz.c
+)
 set(SOURCES
 	${APU_SOURCES}
 	src/Tools/Config.cpp
@@ -47,7 +51,7 @@ set(SOURCES
 	src/Core/LR35902InstrData.cpp
 	src/Core/LR35902.cpp
 )
-add_executable(${EXECUTABLE_NAME} ${SOURCES} ${IMGUI_SOURCES} src/SFMLMain.cpp)
+add_executable(${EXECUTABLE_NAME} ${SOURCES} ${IMGUI_SOURCES} ${MINIZ_SOURCES} src/SFMLMain.cpp)
 
 add_executable(CPUPerfTest ${SOURCES} test/CPUPerfTest.cpp)
 	
