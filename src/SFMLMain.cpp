@@ -332,6 +332,7 @@ int main(int argc, char* argv[])
     }
 	
 	cartridge.save();
+	ImGui::SFML::Shutdown();
 }
 
 void help()
@@ -348,7 +349,7 @@ void help()
 			//<< "  $ms \"path\" \tSpecify a output movie file." << std::endl
 			<< "  --dmg \tForce DMG mode." << std::endl
 			<< "  --cgb \tForce CGB mode." << std::endl
-			<< " See the README.txt for more and up-to-date informations." << std::endl
+			<< " See the README.md for more and up-to-date informations." << std::endl
 			<< "------------------------------------------------------------" << std::endl;
 }
 
@@ -389,7 +390,7 @@ std::experimental::filesystem::path explore(const std::experimental::filesystem:
 
 void gui()
 {
-	ImGui::SFML::Update(delta_clock.restart());
+	ImGui::SFML::Update(window, delta_clock.restart());
 	
 	static bool log_window = false;
 	static bool gameboy_window = false;
@@ -479,8 +480,20 @@ void gui()
 	if(ImGui::BeginPopupModal("About"))
 	{
 		ImGui::Text("SenBoy - A basic GameBoy emulator by Senryoku.");
-		ImGui::Text("https://github.com/Senryoku/SenBoy");
-		if(ImGui::Button("Ok"))
+		ImGui::Text("Homepage: https://github.com/Senryoku/SenBoy");
+		ImGui::Separator();
+		ImGui::Text("Special thanks");
+		ImGui::Indent();
+		ImGui::Text("Blargg (GB Sound library)");
+		ImGui::Text("gbdev.gg8.se");
+		ImGui::Text("The SFML team");
+		ImGui::Text("Omar Cornut (dear imgui)");
+		ImGui::Text("Elias Daler (imgui-sfml)");
+		ImGui::Unindent();
+		ImGui::Text("(More information in Readme.md)");
+		ImGui::Spacing();
+		ImGui::SetCursorPosX((ImGui::GetWindowSize().x - 60)/2);
+		if(ImGui::Button("Ok", ImVec2(60, 0)))
 			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
@@ -766,7 +779,7 @@ void gui()
 		ImGui::End();
 	}
     
-	ImGui::Render();
+	ImGui::SFML::Render(window);
 }
 
 void clear_breakpoints()
