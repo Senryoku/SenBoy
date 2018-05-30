@@ -22,22 +22,11 @@ matrix:
       env: COMPILER=g++-6
 
 before_install:
-  - |
-    if [ $TRAVIS_OS_NAME = osx ]; then
-        brew install sfml &&
-        sfml=(/usr/local/Cellar/sfml/2.*) && export sfml="$sfml"
-    else
-        curl -L "https://github.com/SFML/SFML/archive/2.5.0.tar.gz" | tar -xz &&
-        cd SFML* &&
-        cmake . &&
-        make &&
-        export sfml="$(pwd)" &&
-        export {LD_,}LIBRARY_PATH="$sfml/lib" &&
-        cd ..
-    fi
+  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install -y libsfml-dev; fi
+  - if [ $TRAVIS_OS_NAME == osx ]; then brew update && brew install sfml; fi
 
 script: 
   - cmake --version
-  - cmake -DSFML_ROOT="$sfml" -DCMAKE_CXX_COMPILER=$COMPILER .
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .
   - make
   
