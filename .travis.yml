@@ -27,7 +27,7 @@ before_install:
         brew install sfml &&
         sfml=(/usr/local/Cellar/sfml/2.*) && export sfml="$sfml"
     else
-        curl -L "https://github.com/SFML/SFML/archive/$SFML.tar.gz" | tar -xz &&
+        curl -L "https://github.com/SFML/SFML/archive/2.5.0.tar.gz" | tar -xz &&
         cd SFML* &&
         cmake . &&
         make &&
