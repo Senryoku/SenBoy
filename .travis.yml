@@ -23,7 +23,7 @@ matrix:
 
 before_install:
   - |
-    if [ $TRAVIS_OS_NAME == linux ]
+    if [ $TRAVIS_OS_NAME == linux ];
         curl -L "https://github.com/SFML/SFML/archive/2.5.0.tar.gz" | tar -xz &&
         cd SFML* &&
         cmake . &&
