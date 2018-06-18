@@ -49,7 +49,7 @@ before_install:
   - mkdir install
   - mkdir build
   - cd build
-  - cmake -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_INSTALL_FRAMEWORK_PREFIX=../install ..
+  - cmake ..
   - make
   - make install
   - cd ../../
