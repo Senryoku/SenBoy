@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>SenBoyWeb</title>
-    <link rel="stylesheet" type="text/css" href="style.css" />
-  </head>
-  <body>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>SenBoyWeb</title>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
 	<h1>SenBoyWeb</h1>
 	<div id="global_container">
 	<span id='controls'>
@@ -470,22 +470,22 @@
     </script>
     <script>
 
-        (function() {
-          var memoryInitializer = 'index.html.mem';
-          if (typeof Module['locateFile'] === 'function') {
-            memoryInitializer = Module['locateFile'](memoryInitializer);
-          } else if (Module['memoryInitializerPrefixURL']) {
-            memoryInitializer = Module['memoryInitializerPrefixURL'] + memoryInitializer;
-          }
-          var xhr = Module['memoryInitializerRequest'] = new XMLHttpRequest();
-          xhr.open('GET', memoryInitializer, true);
-          xhr.responseType = 'arraybuffer';
-          xhr.send(null);
-        })();
+		(function() {
+			var memoryInitializer = 'index.html.mem';
+			if (typeof Module['locateFile'] === 'function') {
+				memoryInitializer = Module['locateFile'](memoryInitializer);
+			} else if (Module['memoryInitializerPrefixURL']) {
+				memoryInitializer = Module['memoryInitializerPrefixURL'] + memoryInitializer;
+			}
+			var xhr = Module['memoryInitializerRequest'] = new XMLHttpRequest();
+			xhr.open('GET', memoryInitializer, true);
+			xhr.responseType = 'arraybuffer';
+			xhr.send(null);
+		})();
 
-        var script = document.createElement('script');
-        script.src = "index.js";
-        document.body.appendChild(script);
+		var script = document.createElement('script');
+		script.src = "index.js";
+		document.body.appendChild(script);
 	</script>
-  </body>
+</body>
 </html>
