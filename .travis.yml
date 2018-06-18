@@ -49,13 +49,13 @@ before_install:
   - mkdir install
   - mkdir build
   - cd build
-  - cmake ..
+  - cmake -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_INSTALL_FRAMEWORK_PREFIX=../install -DSFML_BUILD_FRAMEWORKS=FALSE -DBUILD_SHARED_LIBS=TRUE ..
   - make
   - make install
   - cd ../../
 
 script: 
   - cmake --version
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER -DSFML_ROOT=./SFML/install -DCMAKE_MODULE_PATH=./SFML/cmake/Modules .
   - make
   
