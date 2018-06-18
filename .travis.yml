@@ -10,6 +10,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libudev-dev
             - libopenal-dev
             - libjpeg-dev
             - libxrandr-dev
@@ -22,6 +23,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libudev-dev
             - libopenal-dev
             - libjpeg-dev
             - libxrandr-dev
