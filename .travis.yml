@@ -10,11 +10,17 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - libudev-dev
-            - libopenal-dev
-            - libjpeg-dev
+            - build-essential
+            - libpthread-stubs0-dev
+            - libgl1-mesa-dev
+            - libx11-dev
             - libxrandr-dev
             - libfreetype6-dev
+            - libglew-dev
+            - libjpeg-dev
+            - libsndfile1-dev
+            - libopenal-dev
+            - libudev-dev
             - g++-5
       env: COMPILER=g++-5
     - compiler: gcc
@@ -23,11 +29,17 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - libudev-dev
-            - libopenal-dev
-            - libjpeg-dev
+            - build-essential
+            - libpthread-stubs0-dev
+            - libgl1-mesa-dev
+            - libx11-dev
             - libxrandr-dev
             - libfreetype6-dev
+            - libglew-dev
+            - libjpeg-dev
+            - libsndfile1-dev
+            - libopenal-dev
+            - libudev-dev
             - g++-6
       env: COMPILER=g++-6
 
