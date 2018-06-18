@@ -10,6 +10,10 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libopenal-dev
+            - libjpeg-dev
+            - libxrandr-dev
+            - libfreetype6-dev
             - g++-5
       env: COMPILER=g++-5
     - compiler: gcc
@@ -18,6 +22,10 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libopenal-dev
+            - libjpeg-dev
+            - libxrandr-dev
+            - libfreetype6-dev
             - g++-6
       env: COMPILER=g++-6
 
