@@ -123,6 +123,63 @@ void set_input_callbacks();
 template<typename T, typename ...Args>
 void log(const T& msg, Args... args);
 
+///// Discord RPC
+
+#ifdef USE_DISCORD_RPC
+
+#include <discord_rpc.h>
+
+void updatePresence()
+{
+	DiscordRichPresence discordPresence;
+	memset(&discordPresence, 0, sizeof(discordPresence));
+	if(rom_path == "") {
+		discordPresence.state = "Starting up...";
+	} else {
+		discordPresence.state = "Playing";
+		auto name_start = rom_path.find_last_of('/');;
+		auto period_pos = rom_path.find_last_of('.');
+		if(name_start == std::string::npos)
+			name_start = rom_path.find_last_of('\\');
+		if(name_start == std::string::npos || period_pos == std::string::npos) {
+			discordPresence.details = cartridge.getName().c_str();
+		} else {
+			std::string name = rom_path.substr(name_start + 1, period_pos - (name_start + 1));
+			discordPresence.details = name.c_str();
+		}
+	}
+	//discordPresence.endTimestamp = time(0) + 5 * 60;
+	discordPresence.largeImageKey = "default";
+	//discordPresence.smallImageKey = "ptb-small";
+	//discordPresence.partyId = "1234";
+	//discordPresence.partySize = 1;
+	//discordPresence.partyMax = 1;
+	//discordPresence.matchSecret = "4b2fdce12f639de8bfa7e3591b71a0d679d7c93f";
+	//discordPresence.spectateSecret = "e7eb30d2ee025ed05c71ea495f770b76454ee4e0";
+	discordPresence.instance = 1;
+	Discord_UpdatePresence(&discordPresence);
+}
+
+void initDiscord()
+{
+    DiscordEventHandlers handlers;
+    memset(&handlers, 0, sizeof(handlers));
+    //handlers.ready = handleDiscordReady;
+    //handlers.errored = handleDiscordError;
+    //handlers.disconnected = handleDiscordDisconnected;
+    //handlers.joinGame = handleDiscordJoinGame;
+    //handlers.spectateGame = handleDiscordSpectateGame;
+    //handlers.joinRequest = handleDiscordJoinRequest;
+
+    // Discord_Initialize(const char* applicationId, DiscordEventHandlers* handlers, int autoRegister, const char* optionalSteamId, int pipe)
+    Discord_Initialize("565505602898624524", &handlers, 1, "");
+	updatePresence();
+}
+
+#endif
+
+////////
+
 int main(int argc, char* argv[])
 {
 	// Command Line Options
@@ -200,6 +257,10 @@ int main(int argc, char* argv[])
 	cartridge.Log = log<const std::string&>;
 
 	///////////////////////////////////////////////////////////////////////////
+	
+#ifdef USE_DISCORD_RPC
+	initDiscord();
+#endif
 	
 	reset();
 	
@@ -332,6 +393,11 @@ int main(int argc, char* argv[])
     }
 	
 	cartridge.save();
+	
+#ifdef USE_DISCORD_RPC
+	Discord_Shutdown();
+#endif
+
 	ImGui::SFML::Shutdown();
 }
 
@@ -970,7 +1036,11 @@ void reset()
 	frame_count = 0;
 	
 	set_input_callbacks();
-	
+
+#ifdef USE_DISCORD_RPC
+		updatePresence();
+#endif
+
 	log("Reset");
 }
 	

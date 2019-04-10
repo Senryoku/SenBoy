@@ -60,3 +60,7 @@ imgui.ini
 *.tmp
 releases/*
 build/*
+web/www/GBRoms/
+web/www/screenshots/
+web/www/romlist.txt
+web/www/list.html

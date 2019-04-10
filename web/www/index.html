@@ -469,7 +469,6 @@
 		}
     </script>
     <script>
-
 		(function() {
 			var memoryInitializer = 'index.html.mem';
 			if (typeof Module['locateFile'] === 'function') {
@@ -478,6 +477,14 @@
 				memoryInitializer = Module['memoryInitializerPrefixURL'] + memoryInitializer;
 			}
 			var xhr = Module['memoryInitializerRequest'] = new XMLHttpRequest();
+			// Loads the specified rom via location.hash if there is one
+			xhr.onreadystatechange = function() {
+				if(window.location.hash && xhr.readyState == 4) {
+					//console.log(window.location.hash.substr(1));
+					setTimeout(function () { read_server_side_file("GBRoms/" + window.location.hash.substr(1)) }, 1000);
+					requestAnimationFrame(function () { read_server_side_file("GBRoms/" + window.location.hash.substr(1)) });
+				}
+			};
 			xhr.open('GET', memoryInitializer, true);
 			xhr.responseType = 'arraybuffer';
 			xhr.send(null);

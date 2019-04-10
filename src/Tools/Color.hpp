@@ -47,6 +47,12 @@ struct color_t
 		assert(val < 4);
 		return comp[val];
 	}
+	
+	inline word_t operator[](word_t val) const
+	{
+		assert(val < 4);
+		return comp[val];
+	}
 };
 
 inline color_t operator+(const color_t& c0, const color_t& c1)

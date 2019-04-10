@@ -1,0 +1,1 @@
+../../src/libdiscord-rpc.a -lpsapi -ladvapi32 -lgcc_eh -lgcc_eh -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

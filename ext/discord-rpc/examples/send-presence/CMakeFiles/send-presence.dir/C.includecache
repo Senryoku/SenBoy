@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+D:/Source/SenBoy/ext/discord-rpc/examples/send-presence/send-presence.c
+stdint.h
+-
+stdio.h
+-
+string.h
+-
+time.h
+-
+discord_rpc.h
+D:/Source/SenBoy/ext/discord-rpc/examples/send-presence/discord_rpc.h
+
+include/discord_rpc.h
+stdint.h
+-
+

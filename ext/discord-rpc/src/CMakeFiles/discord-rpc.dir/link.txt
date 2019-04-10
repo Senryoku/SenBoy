@@ -1,0 +1,2 @@
+C:\PROGRA~2\MINGW-~1\I686-7~1.0-P\mingw32\bin\ar.exe qc libdiscord-rpc.a  CMakeFiles/discord-rpc.dir/discord_rpc.cpp.obj CMakeFiles/discord-rpc.dir/rpc_connection.cpp.obj CMakeFiles/discord-rpc.dir/serialization.cpp.obj CMakeFiles/discord-rpc.dir/connection_win.cpp.obj CMakeFiles/discord-rpc.dir/discord_register_win.cpp.obj
+C:\PROGRA~2\MINGW-~1\I686-7~1.0-P\mingw32\bin\ranlib.exe libdiscord-rpc.a
