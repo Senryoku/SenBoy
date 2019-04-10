@@ -19,6 +19,7 @@ include_directories("${CMAKE_SOURCE_DIR}/ext/imgui-sfml")
 include_directories("${CMAKE_SOURCE_DIR}/ext/miniz")
 if(WITH_DISCORD_RPC)
 	add_definitions(-DUSE_DISCORD_RPC)
+	add_subdirectory("${CMAKE_SOURCE_DIR}/ext/discord-rpc/")
 	include_directories("${CMAKE_SOURCE_DIR}/ext/discord-rpc/include")
 endif()
 
