@@ -81,7 +81,6 @@ if(WIN32)
 	target_link_libraries(Screenshot stdc++fs KtmW32)
 else()
 	target_link_libraries(${EXECUTABLE_NAME} stdc++fs)
-	target_link_libraries(Screenshot stdc++fs KtmW32)
 endif()
 
 find_package(OpenGL REQUIRED)
