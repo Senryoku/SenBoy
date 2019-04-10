@@ -109,7 +109,7 @@ if(SFML_FOUND)
 endif()
 
 if(WITH_DISCORD_RPC)
-	target_link_libraries(${EXECUTABLE_NAME} ${CMAKE_SOURCE_DIR}/ext/discord-rpc/src/libdiscord-rpc.a)
+	target_link_libraries(${EXECUTABLE_NAME} discord-rpc)
 endif()
   
 # Install target
