@@ -156,7 +156,6 @@ void updatePresence()
 	//discordPresence.partyMax = 1;
 	//discordPresence.matchSecret = "4b2fdce12f639de8bfa7e3591b71a0d679d7c93f";
 	//discordPresence.spectateSecret = "e7eb30d2ee025ed05c71ea495f770b76454ee4e0";
-	discordPresence.instance = 1;
 	Discord_UpdatePresence(&discordPresence);
 }
 
