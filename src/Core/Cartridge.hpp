@@ -77,6 +77,8 @@ public:
 	
 	Cartridge() =default;
 	explicit Cartridge(const std::string& path);
+	explicit Cartridge(const Cartridge&) =default;
+	Cartridge& operator=(const Cartridge& rhs) =default;
 	~Cartridge() =default;
 
 	bool load(const std::string& path);

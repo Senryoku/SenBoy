@@ -104,7 +104,26 @@ public:
 	callback_joy	callback_joy_a;
 	
 	explicit MMU(Cartridge& cartridge);
-	MMU(const MMU&) =delete;
+	explicit MMU(const MMU& mmu);
+	MMU& operator=(const MMU& mmu) {
+		std::memcpy(_mem, mmu._mem, MemSize * sizeof(word_t));
+		std::memcpy(_vram_bank1, mmu._vram_bank1, VRAMSize * sizeof(word_t));
+		for(int i = 0; i < 8; ++i)
+			std::memcpy(_wram[i], mmu._wram[i], WRAMSize * sizeof(word_t));
+		
+		for(int i = 0; i < 8; ++i)
+			for(int j = 0; j < 8; ++j) {
+				_bg_palette_data[i][j] = mmu._bg_palette_data[i][j];
+				_sprite_palette_data[i][j] = mmu._sprite_palette_data[i][j];
+			}
+	
+		_hdma_cycles = mmu._hdma_cycles;
+		_pending_hdma = mmu._pending_hdma;
+		_hdma_src = mmu._hdma_src;
+		_hdma_dst = mmu._hdma_dst;
+		
+		return *this;
+	}
 	~MMU();
 	
 	void reset();
@@ -137,7 +156,7 @@ public:
 	inline bool hdma_cycles() { bool r = _hdma_cycles; _hdma_cycles = false; return r; }
 	
 private:
-	Cartridge* const _cartridge;
+	Cartridge* const _cartridge = nullptr;
 	
 	word_t*		_mem = nullptr;	///< This represent the whole address space and contains all that doesn't fit elsewhere.
 	word_t*		_wram[8];		///< Switchable bank of working RAM (CGB Only)

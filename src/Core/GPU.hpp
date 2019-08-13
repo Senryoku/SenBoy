@@ -64,6 +64,14 @@ public:
 	};
 	
 	explicit GPU(MMU& _mmu);
+	explicit GPU(const GPU& gpu);
+	GPU& operator=(const GPU& gpu) {
+		std::memcpy(_screen.get(), gpu._screen.get(), ScreenWidth * ScreenHeight * sizeof(color_t));
+		_cycles = gpu._cycles;
+		_completed_frame = gpu._completed_frame;
+		
+		return *this;
+	}
 	~GPU() =default;
 	
 	void reset();
@@ -91,7 +99,7 @@ public:
 	inline word_t& get_lyc()           const { return _mmu->rw_reg(MMU::Register::LYC); }
 	
 private:
-	MMU* const					_mmu;
+	MMU* const					_mmu = nullptr;
 	std::unique_ptr<color_t[]>	_screen;
 	// Timing
 	unsigned int				_cycles = 0;

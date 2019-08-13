@@ -53,6 +53,19 @@ Gb_Apu		apu;
 LR35902		cpu(mmu, apu);
 GPU			gpu(mmu);
 
+struct SaveState {
+	SaveState(const Cartridge& c, const MMU& m, const LR35902& lr, const GPU& g) :
+		cartridge(c),
+		mmu(m),
+		cpu(lr),
+		gpu(g)
+		{}
+	Cartridge	cartridge;
+	MMU			mmu;
+	LR35902		cpu;
+	GPU			gpu;
+};
+
 Stereo_Buffer gb_snd_buffer;
 GBAudioStream snd_buffer;
 
@@ -122,6 +135,82 @@ void set_input_callbacks();
 
 template<typename T, typename ...Args>
 void log(const T& msg, Args... args);
+
+void update_screen() {
+	if(post_process)
+	{
+		for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremely basic, LCDs doesn't work like this.
+			screen_buffer[i] = (1.0f - blend_speed) * screen_buffer[i] + blend_speed * gpu.get_screen()[i];
+		gameboy_screen.update(reinterpret_cast<const uint8_t*>(screen_buffer.get()));
+	} else {
+		gameboy_screen.update(reinterpret_cast<const uint8_t*>(gpu.get_screen()));
+	}
+}
+
+/*
+ * Basic rewinding mechanism.
+ * Doesn't save APU state ATM, will probably cause problems in some games.
+*/
+
+unsigned int max_rewind_frames = 0; // 60 * 10; // Deactivated by default :)
+bool rewinding = false;
+std::deque<SaveState> save_states;
+auto current_rewind_frame = save_states.end();
+
+void push_save_state() {
+	if(rewinding)
+		return;
+	
+	save_states.push_back({cartridge, mmu, cpu, gpu});
+	
+	if(save_states.size() > max_rewind_frames)
+		save_states.pop_front();
+}
+
+void load_save_state(const SaveState& s) {
+	cartridge = s.cartridge;
+	mmu = s.mmu;
+	cpu = s.cpu;
+	gpu = s.gpu;
+	
+	update_screen();
+}
+
+void rewind_previous_frame() {
+	if(!rewinding) {
+		if(save_states.empty())
+			return;
+		rewinding = true;
+		current_rewind_frame = --save_states.end();
+	} else if(current_rewind_frame != save_states.begin()) {
+		--current_rewind_frame;
+	}
+	
+	load_save_state(*current_rewind_frame);
+	snd_buffer.stop();
+}
+
+void rewind_next_frame() {
+	if(!rewinding || current_rewind_frame == --save_states.end())
+		return;
+	
+	++current_rewind_frame;
+	load_save_state(*current_rewind_frame);
+}
+
+void stop_rewind() {
+	if(!rewinding)
+		return;
+	
+	// Remove rewinded frames
+	if(current_rewind_frame != --save_states.end())
+		save_states.erase(current_rewind_frame++, save_states.end());
+	
+	elapsed_cycles = 0;
+	timing_clock.restart();
+	
+	rewinding = false;
+}
 
 ///// Discord RPC
 
@@ -288,7 +377,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		if(!debug || step)
+		if((!debug || step) && !rewinding)
 		{
 			for(size_t i = 0; i < frame_skip + 1; ++i)
 			{
@@ -319,6 +408,8 @@ int main(int argc, char* argv[])
 				frame_count++;
 			}
 			
+			push_save_state();
+			
 			size_t frame_cycles = cpu.frame_cycles;
 			bool stereo = apu.end_frame(frame_cycles);
 			if(with_sound)
@@ -345,14 +436,7 @@ int main(int argc, char* argv[])
 			// (and violate some internal requirements of Gb_Apu (end_time > last_time))
 			cpu.frame_cycles = 0;
 			
-			if(post_process)
-			{
-				for(unsigned int i = 0; i < gpu.ScreenWidth * gpu.ScreenHeight; ++i) // Extremely basic, LCDs doesn't work like this.
-					screen_buffer[i] = (1.0f - blend_speed) * screen_buffer[i] + blend_speed * gpu.get_screen()[i];
-				gameboy_screen.update(reinterpret_cast<const uint8_t*>(screen_buffer.get()));
-			} else {
-				gameboy_screen.update(reinterpret_cast<const uint8_t*>(gpu.get_screen()));
-			}
+			update_screen();
 			
 			frame_by_frame = false;
 			step = false;
@@ -529,6 +613,17 @@ void gui()
 			if(ImGui::MenuItem("Logs")) log_window = !log_window;
 			if(ImGui::MenuItem("GameBoy")) gameboy_window = !gameboy_window;
 			if(ImGui::MenuItem("Debug")) debug_window = !debug_window;
+			ImGui::EndMenu();
+		}
+		
+		if(ImGui::BeginMenu("Experimental")) {
+			ImGui::Text("Rewind");
+			if(ImGui::MenuItem("Rewind One Frame", "V")) rewind_previous_frame();
+			if(ImGui::MenuItem("Forward One Frame", "B")) rewind_next_frame();
+			if(ImGui::MenuItem("Resume", "C")) stop_rewind();
+			int tmp_max_rewind_frames = max_rewind_frames;
+			if(ImGui::InputInt("Max Rewind Frames", &tmp_max_rewind_frames, 60))
+				max_rewind_frames = std::max(std::min(tmp_max_rewind_frames, 60 * 60), 0);
 			ImGui::EndMenu();
 		}
 		
@@ -796,7 +891,7 @@ void gui()
 				analyser.process(cartridge);
 			}
 			ImGui::SameLine();
-			ImGui::Text("Found %d instructions, generated %d labels.", analyser.instructions.size(), analyser.get_label_count());
+			ImGui::Text("Found %I64d instructions, generated %d labels.", analyser.instructions.size(), analyser.get_label_count());
 			if(!analyser.instructions.empty())
 			{
 				ImGui::BeginChild("Analysed Memory##view", ImVec2(0,400));
@@ -892,7 +987,9 @@ void handle_event(sf::Event event)
 			case sf::Keyboard::N: clear_breakpoints(); break;
 			case sf::Keyboard::M: toggle_speed(); break;
 			case sf::Keyboard::L: advance_frame(); break;
-			case sf::Keyboard::P: post_process = !post_process; break;
+			case sf::Keyboard::C: stop_rewind(); break;
+			case sf::Keyboard::V: rewind_previous_frame(); break;
+			case sf::Keyboard::B: rewind_next_frame(); break;
 			case sf::Keyboard::S: if(event.key.control) cartridge.save(); break;
 			case sf::Keyboard::Q: if(event.key.control) window.close(); break;
 			default: break;
@@ -944,6 +1041,9 @@ void reset()
 		movie_save.clear();
 		movie_save.seekp(0);
 	}
+
+	rewinding = false;
+	save_states.clear();
 
 	size_t frame_cycles = (cpu.double_speed() ? cpu.frame_cycles / 2 : cpu.frame_cycles);
 	apu.end_frame(frame_cycles);

@@ -10,6 +10,12 @@ GPU::GPU(MMU& mmu) :
 {
 }
 	
+GPU::GPU(const GPU& gpu) :
+	_screen(new color_t[ScreenWidth * ScreenHeight])
+{
+	*this = gpu;
+}
+
 void GPU::reset()
 {
 	std::memset(_screen.get(), 0xFF, ScreenWidth * ScreenHeight * sizeof(color_t));

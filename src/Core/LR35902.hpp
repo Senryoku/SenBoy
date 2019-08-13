@@ -27,6 +27,24 @@ public:
 	LR35902(MMU& _mmu, Gb_Apu& _apu);
 	~LR35902() =default;
 	
+	explicit LR35902(const LR35902& rhs) {
+		*this = rhs;
+	}
+	LR35902& operator=(const LR35902& rhs) {
+		_pc = rhs._pc;
+		_sp = rhs._sp;
+		_f = rhs._f;
+		
+		for(int i = 0; i < 7; ++i)
+			_r[i] = rhs._r[i];
+		
+		_ime = rhs._ime;
+		_stop = rhs._stop;
+		_halt = rhs._halt;
+		
+		return *this;
+	}
+	
 	/// Reset the CPU, zero-ing all registers. (Power-up state)
 	void reset();
 	
@@ -72,8 +90,8 @@ public:
 	static std::string	instr_cb_str[0x100];
 	
 private:
-	MMU* const		_mmu;
-	Gb_Apu* const	_apu;
+	MMU* const		_mmu = nullptr;
+	Gb_Apu* const	_apu = nullptr;
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Debug

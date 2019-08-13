@@ -3,3 +3,5 @@
 /thirdparty/
 .vs/
 .DS_Store
+CMakeFiles/
+*.exe

@@ -12,6 +12,16 @@ MMU::MMU(Cartridge& cartridge) :
 	reset();
 }
 
+MMU::MMU(const MMU& mmu) :
+	_mem(new word_t[MemSize]),
+	_vram_bank1(new word_t[VRAMSize])
+{
+	for(int i = 0; i < 8; ++i)
+		_wram[i] = new word_t[WRAMSize];
+	
+	*this = mmu;
+}
+
 MMU::~MMU()
 {
 	delete[] _mem;
