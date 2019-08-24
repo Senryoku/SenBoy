@@ -35,32 +35,6 @@ public:
 		process(c, 0x0100);
 	}
 	
-	void clear()
-	{
-		_next_id = 0;
-		labels.clear();
-		instructions.clear();
-	}
-	
-	unsigned int get_label_count() const 
-	{
-		return _next_id;
-	}
-
-	std::vector<Label>	labels;
-	std::set<addr_t>	instructions;
-
-private:
-	unsigned int _next_id = 0;
-
-	void add_label(addr_t addr)
-	{
-		auto id_str = std::to_string(_next_id);
-		std::string label = "L" + std::string(3 - id_str.length(), '0') + id_str;
-		labels[addr] = {_next_id, label, addr};
-		++_next_id;
-	}
-	
 	void process(const Cartridge& c, addr_t addr)
 	{
 		while(addr < c.getROMSize())
@@ -95,22 +69,22 @@ private:
 			// TODO: Do something with rets? (marks 'functions')
 			switch(opcode)
 			{
-				case 0x20: [[fallthrough]]	// JR NZ,r8;	Conditional (non-zero) relative jump
-				case 0x30: [[fallthrough]]	// JR NC,r8;	Conditional (non-carry) relative jump
-				case 0x28: [[fallthrough]]	// JR Z,r8;		Conditional (zero) relative jump
-				case 0x38: [[fallthrough]]	// JR C,r8;		Conditional (carry) relative jump
-				case 0xCD: 					// Call a16;	Unconditional absolute jump, but will return after!
+				case 0x20: //[[fallthrough]] // JR NZ,r8;	Conditional (non-zero) relative jump
+				case 0x30: //[[fallthrough]] // JR NC,r8;	Conditional (non-carry) relative jump
+				case 0x28: //[[fallthrough]] // JR Z,r8;	Conditional (zero) relative jump
+				case 0x38: //[[fallthrough]] // JR C,r8;	Conditional (carry) relative jump
+				case 0xCD: 					 // Call a16;	Unconditional absolute jump, but will return after!
 				{
 					addr_t jp_addr = addr + from_2c_to_signed(c.read(addr + 1));
 					jump(jp_addr);
 					break;
 				}
-				case 0xC2: [[fallthrough]]	// JP NZ,a16;	Conditional (non-zero) absolute jump
-				case 0xD2: [[fallthrough]]	// JP NC,a16;	Conditional (non-carry) absolute jump
-				case 0xC4: [[fallthrough]]	// CALL NZ,a16;	Conditional (non-zero) absolute jump
-				case 0xD4: [[fallthrough]]	// CALL NC,a16;	Conditional (non-carry) absolute jump
-				case 0xCC: [[fallthrough]]	// CALL Z,a16;	Conditional (carry) absolute jump
-				case 0xDC:					// CALL C,a16;	Conditional (carry) absolute jump
+				case 0xC2: // JP NZ,a16;	Conditional (non-zero) absolute jump
+				case 0xD2: // JP NC,a16;	Conditional (non-carry) absolute jump
+				case 0xC4: // CALL NZ,a16;	Conditional (non-zero) absolute jump
+				case 0xD4: // CALL NC,a16;	Conditional (non-carry) absolute jump
+				case 0xCC: // CALL Z,a16;	Conditional (carry) absolute jump
+				case 0xDC: // CALL C,a16;	Conditional (carry) absolute jump
 				{
 					addr_t jp_addr = read16(c, addr + 1);
 					jump(jp_addr);
@@ -138,8 +112,8 @@ private:
 				case 0xF7: jump(0x0030); break;
 				case 0xFF: jump(0x0038); break;
 				// Unconditional returns
-				case 0xC9: [[fallthrough]]		// RET
-				case 0xD9:						// RETI
+				case 0xC9: // RET
+				case 0xD9: // RETI
 					return;
 				case 0xE9: // JP (HL); Unconditional, 'runtime' jump don't know what to do with it for now (TODO)
 					return;
@@ -150,6 +124,32 @@ private:
 			
 			addr += LR35902::instr_length[opcode];
 		}
+	}
+	
+	void clear()
+	{
+		_next_id = 0;
+		labels.clear();
+		instructions.clear();
+	}
+	
+	unsigned int get_label_count() const 
+	{
+		return _next_id;
+	}
+
+	std::vector<Label>	labels;
+	std::set<addr_t>	instructions;
+
+private:
+	unsigned int _next_id = 0;
+
+	void add_label(addr_t addr)
+	{
+		auto id_str = std::to_string(_next_id);
+		std::string label = "L" + std::string(3 - id_str.length(), '0') + id_str;
+		labels[addr] = {_next_id, label, addr};
+		++_next_id;
 	}
 	
 	static inline addr_t read16(const Cartridge& c, addr_t addr)

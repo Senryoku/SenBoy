@@ -87,6 +87,7 @@ std::unique_ptr<color_t[]> tile_maps[2];
 sf::Clock timing_clock;
 sf::Clock delta_clock; // GUI Clock
 double frame_time = 0;
+double last_screen_update = 0;
 size_t speed_update = 10;
 double speed = 100;
 uint64_t elapsed_cycles = 0;
@@ -157,8 +158,10 @@ bool rewinding = false;
 std::deque<SaveState> save_states;
 auto current_rewind_frame = save_states.end();
 
+sf::Texture rewind_frame_preview;
+
 void push_save_state() {
-	if(rewinding)
+	if(rewinding || max_rewind_frames == 0)
 		return;
 	
 	save_states.push_back({cartridge, mmu, cpu, gpu});
@@ -207,6 +210,7 @@ void stop_rewind() {
 		save_states.erase(current_rewind_frame++, save_states.end());
 	
 	elapsed_cycles = 0;
+	last_screen_update = 0;
 	timing_clock.restart();
 	
 	rewinding = false;
@@ -318,6 +322,7 @@ int main(int argc, char* argv[])
 	
 	setup_window();
     ImGui::SFML::Init(window);
+	rewind_frame_preview.create(gpu.ScreenWidth, gpu.ScreenHeight);
 
 	if(!gameboy_screen.create(gpu.ScreenWidth, gpu.ScreenHeight))
 		log("Error creating the screen texture!");
@@ -436,7 +441,11 @@ int main(int argc, char* argv[])
 			// (and violate some internal requirements of Gb_Apu (end_time > last_time))
 			cpu.frame_cycles = 0;
 			
-			update_screen();
+			// If fps are uncapped, we don't have to refresh the screen for each emulated frame
+			if(real_speed || (timing_clock.getElapsedTime().asSeconds() - last_screen_update > 1.0/60.0)) {
+				update_screen();
+				last_screen_update = timing_clock.getElapsedTime().asSeconds();
+			}
 			
 			frame_by_frame = false;
 			step = false;
@@ -445,6 +454,11 @@ int main(int argc, char* argv[])
 		if(debug)
 		{
 			window.setTitle("SenBoy - Paused");
+		} else if(rewinding) {
+			auto idx = current_rewind_frame - save_states.begin();
+			std::stringstream dt;
+			dt << "SenBoy - Rewinding " << idx + 1 << "/" << save_states.size();
+			window.setTitle(dt.str());
 		} else if(--speed_update == 0) {
 			speed_update = 10;
 			double t = timing_clock.getElapsedTime().asSeconds();
@@ -452,8 +466,8 @@ int main(int argc, char* argv[])
 			frame_time = t;
 			speed_mesure_cycles = 0;
 			std::stringstream dt;
-			dt << "Speed " << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << speed << "%";
-			window.setTitle(std::string("SenBoy - ").append(dt.str()));
+			dt << "SenBoy - Speed " << std::dec << std::fixed << std::setw(4) << std::setprecision(1) << speed << "%";
+			window.setTitle(dt.str());
 		}
 		
         window.clear(sf::Color::Black);
@@ -506,6 +520,7 @@ void toggle_debug()
 {
 	debug = !debug;
 	elapsed_cycles = 0;
+	last_screen_update = 0;
 	timing_clock.restart();
 	log(debug ? "Debugging" : "Running");
 }
@@ -588,6 +603,7 @@ void gui()
 				if(!real_speed)
 				{
 					elapsed_cycles = 0;
+					last_screen_update = 0;
 					timing_clock.restart();
 				}
 			}
@@ -624,6 +640,22 @@ void gui()
 			int tmp_max_rewind_frames = max_rewind_frames;
 			if(ImGui::InputInt("Max Rewind Frames", &tmp_max_rewind_frames, 60))
 				max_rewind_frames = std::max(std::min(tmp_max_rewind_frames, 60 * 60), 0);
+			
+			if(save_states.size() > 0) {
+				static int frame_view = 0;
+				frame_view = std::max(0, std::min(frame_view, static_cast<int>(save_states.size()) - 2));
+				if(save_states.size() > 0) {
+					ImGui::SliderInt("Rewind frame", &frame_view, 0, save_states.size());
+					rewind_frame_preview.update(reinterpret_cast<const uint8_t*>(save_states[frame_view].gpu.get_screen()));
+					ImGui::Image(rewind_frame_preview);
+					if(ImGui::Button("Jump to Frame")) {
+						rewind_previous_frame();
+						current_rewind_frame = save_states.begin() + frame_view;
+						load_save_state(*current_rewind_frame);
+					}
+				}
+			}
+			
 			ImGui::EndMenu();
 		}
 		
@@ -887,10 +919,10 @@ void gui()
 		if(ImGui::CollapsingHeader("Analyser (WIP)"))
 		{
 			if(ImGui::Button("Analyse"))
-			{
 				analyser.process(cartridge);
-			}
 			ImGui::SameLine();
+			if(ImGui::Button("Analyse from PC"))
+				analyser.process(cartridge, cpu.get_pc());
 			ImGui::Text("Found %I64d instructions, generated %d labels.", analyser.instructions.size(), analyser.get_label_count());
 			if(!analyser.instructions.empty())
 			{
@@ -1020,6 +1052,7 @@ void toggle_speed()
 	update_vsync();
 
 	elapsed_cycles = 0;
+	last_screen_update = 0;
 	timing_clock.restart();
 }
 
@@ -1131,13 +1164,14 @@ void reset()
 	gpu.reset();
 	
 	elapsed_cycles = 0;
+	last_screen_update = 0;
 	timing_clock.restart();
 	frame_count = 0;
 	
 	set_input_callbacks();
 
 #ifdef USE_DISCORD_RPC
-		updatePresence();
+	updatePresence();
 #endif
 
 	log("Reset");
