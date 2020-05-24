@@ -298,9 +298,8 @@ void GPU::render_line()
 			{
 				Tile = _mmu->read(0xFE00 + s.idx * 4 + 2);
 				Opt = _mmu->read(0xFE00 + s.idx * 4 + 3);
-				if(s.y - line < 8 && get_lcdc() & OBJSize && !(Opt & YFlip)) Tile &= 0xFE;
+				if(get_lcdc() & OBJSize) Tile &= 0xFE; // Bit 0 is ignored for 8x16 sprites
 				if(s.y - line >= 8 && (Opt & YFlip)) Tile &= 0xFE;
-				if(size == 16) Tile &= ~1; // Bit 0 is ignored for 8x16 sprites
 				const word_t palette = _mmu->read((Opt & Palette) ? MMU::OBP1 : MMU::OBP0); // non CGB Only
 				// Only Tile Set #0 ?
 				int Y = (Opt & YFlip) ? (size - 1) - (line - s.y) : line - s.y;
