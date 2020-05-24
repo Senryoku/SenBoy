@@ -91,6 +91,7 @@ void GPU::update_mode(bool render)
 				} else if(get_line() == 1) {
 					_completed_frame = true;
 					get_line() = 0;
+					_window_y = 0;
 					get_lcdstat() = (get_lcdstat() & ~LCDMode) | Mode::OAM;
 					exec_stat_interrupt(Mode10);
 					fired_interrupt = false;
@@ -205,12 +206,13 @@ void GPU::render_line()
 			if(draw_window && i >= wx)
 			{
 				mapoffs = (LCDC & WindowsTileMapDisplaySelect) ? 0x9C00 : 0x9800;
-				mapoffs += 0x20 * (((line - wy)) >> 3);
+				mapoffs += 0x20 * (_window_y >> 3);
 				lineoffs = 0;
 
 				// X & Y in window space.
 				x = 8; // Force Tile Fetch
-				y = (line - wy) & 7;
+				y = _window_y & 7;
+				++_window_y;
 				draw_window = false; // No need to do it again.
 			}
 			

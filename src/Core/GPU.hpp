@@ -104,6 +104,7 @@ private:
 	// Timing
 	unsigned int				_cycles = 0;
 	bool						_completed_frame = false;
+	unsigned int 				_window_y = 0; // The window have a distinct line counter (window can be deactivated/reactivated between scanlines)
 	
 	inline void lyc(bool changed);
 	inline void exec_stat_interrupt(LCDStatus m);
