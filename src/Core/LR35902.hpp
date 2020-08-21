@@ -135,8 +135,8 @@ private:
 	inline word_t fetch_hl_val() { return read(get_hl()); }
 	inline word_t fetch_val(word_t n) { return (n > 6) ? fetch_hl_val() : _r[n]; }
 	
-	inline void incr_hl() { _l++; if(_l == 0) _h++; }
-	inline void decr_hl() { if(_l == 0) _h--; _l--; }
+	inline void incr_hl() { _l++; _h += _l == 0; }
+	inline void decr_hl() { _h -= _l == 0; _l--; }
 	
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
