@@ -140,7 +140,7 @@ private:
 	
 	// Flags helpers
 	/// Sets (or clears if false is passed as second argument) the specified flag.
-	inline void set(Flag m, bool b = true)   { _f = b ? (_f | m) : (_f & ~m); }
+	inline void set(Flag m, bool b = true)   { set(static_cast<word_t>(m), b); }
 	inline void set(word_t m, bool b = true) { _f = b ? (_f | m) : (_f & ~m); }
 	
 	// APU Intercept
@@ -252,14 +252,8 @@ inline void LR35902::update_timing()
 	if(TAC & 0b100) // Is TIMA timer enabled?
 	{
 		_timer_counter += _clock_instr_cycles;
-		unsigned int tac_divisor = 1024;
-		switch(TAC & 0b11) 
-		{
-			case 0b00: tac_divisor = 1024; break;
-			case 0b01: tac_divisor = 16;   break;
-			case 0b10: tac_divisor = 64;   break;
-			case 0b11: tac_divisor = 256;  break;
-		}
+		constexpr std::array<unsigned int, 4> Divisors{1024, 16, 64, 256};
+		const unsigned int tac_divisor = Divisors[TAC & 0b11];
 		while(_timer_counter >= tac_divisor)
 		{
 			_timer_counter -= tac_divisor;

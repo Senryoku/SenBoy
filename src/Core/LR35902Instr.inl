@@ -6,7 +6,7 @@
 static inline word_t extract_src_reg(word_t opcode) { return (opcode + 1) & 0b111; }
 static inline word_t extract_dst_reg(word_t opcode) { return ((opcode >> 3) + 1) & 0b111; }
 inline void rel_jump(word_t offset) { _pc += from_2c_to_signed(offset); }
-static inline int from_2c_to_signed(word_t src) { return (src & 0x80) ? -((~src + 1) & 0xFF) : src; }
+static inline int from_2c_to_signed(word_t src) { return static_cast<int8_t>(src); }
 
 ///////////////////////////////////////////////////////////////////////////
 // Instructions
