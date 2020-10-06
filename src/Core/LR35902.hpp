@@ -252,7 +252,7 @@ inline void LR35902::update_timing()
 	if(TAC & 0b100) // Is TIMA timer enabled?
 	{
 		_timer_counter += _clock_instr_cycles;
-		constexpr std::array<unsigned int, 4> Divisors{1024, 16, 64, 256};
+		constexpr unsigned int Divisors[4]{1024, 16, 64, 256};
 		const unsigned int tac_divisor = Divisors[TAC & 0b11];
 		while(_timer_counter >= tac_divisor)
 		{

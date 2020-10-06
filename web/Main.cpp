@@ -128,8 +128,8 @@ int main()
 	
 	EM_ASM(
 		// Initialize persistent folder
-		FS.mkdir('/senboyweb_saves');
-		FS.mount(IDBFS,{},'/senboyweb_saves');
+		FS.mkdir('/saves');
+		FS.mount(IDBFS,{},'/saves');
 		Module.syncdone = 0;
 
 		// Synchronize to Emscripten
@@ -219,6 +219,7 @@ int main()
 
 void main_loop()
 {
+	emscripten_sample_gamepad_data();
 	SDL_Event event;
 	while(SDL_PollEvent(&event))
 	{
