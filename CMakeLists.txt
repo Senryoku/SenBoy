@@ -23,9 +23,11 @@ if(WITH_DISCORD_RPC)
 	include_directories("${CMAKE_SOURCE_DIR}/ext/discord-rpc/include")
 endif()
 
-set(CMAKE_CXX_FLAGS			"${CMAKE_CXX_FLAGS} --std=c++14 -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} -Og -gdwarf-2")
-set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} -O2 -s")
+if (MSVC)
+    add_compile_options(/W4 /utf-8)
+else()
+    add_compile_options(-Wall -Wextra -pedantic)
+endif()
 
 # Statically link standard library
 set(STATIC_STD_LIBRARIES OFF CACHE BOOL "Statically link STD Libs")
@@ -62,6 +64,13 @@ add_executable(${EXECUTABLE_NAME} ${SOURCES} ${IMGUI_SOURCES} ${MINIZ_SOURCES} s
 
 add_executable(CPUPerfTest ${SOURCES} test/CPUPerfTest.cpp)
 add_executable(Screenshot ${SOURCES} ${MINIZ_SOURCES} test/Screenshot.cpp)
+
+set_property(TARGET ${EXECUTABLE_NAME} PROPERTY CXX_STANDARD 14)
+set_property(TARGET CPUPerfTest PROPERTY CXX_STANDARD 14)
+set_property(TARGET Screenshot PROPERTY CXX_STANDARD 14)
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_target_properties(CPUPerfTest PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_target_properties(Screenshot PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 	
 # Hide console on windows for release build
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
