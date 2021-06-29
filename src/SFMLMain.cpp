@@ -278,6 +278,7 @@ class App {
     ///// Discord RPC
 #ifdef USE_DISCORD_RPC
     void updatePresence() {
+        auto                gameName = cartridge.getName();
         DiscordRichPresence discordPresence;
         memset(&discordPresence, 0, sizeof(discordPresence));
         if(rom_path == "") {
@@ -290,7 +291,7 @@ class App {
             if(name_start == std::string::npos)
                 name_start = rom_path.find_last_of('\\');
             if(name_start == std::string::npos || period_pos == std::string::npos) {
-                discordPresence.details = cartridge.getName().c_str();
+                discordPresence.details = gameName.c_str();
             } else {
                 std::string name = rom_path.substr(name_start + 1, period_pos - (name_start + 1));
                 discordPresence.details = name.c_str();
