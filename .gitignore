@@ -67,3 +67,4 @@ web/www/list.html
 
 .vs/
 out/
+CMakeSettings.json

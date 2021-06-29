@@ -1,13 +1,24 @@
-ImGui + SFML
+ImGui-SFML v2.3
 =======
+[![build Actions Status](https://github.com/eliasdaler/imgui-sfml/workflows/build/badge.svg)](https://github.com/eliasdaler/imgui-sfml/actions)
 
-Library which allows you to use [ImGui](https://github.com/ocornut/imgui) with [SFML](https://github.com/SFML/SFML)
-
-> Use [ImGui-SFML's v1.0](https://github.com/eliasdaler/imgui-sfml/releases/tag/v.1.0) if you're using ImGui's stable release (v.1.53)! This repo's master will be kept up to date with breaking changes in ImGui's master.
+Library which allows you to use [Dear ImGui](https://github.com/ocornut/imgui) with [SFML](https://github.com/SFML/SFML)
 
 ![screenshot](https://i2.wp.com/i.imgur.com/iQibpSk.gif)
 
 Based on [this repository](https://github.com/Mischa-Alff/imgui-backends) with big improvements and changes.
+
+Dependencies
+-----
+
+* [SFML](https://github.com/SFML/SFML) >= 2.5.0
+* [Dear ImGui](https://github.com/ocornut/imgui) >= 1.80
+
+Contributing
+-----
+
+* The code is written in C++03. See [#7](https://github.com/eliasdaler/imgui-sfml/issues/7)
+* The code should be formatted via [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) using `.clang-format` provided in the root of this repository
 
 How-to
 ----
@@ -16,17 +27,55 @@ How-to
 - [**Using ImGui with modern C++ and STL**](https://eliasdaler.github.io/using-imgui-with-sfml-pt2/)
 - [**Thread on SFML forums**](https://en.sfml-dev.org/forums/index.php?topic=20137.0). Feel free to ask your questions there.
 
-Setting up:
+Building and integrating into your CMake project
+---
 
+- [**CMake tutorial on my blog**](https://eliasdaler.github.io/using-cmake/)
+
+```sh
+cmake <ImGui-SFML repo folder> -DIMGUI_DIR=<ImGui repo folder> -DSFML_DIR=<path with built SFML>
+```
+
+If you have SFML installed on your system, you don't need to set SFML_DIR during
+configuration.
+
+You can also specify `BUILD_SHARED_LIBS=ON` to build ImGui-SFML as a shared library. To build ImGui-SFML examples, set `IMGUI_SFML_BUILD_EXAMPLES=ON`. To build imgui-demo.cpp (to be able to use `ImGui::ShowDemoWindow`), set `IMGUI_SFML_IMGUI_DEMO=ON`.
+
+After the building, you can install the library on your system by running:
+```sh
+cmake --build . --target install
+```
+
+If you set `CMAKE_INSTALL_PREFIX` during configuration, you can install ImGui-SFML locally.
+
+Integrating into your project is simple.
+```cmake
+find_package(ImGui-SFML REQUIRED)
+target_link_libraries(my_target PRIVATE ImGui-SFML::ImGui-SFML)
+```
+
+If CMake can't find ImGui-SFML on your system, just define `ImGui-SFML_DIR` before calling `find_package`.
+
+Integrating into your project manually
+---
 - Download [ImGui](https://github.com/ocornut/imgui)
 - Add ImGui folder to your include directories
-- Add `imgui.cpp` and `imgui_draw.cpp` to your build/project
+- Add `imgui.cpp`, `imgui_widgets.cpp`, `imgui_draw.cpp` and `imgui_tables.cpp` to your build/project
 - Copy the contents of `imconfig-SFML.h` to your `imconfig.h` file. (to be able to cast `ImVec2` to `sf::Vector2f` and vice versa)
 - Add a folder which contains `imgui-SFML.h` to your include directories
 - Add `imgui-SFML.cpp` to your build/project
 - Link OpenGL if you get linking errors
 
-In your code:
+Other ways to add to your project(won't recommend as the versions tend to lag behind and are not
+---
+Not recommended, as they're not maintained officially. Tend to lag behind and stay on older versions.
+
+- [Conan](https://github.com/bincrafters/community/tree/main/recipes/imgui-sfml)
+- [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/imgui-sfml)
+- [Bazel](https://github.com/zpervan/ImguiSFMLBazel)
+
+Using ImGui-SFML in your code
+---
 
 - Call `ImGui::SFML::Init` and pass your `sf::Window` + `sf::RenderTarget` or `sf::RenderWindow` there. You can create your font atlas and pass the pointer in Init too, otherwise the default internal font atlas will be created for you.
 - For each iteration of a game loop:
@@ -42,10 +91,10 @@ In your code:
 
     - Call `ImGui::SFML::Update(window, deltaTime)` where `deltaTime` is `sf::Time`. You can also pass mousePosition and displaySize yourself instead of passing the window.
     - Call ImGui functions (`ImGui::Begin()`, `ImGui::Button()`, etc.)
-    - Call `ImGui::EndFrame` if you update more than once before rendering (you'll need to include `imgui_internal.h` for that)
+    - Call `ImGui::EndFrame` after the last `ImGui::End` in your update function, if you update more than once before rendering. (e.g. fixed delta game loops)
     - Call `ImGui::SFML::Render(window)`
 
-- Call `ImGui::SFML::Shutdown()` at the end of your program
+- Call `ImGui::SFML::Shutdown()` after `window.close()` has been called
 
 **If you only draw ImGui widgets without any SFML stuff, then you'll have to call window.resetGLStates() before rendering anything. You only need to do it once.**
 
@@ -58,13 +107,12 @@ See example file [here](examples/main.cpp)
 #include "imgui.h"
 #include "imgui-SFML.h"
 
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
-#include <SFML/Graphics/CircleShape.hpp>
 
-int main()
-{
+int main() {
     sf::RenderWindow window(sf::VideoMode(640, 480), "ImGui + SFML = <3");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
@@ -102,7 +150,7 @@ int main()
 Fonts how-to
 ---
 
-Default font is loaded if you don't pass false in `ImGui::SFML::Init`. Call `ImGui::SFML::Init(window, false);` if you don't want default font to be loaded.
+Default font is loaded if you don't pass `false` in `ImGui::SFML::Init`. Call `ImGui::SFML::Init(window, false);` if you don't want default font to be loaded.
 
 * Load your fonts like this:
 
@@ -129,29 +177,45 @@ ImGui::PopFont();
 
 The first loaded font is treated as the default one and doesn't need to be pushed with `ImGui::PushFont`.
 
-CMake how-to
----
- - Checkout the repository as a submoudle
- - Set IMGUI_ROOT
- - Modify your builds to copy imgui-SFML and dependencies (sfml) to your project
-```CMakeLists
-add_subdirectory(repos/imgui-sfml)
-include_directories("${IMGUI_SFML_INCLUDE_DIRS}")
-add_executable(MY_PROJECT ${IMGUI_SOURCES} ${IMGUI_SFML_SOURCES} ${SRCS})
-...
-target_link_libraries(MY_PROJECT ${IMGUI_SFML_DEPENDENCIES})
-```
-
 SFML related ImGui overloads / new widgets
 ---
 
-There are some useful overloads implemented for SFML objects (see header for overloads):
+There are some useful overloads implemented for SFML objects (see `imgui-SFML.h` for other overloads):
+
 ```cpp
 ImGui::Image(const sf::Sprite& sprite);
 ImGui::Image(const sf::Texture& texture);
+ImGui::Image(const sf::RenderTexture& texture);
+
 ImGui::ImageButton(const sf::Sprite& sprite);
 ImGui::ImageButton(const sf::Texture& texture);
+ImGui::ImageButton(const sf::RenderTexture& texture);
 ```
+
+A note about sf::RenderTexture
+---
+
+`sf::RenderTexture`'s texture is stored with pixels flipped upside down. To display it properly when drawing `ImGui::Image` or `ImGui::ImageButton`, use overloads for `sf::RenderTexture`:
+
+```cpp
+sf::RenderTexture texture;
+sf::Sprite sprite(texture.getTexture());
+ImGui::Image(texture);              // OK
+ImGui::Image(sprite);               // NOT OK
+ImGui::Image(texture.getTexture()); // NOT OK
+```
+
+If you want to draw only a part of `sf::RenderTexture` and you're trying to use `sf::Sprite` the texture will be displayed upside-down. To prevent this, you can do this:
+
+```cpp
+// make a normal sf::Texture from sf::RenderTexture's flipped texture
+sf::Texture texture(renderTexture.getTexture());
+
+sf::Sprite sprite(texture);
+ImGui::Image(sprite); // the texture is displayed properly
+```
+
+For more notes see [this issue](https://github.com/eliasdaler/imgui-sfml/issues/35).
 
 Mouse cursors
 ---

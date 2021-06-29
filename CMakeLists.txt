@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.20)
 project(SenBoy)
 set(SenBoy_VERSION_MAJOR 1)
 set(SenBoy_VERSION_MINOR 0)
@@ -10,6 +10,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules" ${CMAKE_MODULE_PATH})
 if(CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE Release)
 endif()
+
+set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}")
 
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
@@ -28,12 +30,13 @@ if (MSVC)
 else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()
+add_compile_definitions(BLARGG_USE_NAMESPACE=1)
 
 # Statically link standard library
 set(STATIC_STD_LIBRARIES OFF CACHE BOOL "Statically link STD Libs")
-if(STATIC_STD_LIBRARIES)
-	set(CMAKE_SHARED_LINKER_FLAGS "-lstdc++fs -static-libgcc -static-libstdc++")
-endif()
+#if(STATIC_STD_LIBRARIES)
+#	set(CMAKE_SHARED_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+#endif()
 
 # Define sources and executable
 set(EXECUTABLE_NAME "SenBoy")
@@ -46,6 +49,8 @@ set(APU_SOURCES
 set(IMGUI_SOURCES
 	ext/imgui/imgui.cpp
 	ext/imgui/imgui_draw.cpp
+	ext/imgui/imgui_tables.cpp
+	ext/imgui/imgui_widgets.cpp
 	ext/imgui-sfml/imgui-SFML.cpp
 )
 set(MINIZ_SOURCES
@@ -65,9 +70,9 @@ add_executable(${EXECUTABLE_NAME} ${SOURCES} ${IMGUI_SOURCES} ${MINIZ_SOURCES} s
 add_executable(CPUPerfTest ${SOURCES} test/CPUPerfTest.cpp)
 add_executable(Screenshot ${SOURCES} ${MINIZ_SOURCES} test/Screenshot.cpp)
 
-set_property(TARGET ${EXECUTABLE_NAME} PROPERTY CXX_STANDARD 14)
-set_property(TARGET CPUPerfTest PROPERTY CXX_STANDARD 14)
-set_property(TARGET Screenshot PROPERTY CXX_STANDARD 14)
+set_property(TARGET ${EXECUTABLE_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET CPUPerfTest PROPERTY CXX_STANDARD 20)
+set_property(TARGET Screenshot PROPERTY CXX_STANDARD 20)
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 set_target_properties(CPUPerfTest PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 set_target_properties(Screenshot PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
@@ -78,20 +83,16 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
 endif()
 
 # Remove warnings for external libraries
-set_source_files_properties(
-  ${EXT_SOURCES}
-  PROPERTIES
-  COMPILE_FLAGS "-w"
-)
-
-# std::filesystem
-if(WIN32)
-	target_link_libraries(${EXECUTABLE_NAME} stdc++fs KtmW32)
-	target_link_libraries(Screenshot stdc++fs KtmW32)
+if (MSVC)
+set(NO_WARNING "/w")
 else()
-	target_link_libraries(${EXECUTABLE_NAME} stdc++fs)
-	target_link_libraries(Screenshot stdc++fs)
+set(NO_WARNING "-w")
 endif()
+set_source_files_properties(
+  "ext/"
+  PROPERTIES
+  COMPILE_FLAGS ${NO_WARNING}
+)
 
 find_package(OpenGL REQUIRED)
 include_directories(${OpenGL_INCLUDE_DIRS})
@@ -103,19 +104,16 @@ endif(NOT OPENGL_FOUND)
 target_link_libraries(${EXECUTABLE_NAME} ${OPENGL_LIBRARIES})
 
 # Detect and add SFML
-set(SFML_ROOT "D:/Source/_Others/SFML" CACHE PATH "SFML root folder")
-set(SFML_STATIC_LIBRARIES OFF CACHE BOOL "Statically link SFML")
+# SFML_USE_STATIC_STD_LIBS
+#set(SFML_STATIC_LIBRARIES OFF CACHE BOOL "Statically link SFML")
 # Manually statically link pthreads
-if(SFML_STATIC_LIBRARIES)
-	target_link_libraries(${EXECUTABLE_NAME} -static -pthread)
-endif()
-#Find any version 2.X of SFML
-#See the FindSFML.cmake file for additional details and instructions
-find_package(SFML 2 REQUIRED system window graphics audio)
-if(SFML_FOUND)
-  include_directories(${SFML_INCLUDE_DIR})
-  target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
-endif()
+#if(SFML_STATIC_LIBRARIES)
+#	target_link_libraries(${EXECUTABLE_NAME} -static -pthread)
+#endif()
+set(BUILD_SHARED_LIBS FALSE)
+add_subdirectory("ext/SFML-2.5.1")
+include_directories(${SFML_INCLUDE_DIR})
+target_link_libraries(${EXECUTABLE_NAME} sfml-system sfml-window sfml-graphics sfml-audio ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
 
 if(WITH_DISCORD_RPC)
 	target_link_libraries(${EXECUTABLE_NAME} discord-rpc)
