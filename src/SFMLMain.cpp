@@ -1066,7 +1066,7 @@ class App {
                 default: break;
             }
         } else if(event.type == sf::Event::JoystickMoved) {
-            if(event.joystickMove.axis == sf::Joystick::Z) {
+            if(event.joystickMove.axis == sf::Joystick::Z && event.joystickMove.position > 0) {
                 if(!save_states.empty())
                     start_rewind();
             }
