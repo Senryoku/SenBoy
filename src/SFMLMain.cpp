@@ -238,6 +238,13 @@ class App {
         update_screen();
     }
 
+    void start_rewind() {
+        if(rewinding)
+            return;
+        current_rewind_frame = save_states.end();
+        rewinding = true;
+    }
+
     void rewind_previous_frame() {
         if(!rewinding) {
             if(save_states.empty())
@@ -253,20 +260,29 @@ class App {
     }
 
     void rewind_next_frame() {
-        if(!rewinding || current_rewind_frame == --save_states.end())
+        if(!rewinding || save_states.empty())
             return;
 
+        if(current_rewind_frame == save_states.end())
+            return;
+        if(current_rewind_frame + 1 == save_states.end())
+            return;
         ++current_rewind_frame;
         load_save_state(*current_rewind_frame);
     }
 
     void stop_rewind() {
-        if(!rewinding)
+        if(!rewinding || save_states.empty())
             return;
 
         // Remove rewinded frames
-        if(current_rewind_frame != --save_states.end())
-            save_states.erase(current_rewind_frame++, save_states.end());
+        if(current_rewind_frame != save_states.end()) {
+            current_rewind_frame++;
+            if(current_rewind_frame != save_states.end())
+                save_states.erase(current_rewind_frame, save_states.end());
+
+            current_rewind_frame = save_states.end();
+        }
 
         elapsed_cycles = 0;
         last_screen_update = 0;
@@ -412,6 +428,9 @@ class App {
 
         reset();
 
+        std::chrono::high_resolution_clock rewind_clock;
+        auto                               last_rewind_input = rewind_clock.now();
+
         sf::Event event;
         while(window.isOpen()) {
             while(window.pollEvent(event))
@@ -432,6 +451,23 @@ class App {
                 } else if(timing == BusyLoop) {
                     while(gameboy_time > timing_clock.getElapsedTime().asSeconds())
                         ;
+                }
+            }
+
+            if(rewinding) {
+                for(int i = 0; i < sf::Joystick::Count; ++i) {
+                    if(sf::Joystick::isConnected(i)) {
+                        auto last_input_ms = std::chrono::duration_cast<std::chrono::milliseconds>(rewind_clock.now() - last_rewind_input).count();
+                        if(sf::Joystick::getAxisPosition(i, sf::Joystick::Z) < -10 && last_input_ms > 4) {
+                            rewind_next_frame();
+                            last_rewind_input = rewind_clock.now();
+                        } else if(sf::Joystick::getAxisPosition(i, sf::Joystick::Z) > 10 && last_input_ms > 4) {
+                            rewind_previous_frame();
+                            last_rewind_input = rewind_clock.now();
+                        } else if(last_input_ms > 500) {
+                            stop_rewind();
+                        }
+                    }
                 }
             }
 
@@ -1028,6 +1064,11 @@ class App {
             switch(event.joystickButton.button) {
                 case 5: toggle_speed(); break;
                 default: break;
+            }
+        } else if(event.type == sf::Event::JoystickMoved) {
+            if(event.joystickMove.axis == sf::Joystick::Z) {
+                if(!save_states.empty())
+                    start_rewind();
             }
         }
     }
