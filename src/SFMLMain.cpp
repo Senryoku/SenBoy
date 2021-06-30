@@ -683,7 +683,7 @@ class App {
                     static int frame_view = 0;
                     frame_view = std::max(0, std::min(frame_view, static_cast<int>(save_states.size()) - 2));
                     if(save_states.size() > 0) {
-                        ImGui::SliderInt("Rewind frame", &frame_view, 0, save_states.size());
+                        ImGui::SliderInt("Rewind frame", &frame_view, 0, save_states.size() - 1);
                         rewind_frame_preview.update(reinterpret_cast<const uint8_t*>(save_states[frame_view].gpu.get_screen()));
                         ImGui::Image(rewind_frame_preview);
                         if(ImGui::Button("Jump to Frame")) {
