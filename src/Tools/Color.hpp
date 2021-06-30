@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 
 #include "Common.hpp"
@@ -40,30 +41,40 @@ struct color_t {
     }
 };
 
+template<typename T>
+inline uint8_t saturate(T n) {
+    return n > 255 ? 255 : n;
+}
+
+template<typename T>
+inline uint8_t pos(T n) {
+    return n < 0 ? 0 : n;
+}
+
 inline color_t operator+(const color_t& c0, const color_t& c1) {
     color_t r;
-    r.r = std::max(0, std::min(255, c0.r + c1.r));
-    r.g = std::max(0, std::min(255, c0.g + c1.g));
-    r.b = std::max(0, std::min(255, c0.b + c1.b));
-    r.a = std::max(0, std::min(255, c0.a + c1.a));
+    r.r = saturate(c0.r + c1.r);
+    r.g = saturate(c0.g + c1.g);
+    r.b = saturate(c0.b + c1.b);
+    r.a = saturate(c0.a + c1.a);
     return r;
 }
 
 inline color_t operator-(const color_t& c0, const color_t& c1) {
     color_t r;
-    r.r = std::max(0, std::min(255, c0.r - c1.r));
-    r.g = std::max(0, std::min(255, c0.g - c1.g));
-    r.b = std::max(0, std::min(255, c0.b - c1.b));
-    r.a = std::max(0, std::min(255, c0.a - c1.a));
+    r.r = pos(c0.r - c1.r);
+    r.g = pos(c0.g - c1.g);
+    r.b = pos(c0.b - c1.b);
+    r.a = pos(c0.a - c1.a);
     return r;
 }
 
 inline color_t operator*(float val, const color_t& c) {
     color_t r;
-    r.r = std::max(0.0f, std::min(255.0f, c.r * val));
-    r.g = std::max(0.0f, std::min(255.0f, c.g * val));
-    r.b = std::max(0.0f, std::min(255.0f, c.b * val));
-    r.a = std::max(0.0f, std::min(255.0f, c.a * val));
+    r.r = saturate(c.r * val);
+    r.g = saturate(c.g * val);
+    r.b = saturate(c.b * val);
+    r.a = saturate(c.a * val);
     return r;
 }
 
