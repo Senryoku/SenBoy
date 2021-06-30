@@ -67,4 +67,5 @@ web/www/list.html
 
 .vs/
 out/
+build_msvc/
 CMakeSettings.json

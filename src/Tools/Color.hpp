@@ -20,8 +20,9 @@ struct color_t {
     color_t& operator=(color_t&&) = default;
 
     explicit color_t(word_t w) : r{w}, g{w}, b{w}, a{255} {}
+    color_t(word_t r, word_t g, word_t b, word_t a = 255) : r{r}, g{g}, b{b}, a{a} {}
 
-    inline bool operator==(const color_t& v) { return r == v.r && g == v.g && b == v.b && a == v.a; }
+    inline bool operator==(const color_t& v) const { return r == v.r && g == v.g && b == v.b && a == v.a; }
 
     inline color_t& operator=(word_t val) {
         r = g = b = a = val;
@@ -52,30 +53,30 @@ inline uint8_t pos(T n) {
 }
 
 inline color_t operator+(const color_t& c0, const color_t& c1) {
-    color_t r;
-    r.r = saturate(c0.r + c1.r);
-    r.g = saturate(c0.g + c1.g);
-    r.b = saturate(c0.b + c1.b);
-    r.a = saturate(c0.a + c1.a);
-    return r;
+    return color_t{
+        saturate(c0.r + c1.r),
+        saturate(c0.g + c1.g),
+        saturate(c0.b + c1.b),
+        saturate(c0.a + c1.a),
+    };
 }
 
 inline color_t operator-(const color_t& c0, const color_t& c1) {
-    color_t r;
-    r.r = pos(c0.r - c1.r);
-    r.g = pos(c0.g - c1.g);
-    r.b = pos(c0.b - c1.b);
-    r.a = pos(c0.a - c1.a);
-    return r;
+    return color_t{
+        pos(c0.r - c1.r),
+        pos(c0.g - c1.g),
+        pos(c0.b - c1.b),
+        pos(c0.a - c1.a),
+    };
 }
 
 inline color_t operator*(float val, const color_t& c) {
-    color_t r;
-    r.r = saturate(c.r * val);
-    r.g = saturate(c.g * val);
-    r.b = saturate(c.b * val);
-    r.a = saturate(c.a * val);
-    return r;
+    return color_t{
+        saturate(c.r * val),
+        saturate(c.g * val),
+        saturate(c.b * val),
+        saturate(c.a * val),
+    };
 }
 
 inline color_t operator*(const color_t& c, float val) {

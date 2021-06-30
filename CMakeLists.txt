@@ -67,13 +67,16 @@ set(SOURCES
 )
 add_executable(${EXECUTABLE_NAME} ${SOURCES} ${IMGUI_SOURCES} ${MINIZ_SOURCES} src/SFMLMain.cpp)
 
+add_executable(PerfTest ${SOURCES} test/PerfTest.cpp)
 add_executable(CPUPerfTest ${SOURCES} test/CPUPerfTest.cpp)
 add_executable(Screenshot ${SOURCES} ${MINIZ_SOURCES} test/Screenshot.cpp)
 
 set_property(TARGET ${EXECUTABLE_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET PerfTest PROPERTY CXX_STANDARD 20)
 set_property(TARGET CPUPerfTest PROPERTY CXX_STANDARD 20)
 set_property(TARGET Screenshot PROPERTY CXX_STANDARD 20)
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_target_properties(PerfTest PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 set_target_properties(CPUPerfTest PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 set_target_properties(Screenshot PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 	
