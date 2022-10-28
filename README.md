@@ -8,9 +8,9 @@ A web version compiled to javascript via emscripten is available at http://senry
 
 ## Screenshots
 
-<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Zelda_1.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Kirby_1.png" width=350 />
+<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Zelda_1.webp" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Kirby_1.webp" width=350 />
 
-<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_CustomBoot.png" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Debug_1.png" width=350 />
+<img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_CustomBoot.webp" width=350 /> <img src="http://senryoku.github.io/data/img/SenBoy/SenBoy_Debug_1.webp" width=350 />
 
 ## Compilation
 
