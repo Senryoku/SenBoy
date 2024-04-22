@@ -1,4 +1,4 @@
-# SenBoy [![Build Status](https://travis-ci.org/Senryoku/SenBoy.svg?branch=master)](https://travis-ci.org/Senryoku/SenBoy) 
+# SenBoy
 
 GameBoy (Color) emulator.
 
