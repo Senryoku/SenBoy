@@ -129,6 +129,7 @@ void GPU::render_line() {
     const int    wx = _mmu->read(MMU::WX) - 7; // Can be < 0
     const word_t wy = _mmu->read(MMU::WY);
 
+    bool draw_background = _mmu->cgb_mode() || (LCDC & BGDisplay);
     bool draw_window = (LCDC & WindowDisplay) && wx < 160 && line >= wy;
 
     // BG Disabled, draw blank in non CGB mode
@@ -143,7 +144,7 @@ void GPU::render_line() {
     }
 
     // Render Background Or Window
-    if((LCDC & BGDisplay) || draw_window) {
+    if(draw_background || draw_window) {
         // Selects the Tile Map & Tile Data Set
         addr_t mapoffs = (LCDC & BGTileMapDisplaySelect) ? 0x9C00 : 0x9800;
         addr_t base_tile_data = (LCDC & BGWindowsTileDataSelect) ? 0x8000 : 0x9000;
