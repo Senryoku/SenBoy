@@ -64,3 +64,8 @@ web/www/GBRoms/
 web/www/screenshots/
 web/www/romlist.txt
 web/www/list.html
+
+.vs/
+out/
+build_msvc/
+CMakeSettings.json
